@@ -133,6 +133,12 @@ static void setup()
 	PDL_RegisterJSHandler("getMetadata", getMetadata);
     PDL_RegisterJSHandler("getCartridges", getCartridges);
     PDL_JSRegistrationComplete();
+    
+    // Workaround for old webos devices:
+    // https://github.com/enyojs/enyo-1.0/blob/master/framework/source/palm/controls/Hybrid.js#L49
+    const char *params[1];
+	params[0] = "ready";
+	PDL_CallJS("__PDL_PluginStatusChange__", params, 1);
 
 	// call a "ready" callback to let JavaScript know that we're initialized
     PDL_CallJS("ready", NULL, 0);
