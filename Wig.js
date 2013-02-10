@@ -15,12 +15,13 @@ enyo.kind({
 				{name: "gMain", className: "enyo-bg", kind: "WIGApp.GameMain"}
 			]
 		},
-      {kind: "AppMenu", components: [
+		{kind: "AppMenu", components: [
 			{kind: "EditMenu"},
 			{caption: "Preferences", onclick: "turnLightsOff"},
 			{caption: "Refresh", onclick: "turnLightsOn"},
 			/*{kind: "HelpMenu", target: "http://jakuje.dta3.com"}*/
-		]}
+		]},
+		{ kind: enyo.ApplicationEvents, onBack: "goBack" }
 	],
 	
 
@@ -48,8 +49,8 @@ enyo.kind({
 	},
 
 	goBack: function(inSender, inEvent) {
+		inEvent.stopPropagation();
 		if( this.$.pane.getViewName() !=  "cList" ){
-			inEvent.stopPropagation();
 			inEvent.preventDefault();
 		}
 		this.$.pane.back(inEvent);

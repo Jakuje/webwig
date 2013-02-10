@@ -32,7 +32,6 @@ enyo.kind({
 		{kind: "Toolbar", layoutKind: "HFlexLayout", components: [
 			{caption: "Play", onclick: "playCartridge"},
 		]},
-		{ kind: enyo.ApplicationEvents, onBack: "goBack" }
 	],
 	create: function(){
 		this.inherited(arguments);

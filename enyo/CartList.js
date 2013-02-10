@@ -92,13 +92,17 @@ enyo.kind({
 		return false;
 	},
 	showDetails: function(inSender, inEvent){
-		var c = this.metadata[inEvent.rowIndex];
-		this.doInfo(c);
+		if (inEvent.rowIndex < this.metadata.length) {
+			var c = this.metadata[inEvent.rowIndex];
+			this.doInfo(c);
+		}
 		inEvent.stopPropagation();
 	},
 	playCartridge: function(inSender, inEvent){
-		var c = this.metadata[inEvent.rowIndex];
-		this.doPlay(c);
+		if (inEvent.rowIndex < this.metadata.length) {
+			var c = this.metadata[inEvent.rowIndex];
+			this.doPlay(c);
+		}
 	}
 
 });

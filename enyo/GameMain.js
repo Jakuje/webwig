@@ -26,7 +26,6 @@ enyo.kind({
 				{content: "Tasks (0)"},
 			]},
 		]},
-		{ kind: enyo.ApplicationEvents, onBack: "goBack" }
 	],
 	create: function(){
 		this.inherited(arguments);
