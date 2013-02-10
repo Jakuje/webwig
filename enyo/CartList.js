@@ -2,24 +2,26 @@ enyo.kind({
 	name: "WIGApp.CartList",
 	kind: "VFlexBox",
 	events: { 
-		onSelect: ""
+		onPlay: "",
+		onInfo: "",
 	},
 	components: [
 	  {kind: "PageHeader", components: [
 		{kind: "Spacer"},
 		{kind: enyo.VFlexBox, content: "Cartridges"},
 		{kind: "Spacer"},
-		{kind: "IconButton", icon: "images/menu-icon-refresh.png", onclick: "refreshClicked"}
+		{kind: "IconButton", icon: "images/menu-icon-sync.png", onclick: "refreshClicked"}
 		]},
       {kind: "Scroller", flex: 1, components: [
-			{name: "list", kind: "VirtualRepeater", onSetupRow: "listGetItem"/*, onclick: "changeDirectory"*/,
+			{name: "list", kind: "VirtualRepeater",
+				onSetupRow: "listGetItem", onclick: "playCartridge",
 				components: [
 					{kind: "Item", layoutKind: "VFlexLayout", components: [
 						{name: "title", kind: "Divider", allowHtml: true},
 						{layoutKind: "HFlexLayout", components: [
 							{name: "description"},
 							{kind: "Spacer"},
-							{kind: "IconButton", icon: "images/more-menu-icon.png", onclick: "showDetails"}
+							{kind: "IconButton", icon: "images/menu-icon-info.png", onclick: "showDetails"}
 						]}
 					]}
 				]
@@ -91,7 +93,12 @@ enyo.kind({
 	},
 	showDetails: function(inSender, inEvent){
 		var c = this.metadata[inEvent.rowIndex];
-		this.doSelect(c);
+		this.doInfo(c);
+		inEvent.stopPropagation();
+	},
+	playCartridge: function(inSender, inEvent){
+		var c = this.metadata[inEvent.rowIndex];
+		this.doPlay(c);
 	}
 
 });

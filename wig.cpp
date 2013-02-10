@@ -19,7 +19,7 @@
 using namespace std;
 
 const string DATA_DIR = "/media/internal/appdata/com.dta3team.app.wherigo/";
-const string CONF_DIR = DATA_DIR + ".conf";
+const string CONF_DIR = DATA_DIR;
 const string CONFIG_FILE = "database.json";
 
 enum EVENT_CODES {GET_CARTRIDGES, GET_METADATA};
@@ -137,8 +137,8 @@ static void setup()
 	// call a "ready" callback to let JavaScript know that we're initialized
     PDL_CallJS("ready", NULL, 0);
     syslog(LOG_INFO, "**** Registered");
-
-
+	
+	
     /*SDL_EnableUNICODE(1);
     keyString = strdup("");
 
@@ -183,6 +183,7 @@ static bool OutputMetadata(stringstream *buf, const char *cartridge, bool first 
 	*buf << "{\n"
 		<< "\"filename\": \"" << escapeJsonString(string(cartridge)) << "\""
 		<< ",\"iconID\": \"" << w->iconID << "\""
+		<< ",\"splashID\": \"" << w->splashID << "\""
 		<< ",\"type\": \"" << w->type << "\""
 		<< ",\"name\": \"" << escapeJsonString(w->cartridgeName) << "\""
 		<< ",\"guid\": \"" << w->cartridgeGUID << "\""
@@ -200,6 +201,17 @@ static bool OutputMetadata(stringstream *buf, const char *cartridge, bool first 
 		string dfile(CONF_DIR);
 		dfile.append(w->cartridgeGUID);
 		dfile.append("_icon.png");
+		ofstream df (dfile.c_str(), ifstream::binary | ifstream::trunc);
+		df << sf.rdbuf();
+	}
+	if( w->splashID > 0 ){ 
+		ostringstream sfile;
+		sfile << w->getTmp()
+			<< "/" << w->splashID;
+		ifstream sf (sfile.str().c_str(), ifstream::binary );
+		string dfile(CONF_DIR);
+		dfile.append(w->cartridgeGUID);
+		dfile.append("_splash.png");
 		ofstream df (dfile.c_str(), ifstream::binary | ifstream::trunc);
 		df << sf.rdbuf();
 	}

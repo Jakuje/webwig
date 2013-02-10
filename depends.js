@@ -3,5 +3,6 @@ enyo.depends(
   "Wig.css",
   "enyo/Plugin.js",
   "enyo/CartList.js",
-  "enyo/CartDetail.js"
+  "enyo/CartDetail.js",
+  "enyo/GameMain.js"
 );
