@@ -1,5 +1,6 @@
 STAGING
 mess
 *.o
+*.a
 wig
 *.gwc

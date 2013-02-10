@@ -7,7 +7,7 @@ enyo.kind({
 	components: [
 	  {kind: "PageHeader", components: [
 		{kind: "Spacer"},
-		{kind: enyo.VFlexBox, content: "Wherigo"},
+		{kind: enyo.VFlexBox, content: "Cartridges"},
 		{kind: "Spacer"},
 		{kind: "IconButton", icon: "images/menu-icon-refresh.png", onclick: "refreshClicked"}
 		]},
