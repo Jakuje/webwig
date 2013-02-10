@@ -9,7 +9,7 @@ enyo.kind({
 			{kind: "IconButton", icon: "images/menu-icon-back.png", onclick: "goBack"},
 			{kind: "Spacer"},
 			{name: "title", kind: enyo.VFlexBox, content: "Wherigo name"},
-			{kind: "Spacer"},
+			{kind: "Spacer"}
 		]},
 		{kind: "Scroller", flex: 1, components: [
 			{kind: "Item", components: [

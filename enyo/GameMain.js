@@ -6,29 +6,26 @@ enyo.kind({
 			{kind: "IconButton", icon: "images/menu-icon-back.png", onclick: "goBack"},
 			{kind: "Spacer"},
 			{name: "title", kind: enyo.VFlexBox, content: "Wherigo name"},
-			{kind: "Spacer"},
+			{kind: "Spacer"}
 		]},
 		{kind: enyo.VFlexBox, flex: 1, components: [
-			{kind: enyo.HFlexBox, components: [
-				{kind: "Image", src: "images/locations.png"},
-				{content: "Locations (0)"},
-			]},
-			{kind: enyo.HFlexBox, components: [
-				{kind: "Image", src: "images/you_see.png"},
-				{content: "You See (0)"},
-			]},
-			{kind: enyo.HFlexBox, components: [
-				{kind: "Image", src: "images/Inventory.png"},
-				{content: "Inventory (0)"},
-			]},
-			{kind: enyo.HFlexBox, components: [
-				{kind: "Image", src: "images/tasks.png"},
-				{content: "Tasks (0)"},
-			]},
+			
+			{name: "locations", kind: "WIGApp.GameMain.ActionRow"},
+			{name: "youSee", kind: "WIGApp.GameMain.ActionRow"},
+			{name: "inventory", kind: "WIGApp.GameMain.ActionRow"},
+			{name: "tasks", kind: "WIGApp.GameMain.ActionRow"},
 		]},
 	],
 	create: function(){
 		this.inherited(arguments);
+		this.$.locations.$.icon.setSrc("images/locations.png");
+		this.$.locations.$.title.setContent("Locations");
+		this.$.youSee.$.icon.setSrc("images/you_see.png");
+		this.$.youSee.$.title.setContent("You see");
+		this.$.inventory.$.icon.setSrc("images/inventory.png");
+		this.$.inventory.$.title.setContent("Inventory");
+		this.$.tasks.$.icon.setSrc("images/tasks.png");
+		this.$.tasks.$.title.setContent("Tasks");
 	},
 	
 	setup: function(data){

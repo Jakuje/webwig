@@ -6,13 +6,13 @@ enyo.kind({
 		onInfo: "",
 	},
 	components: [
-	  {kind: "PageHeader", components: [
-		{kind: "Spacer"},
-		{kind: enyo.VFlexBox, content: "Cartridges"},
-		{kind: "Spacer"},
-		{kind: "IconButton", icon: "images/menu-icon-sync.png", onclick: "refreshClicked"}
+		{kind: "PageHeader", components: [
+			{kind: "Spacer"},
+			{content: "Cartridges"},
+			{kind: "Spacer"},
+			{kind: "IconButton", icon: "images/menu-icon-sync.png", onclick: "refreshClicked"}
 		]},
-      {kind: "Scroller", flex: 1, components: [
+		{kind: "Scroller", flex: 1, components: [
 			{name: "list", kind: "VirtualRepeater",
 				onSetupRow: "listGetItem", onclick: "playCartridge",
 				components: [
