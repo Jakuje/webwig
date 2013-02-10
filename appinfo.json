@@ -1,0 +1,11 @@
+{
+	"title": "WIG",
+	"type": "web",
+	"main": "index.html",
+    "icon": "logo.png",
+	"id": "com.dta3team.app.wherigo",
+	"version": "1.0.0",
+	"vendor": "Dta3 team",
+	"uiRevision": 2,
+	"plug-ins": true
+}
