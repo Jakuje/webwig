@@ -190,6 +190,7 @@ static bool OutputMetadata(stringstream *buf, const char *cartridge, bool first 
 		<< ",\"startingLocationDescription\": \"" << escapeJsonString(w->startingLocationDescription) << "\""
 		<< ",\"version\": \"" << w->version << "\""
 		<< ",\"author\": \"" << escapeJsonString(w->author) << "\""
+		<< ",\"company\": \"" << escapeJsonString(w->company) << "\""
 		<< "\n}";
 	if( w->iconID > 0 ){ 
 		ostringstream sfile;

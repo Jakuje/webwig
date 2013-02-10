@@ -10,15 +10,20 @@ enyo.kind({
 		]},
 		{kind: "Scroller", flex: 1, components: [
 			{kind: "Item", components: [
-				{kind: "Divider", caption: "Description"},
+				{kind: "Divider", caption: "Author and comapny"},
+				{layoutKind: "HFlexLayout", components: [
+					{name: "author"}, {kind: "Spacer"}, {name: "company"}
+					]},
+				{name: "icon", kind: "Divider", caption: "Description"},
 				{name: "description", layoutKind: "HFlexLayout"},
 				{kind: "Divider", caption: "Start location description"},
 				{name: "startDescription", layoutKind: "HFlexLayout"},
-				{kind: "Divider", caption: "Author and version"},
+				{kind: "Divider", caption: "Type and version"},
 				{layoutKind: "HFlexLayout", components: [
-					{name: "author"}, {kind: "Spacer"}, {name: "version"}
+					{name: "type"}, {kind: "Spacer"}, {name: "version"}
 					]},
-				]}
+			]},
+				
 		]},
 		{ kind: enyo.ApplicationEvents, onBack: "goBack" }
 	],
@@ -26,15 +31,22 @@ enyo.kind({
 		this.inherited(arguments);
 	},
 	
-	setup: function(metadata){
-		this.$.title.setContent(metadata.name);
-		this.$.description.setContent(metadata.description);
-		this.$.startDescription.setContent(metadata.startingLocationDescription);
-		this.$.author.setContent(metadata.author);
-		this.$.version.setContent(metadata.version);
+	setup: function(data){
+		this.$.title.setContent(data.name);
+		if(data.iconID != "-1"){
+			this.$.icon.setIcon(DATA_DIR + data.guid + '_icon.png');
+		}
+		this.$.description.setContent(data.description);
+		this.$.startDescription.setContent(data.startingLocationDescription);
+		this.$.type.setContent(data.type);
+		this.$.version.setContent(data.version);
+		this.$.author.setContent(data.author);
+		
 	},
 	
-	goBack: function(){
+	goBack: function(inSender, inEvent){
 		this.owner.goBack();
+		inEvent.stopPropagation();
+		inEvent.preventDefault();
 	}
 });
