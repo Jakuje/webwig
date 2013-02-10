@@ -1,0 +1,5 @@
+STAGING
+mess
+*.o
+wig
+*.gwc
