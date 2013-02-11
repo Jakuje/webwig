@@ -18,10 +18,6 @@
 
 using namespace std;
 
-const string DATA_DIR = "/media/internal/appdata/com.dta3team.app.wherigo/";
-const string CONF_DIR = DATA_DIR;
-const string CONFIG_FILE = "database.json";
-
 enum EVENT_CODES {GET_CARTRIDGES, GET_METADATA};
 
 lua_State *L;
@@ -118,12 +114,6 @@ static void setup()
     PDL_Init(0);
     atexit(PDL_Quit);
 
-    /*PDL_Err err;
-    char appPath[256];
-    err = PDL_GetCallingPath(appPath, sizeof(appPath));
-    if (err) EXIT(1);
-    chdir(appPath);*/
-
 	/*if (!PDL_IsPlugin()) {
 		cerr << "call from cmd" << endl;
         //RunCommandLineTests(argc, argv);
@@ -144,29 +134,6 @@ static void setup()
     PDL_CallJS("ready", NULL, 0);
     syslog(LOG_INFO, "**** Registered");
 	
-	
-    /*SDL_EnableUNICODE(1);
-    keyString = strdup("");
-
-    gScreen = SDL_SetVideoMode(0, 0, 0, 0);
-    
-    
-    SDL_Surface *logoImage = IMG_Load("logo.png");
-    if (!logoImage) EXIT(1);
-    gLogo = SDL_DisplayFormat(logoImage);
-    if (!gLogo) EXIT(1);
-    SDL_FreeSurface(logoImage);
-    atexit(freeLogo);
-
-    
-    TTF_Init();
-    atexit(TTF_Quit);
-
-    gFont = TTF_OpenFont(PRELUDE_FONT_PATH, 20);
-    if (!gFont) EXIT(1);
-    atexit(freeFont);
-    */
-    //openlog("com.dta3team.app.simplepdk", 0, LOG_USER);
 }
 
 bool gKeyboardVisible = false;
@@ -179,8 +146,7 @@ static bool OutputMetadata(stringstream *buf, const char *cartridge, bool first 
 		delete w;
 		return false;		
 	}
-	w->createTmp();
-	w->createFiles();
+	w->createIcons();
 	
 	if (!first) {
 		*buf << ",\n";
@@ -199,64 +165,9 @@ static bool OutputMetadata(stringstream *buf, const char *cartridge, bool first 
 		<< ",\"author\": \"" << escapeJsonString(w->author) << "\""
 		<< ",\"company\": \"" << escapeJsonString(w->company) << "\""
 		<< "\n}";
-	if( w->iconID > 0 ){ 
-		ostringstream sfile;
-		sfile << w->getTmp()
-			<< "/" << w->iconID;
-		ifstream sf (sfile.str().c_str(), ifstream::binary );
-		string dfile(CONF_DIR);
-		dfile.append(w->cartridgeGUID);
-		dfile.append("_icon.png");
-		ofstream df (dfile.c_str(), ifstream::binary | ifstream::trunc);
-		df << sf.rdbuf();
-	}
-	if( w->splashID > 0 ){ 
-		ostringstream sfile;
-		sfile << w->getTmp()
-			<< "/" << w->splashID;
-		ifstream sf (sfile.str().c_str(), ifstream::binary );
-		string dfile(CONF_DIR);
-		dfile.append(w->cartridgeGUID);
-		dfile.append("_splash.png");
-		ofstream df (dfile.c_str(), ifstream::binary | ifstream::trunc);
-		df << sf.rdbuf();
-	}
 	delete w;
 	return true;
 }
-
-/*static void OutputMetadataToJS(const char *cartridge)
-{
-    stringstream *buffer = new stringstream(stringstream::in | stringstream::out);
-    *buffer << "{"
-		<< "\"type\":\"ok\","
-		<< "\"data\":[";
-	
-    if( OutputMetadata(buffer, cartridge, true) == false ){
-		buffer->str("");
-		*buffer << "{"
-			<< "\"type\":\"error\","
-			<< "\"message\":\"Error - unable to open cartridge " << cartridge << "\""
-			<< "}";
-		return;
-	}
-	*buffer << "]}";
-	
-	const char *data = buffer->str().c_str();
-	
-    // send data back to the JavaScript side
-    syslog(LOG_WARNING, "*** returning results");
-    PDL_Err err;
-    err = PDL_CallJS("getMetadataResult", (const char **)&data, 1);
-    if (err) {
-        syslog(LOG_ERR, "*** PDL_CallJS failed, %s", PDL_GetError());
-        //SDL_Delay(5);
-    }
-    
-    // now that we're done, free our working memory
-    //delete data;
-    delete buffer;
-}*/
 
 static void OutputCartridges(stringstream *buf, int *refresh){
 	string filename( DATA_DIR );
@@ -301,9 +212,6 @@ static void OutputCartridges(stringstream *buf, int *refresh){
 		return;
 	}
 	
-	/*while (file.good()){
-		*buf << (char) file.get();
-	}*/
 	*buf << file.rdbuf();
 	file.close();
 	return;
@@ -316,7 +224,6 @@ static void OutputCartridgesToJS(int *refresh)
 	
 	string str = buffer->str();	
 	const char * data = str.c_str();
-	//strcpy(data, str.c_str());
 	
     // send data back to the JavaScript side
     syslog(LOG_WARNING, "*** returning results");

@@ -142,26 +142,55 @@ bool Wherigo::createBytecode(string *tmpname){
 	return true;
 }
 
-bool Wherigo::createFiles(){
-	ostringstream str;
-	string path = string(tmpdir).append("/");
+bool Wherigo::createIcons(){
+	this->createFileById(this->iconID, string(DATA_DIR).append(this->cartridgeGUID).append("_icon.png"));
+	this->createFileById(this->splashID, string(DATA_DIR).append(this->cartridgeGUID).append("_splash.png"));
+}
+
+/**
+ * Creates file by global ID
+ */
+bool Wherigo::createFileById(int id, string path){
 	for(int i = 1;i < files; i++){
+		if( ids[i] == id ){
+			this->createFile(i, path);
+			return true;
+		}
+	}
+	return false;
+}
+
+/**
+ * Creates file by internal index
+ */
+bool Wherigo::createFile(int i, string path){
+	if( i < files ){
 		fd.seekg( offsets[i] );
 		if( fd.readByte() == 0 ){
-			continue;
+			return false;
 		}
-		str.str("");
-		str << ids[i];
 		int type = fd.readLong();
 		int len = fd.readLong();
 		char *data = new char [len];
 		fd.read(data, len);
 		
-		string filename = string(path).append(str.str());
-		ofstream f( filename.c_str(), ios_base::out | ios_base::binary);
+		ofstream f( path.c_str(), ios_base::out | ios_base::binary);
 		f.write(data, len);
 		f.close();
 		delete data;
+		return true;
+	} else {
+		return false;
+	}
+}
+
+bool Wherigo::createFiles(){
+	ostringstream str;
+	string path = string(tmpdir).append("/");
+	for(int i = 1;i < files; i++){
+		str.str("");
+		str << ids[i];
+		this->createFile(i, string(path).append(str.str()));
 	}
 	return true;
 }

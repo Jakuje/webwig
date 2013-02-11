@@ -9,6 +9,10 @@
 #include <string>
 #include "filereader.h"
 
+const string DATA_DIR = "/media/internal/appdata/com.dta3team.app.wherigo/";
+const string CONF_DIR = DATA_DIR;
+const string CONFIG_FILE = "database.json";
+
 using namespace std;
 
 void my_error(string message);
@@ -76,6 +80,12 @@ public:
 
 	bool createBytecode(string *tmpname);
 
+	bool createIcons();
+	
+	bool createFileById(int id, string path);
+	
+	bool createFile(int i, string path);
+	
 	bool createFiles();
 
 	int createTmp();
