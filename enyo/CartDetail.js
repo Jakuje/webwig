@@ -18,9 +18,9 @@ enyo.kind({
 					{name: "author"}, {kind: "Spacer"}, {name: "company"}
 					]},
 				{name: "icon", kind: "Divider", caption: "Description"},
-				{name: "description", layoutKind: "HFlexLayout"},
+				{name: "description", layoutKind: "HFlexLayout", allowHtml: true},
 				{kind: "Divider", caption: "Start location description"},
-				{name: "startDescription", layoutKind: "HFlexLayout"},
+				{name: "startDescription", layoutKind: "HFlexLayout", allowHtml: true},
 				{kind: "Divider", caption: "Type and version"},
 				{layoutKind: "HFlexLayout", components: [
 					{name: "type"}, {kind: "Spacer"}, {name: "version"}
@@ -56,6 +56,7 @@ enyo.kind({
 		this.$.type.setContent(data.type);
 		this.$.version.setContent(data.version);
 		this.$.author.setContent(data.author);
+		this.$.scroller.setScrollTop(0);
 		
 	},
 	
