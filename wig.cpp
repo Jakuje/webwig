@@ -339,67 +339,18 @@ static int openCartridge(char *filename){
 	my_error("*** MAIN LUA");
 
 	lua_register(L, "messageBox", messageBox);
-	status = luaL_dostring(L, "package.loaded['Wherigo'] = 1 \
-Wherigo = {}\n\
-function Wherigo.MessageBox(text)\n\
-	messageBox(text) \n\
-	end\n\
-Wherigo.ZCartridge = { }\n\
-function Wherigo.ZCartridge.new()\n\
-	local self = {}\n\
-	self.Name = 'Old name'\n\
-	self._mediacount = -1\n\
-	self._store = true\n\
-	return self\n\
-	end \n\
-setmetatable(Wherigo.ZCartridge, {\n\
-	__call = Wherigo.ZCartridge.new\n\
-	}) \n\
-Wherigo.INVALID_ZONEPOINT = 0 \n\
-Wherigo.Distance = 0 \n\
-Wherigo.Player = 0 \n\
-Wherigo.ZonePoint = {} \n\
-function Wherigo.ZonePoint.new(lat, lon, alt)\n\
-	local self = {}\n\
-	local latitude = lat\n\
-	local longitude = lat\n\
-	local altitude = lat\n\
-	return self\n\
-	end \n\
-\n\
-Wherigo.ZObject = {} \n\
-function Wherigo.ZObject.new( cartridge ) --[[ , container = null ]]\n\
-	local self = {}\n\
-	self.Cartridge = cartridge\n\
-	if not cartridge then\n\
-		--[[ assert ]]\n\
-		self.ObjIndex = -1\n\
-		return self\n\
-		end\n\
-	if cartridge._store then\n\
-		--[[ add to cartridge.AllZObjects ]]\n\
-		end\n\
-	return self\n\
-	end \n\
-\n\
-function Wherigo.ZonePoint.new()\n\
-	return Wherigo.ZonePoint.__init( Wherigo.ZObject.new( cartridge ), cartridge )\n\
-	end \n\
-function Wherigo.ZonePoint.__init( self, cartridge )\n\
-	_id = cartridge._mediacount\n\
-	if cartridge._mediacount > 0 then\n\
-		cartridge._mediacount = cartridge._mediacount + 1;\n\
-		end\n\
-	return self\n\
-	end\n\
-");
+	status = luaL_dofile(L, "wherigo.lua") {
 	report(L, status);
-
+	
+	luaL_dostring(L, "function run_file() ");
+	
 	string bytecode = string( w.getTmp() );
 	bytecode.append("/wg.lua");
 	status = lua_cpcall(L, &pmain, &bytecode);
 	report(L, status);
-	status = !status && luaL_dostring(L, "cart = cart.OnStart() debug.debug() ");
+	luaL_dostring(L, "end \n cart = run_file() ");
+	
+	status = !status && luaL_dostring(L, "cart.OnStart() debug.debug() ");
 
 	my_error("Everything ok");
 	return 1;

@@ -66,6 +66,7 @@ package: $(PLUGIN) appinfo.json logo.png
 #sources
 	copy wig.cpp STAGING
 	copy wherigo.cpp STAGING
+	copy wherigo.lua STAGING
 	echo filemode.755=$(PLUGIN) > STAGING\package.properties
 #	palm-package STAGING
 #	palm-install com.dta3team.app.wherigo_1.0.0_all.ipk
