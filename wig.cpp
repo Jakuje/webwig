@@ -339,7 +339,7 @@ static int openCartridge(char *filename){
 	my_error("*** MAIN LUA");
 
 	lua_register(L, "messageBox", messageBox);
-	status = luaL_dofile(L, "wherigo.lua") {
+	status = luaL_dofile(L, "wherigo.lua");
 	report(L, status);
 	
 	luaL_dostring(L, "function run_file() ");
