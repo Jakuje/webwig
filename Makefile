@@ -68,7 +68,7 @@ package: $(PLUGIN) appinfo.json logo.png
 	copy wherigo.cpp STAGING
 	echo filemode.755=$(PLUGIN) > STAGING\package.properties
 #	palm-package STAGING
-#	palm-install com.dta3team.app.simplepdk_1.0.0_all.ipk
+#	palm-install com.dta3team.app.wherigo_1.0.0_all.ipk
 	palm-run STAGING
 
 clean:
