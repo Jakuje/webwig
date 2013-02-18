@@ -132,8 +132,16 @@ static PDL_bool getCartridgesJS(PDL_JSParameters *params)
     return PDL_TRUE;
 }
 
+static int openCartridge(char *filename);
+
+void CommandLineTests(){
+	openCartridge("wherigo.lua.gwc");
+}
+
 static void setup()
 {
+    openlog("com.dta3team.app.wherigo", 0, LOG_USER);
+    
     int result = SDL_Init(SDL_INIT_VIDEO);
     if ( result != 0 ) {
         printf("Could not init SDL: %s\n", SDL_GetError());
@@ -144,11 +152,11 @@ static void setup()
     PDL_Init(0);
     atexit(PDL_Quit);
 
-	/*if (!PDL_IsPlugin()) {
+	if (!PDL_IsPlugin()) {
 		cerr << "call from cmd" << endl;
-        //RunCommandLineTests(argc, argv);
+        CommandLineTests();
         exit(0);
-    }*/
+    }
     
 	PDL_RegisterJSHandler("getCartridges", getCartridgesJS);
     PDL_RegisterJSHandler("openCartridge", openCartridgeJS);
@@ -269,9 +277,14 @@ static void OutputCartridgesToJS(int *refresh)
     delete buffer;
 }
 
+/**
+ * Lua function
+ * @param string Message to show
+ */
 static int messageBox(lua_State *L) {
 	const char *text = lua_tostring(L, 1);  /* get argument */
 	cerr << "Message:" << text << endl;
+	syslog(LOG_WARNING, "*** MessageBox with message: %s", text);
 	
     PDL_Err err;
     err = PDL_CallJS("popupMessage", (const char **)&text, 1);
@@ -318,7 +331,7 @@ static int openCartridge(char *filename){
 	L = lua_open();  /* create state */
 	if (L == NULL) {
 		l_message("", "cannot create state: not enough memory");
-		return EXIT_FAILURE;
+		return 0;
 	}
 	luaL_openlibs(L);
 
@@ -327,57 +340,58 @@ static int openCartridge(char *filename){
 
 	lua_register(L, "messageBox", messageBox);
 	status = luaL_dostring(L, "package.loaded['Wherigo'] = 1 \
-Wherigo = {}\
-function Wherigo.MessageBox(text)\
-	messageBox(text) \
-	end\
-Wherigo.ZCartridge = { }\
-function Wherigo.ZCartridge.new()\
-	local self = {}\
-	self.Name = 'Old name'\
-	self._mediacount = -1\
-	self._store = true\
-	return self\
-	end \
-setmetatable(Wherigo.ZCartridge, {\
-	__call = Wherigo.ZCartridge.new\
-	}) \
-Wherigo.INVALID_ZONEPOINT = 0 \
-Wherigo.Distance = 0 \
-Wherigo.Player = 0 \
-Wherigo.ZonePoint = {} \
-function Wherigo.ZonePoint.new(lat, lon, alt)\
-	local self = {}\
-	local latitude = lat\
-	local longitude = lat\
-	local altitude = lat\
-	return self\
-	end \
-\
-function Wherigo.ZObject.new( cartridge ) --[[ , container = null ]]\
-	local self = {}\
-	self.Cartridge = cartridge\
-	if not cartridge then\
-		--[[ assert ]]\
-		self.ObjIndex = -1\
-		return self\
-		end\
-	if cartridge._store then\
-		--[[ add to cartridge.AllZObjects ]]\
-		end\
-	return self\
-	end\
-\
-function Wherigo.ZonePoint.new()\
-	return Wherigo.ZonePoint.__init( Wherigo.ZObject.new( cartridge ), cartridge )\
-	end\
-function Wherigo.ZonePoint.__init( self, cartridge )\
-	_id = cartridge._mediacount\
-	if cartridge._mediacount > 0 then\
-		cartridge._mediacount++\
-		end\
-	return self\
-	end\
+Wherigo = {}\n\
+function Wherigo.MessageBox(text)\n\
+	messageBox(text) \n\
+	end\n\
+Wherigo.ZCartridge = { }\n\
+function Wherigo.ZCartridge.new()\n\
+	local self = {}\n\
+	self.Name = 'Old name'\n\
+	self._mediacount = -1\n\
+	self._store = true\n\
+	return self\n\
+	end \n\
+setmetatable(Wherigo.ZCartridge, {\n\
+	__call = Wherigo.ZCartridge.new\n\
+	}) \n\
+Wherigo.INVALID_ZONEPOINT = 0 \n\
+Wherigo.Distance = 0 \n\
+Wherigo.Player = 0 \n\
+Wherigo.ZonePoint = {} \n\
+function Wherigo.ZonePoint.new(lat, lon, alt)\n\
+	local self = {}\n\
+	local latitude = lat\n\
+	local longitude = lat\n\
+	local altitude = lat\n\
+	return self\n\
+	end \n\
+\n\
+Wherigo.ZObject = {} \n\
+function Wherigo.ZObject.new( cartridge ) --[[ , container = null ]]\n\
+	local self = {}\n\
+	self.Cartridge = cartridge\n\
+	if not cartridge then\n\
+		--[[ assert ]]\n\
+		self.ObjIndex = -1\n\
+		return self\n\
+		end\n\
+	if cartridge._store then\n\
+		--[[ add to cartridge.AllZObjects ]]\n\
+		end\n\
+	return self\n\
+	end \n\
+\n\
+function Wherigo.ZonePoint.new()\n\
+	return Wherigo.ZonePoint.__init( Wherigo.ZObject.new( cartridge ), cartridge )\n\
+	end \n\
+function Wherigo.ZonePoint.__init( self, cartridge )\n\
+	_id = cartridge._mediacount\n\
+	if cartridge._mediacount > 0 then\n\
+		cartridge._mediacount = cartridge._mediacount + 1;\n\
+		end\n\
+	return self\n\
+	end\n\
 ");
 	report(L, status);
 
@@ -388,7 +402,7 @@ function Wherigo.ZonePoint.__init( self, cartridge )\
 	status = !status && luaL_dostring(L, "cart = cart.OnStart() debug.debug() ");
 
 	my_error("Everything ok");
-	
+	return 1;
 } 
 
 static void openCartridgeToJS(char *filename){
@@ -401,7 +415,7 @@ static void openCartridgeToJS(char *filename){
 				<< "\"tasks\": [{\"name\": \"To do something\"}],"
 			<< "}}";
 	} else {
-		*buffer << "{\"type\": \"error\", \"message\": \"Unable to open cartidge file\"}";
+		*buffer << "{\"type\": \"error\", \"message\": \"Unable to load cartidge file\"}";
 	}
 	
 	string str = buffer->str();	
