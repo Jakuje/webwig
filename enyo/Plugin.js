@@ -15,6 +15,13 @@ enyo.kind({
 		// plugin immediately
 		this.addCallback("getCartridgesResult", enyo.bind(this, this._getMetaCallback), true);
 		this.addCallback("openCartridgeResult", enyo.bind(this, this._getMetaCallback), true);
+		
+		this.addCallback("popupMessage", enyo.bind(this, this.popupMessage), true);
+	},
+	
+	popupMessage: function(message){
+		this.owner.$.cList.$.errorMessage.setContent(message);
+		this.owner.$.cList.$.errorMessage.openAtCenter();
 	},
 	
 	_resultsCallbacks: [],
@@ -79,7 +86,23 @@ enyo.kind({
 			console.error("***** WIG Enyo: openCartridge filename = " + filename);
 			this._resultsCallbacks.push(callback);
 			this.callPluginMethodDeferred(enyo.nop, "openCartridge", filename);
+		} else {
+			enyo.nextTick(this, function() { callback(
+			{
+					"locations": [{"name": "Somewhere"}],
+					"youSee": [],
+					"inventory": [{"name": "Something"}, {"name": "Pen"}],
+					"tasks": [{"name": "To do something"}],
+			}
+				);
+			});
 		}
 	},
-
+	closeCartridge: function(save, callback){
+		if ( window.PalmSystem) {
+			console.error("***** WIG Enyo: closeCartridge save = " + save);
+			this._resultsCallbacks.push(callback);
+			this.callPluginMethodDeferred(enyo.nop, "closeCartridge", save);
+		}
+	},
 });

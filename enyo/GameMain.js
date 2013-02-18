@@ -46,9 +46,18 @@ enyo.kind({
 		this.$.version.setContent(data.version);
 		this.$.author.setContent(data.author);
 		*/
+		this.owner.$.plugin.openCartridge(data.filename, enyo.bind(this, this.updateUI));
+	},
+	
+	updateUI: function(data){
+		this.$.locations.setup(data.locations);
+		this.$.youSee.setup(data.youSee);
+		this.$.inventory.setup(data.inventory);
+		this.$.tasks.setup(data.tasks);
 	},
 	
 	goBack: function(inSender, inEvent){
+		// prompt
 		this.owner.goBack(inSender, inEvent);
 	}
 });

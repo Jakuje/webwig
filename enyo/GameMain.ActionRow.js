@@ -17,9 +17,15 @@ enyo.kind({
 			]}
 		]}
 	],
+	setup: function(data){
+		this.data = data;
+		this.$.numRows.setContent(data.length);
+		this.render();
+	},
+	data: [],
 	getItem: function(inSender, inIndex){
-		if (inIndex < 1) {
-			this.$.itemTitle.setContent("Nothing here" + inIndex);
+		if (inIndex < this.data.length) {
+			this.$.itemTitle.setContent(this.data[inIndex].name);
 			return true;
 		}
 	}

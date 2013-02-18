@@ -18,7 +18,7 @@
 
 using namespace std;
 
-enum EVENT_CODES {EVENT_GET_CARTRIDGES, EVENT_OPEN_CARTRIDGE};
+enum EVENT_CODES {EVENT_GET_CARTRIDGES, EVENT_OPEN_CARTRIDGE, EVENT_CLOSE_CARTRIDGE};
 
 lua_State *L;
 
@@ -74,6 +74,36 @@ static PDL_bool openCartridgeJS(PDL_JSParameters *params)
 }
 
 /**
+ * @param save (int) Save cartridge or not
+ */
+static PDL_bool closeCartridgeJS(PDL_JSParameters *params)
+{
+    if (PDL_GetNumJSParams(params) != 1) {
+        syslog(LOG_INFO, "**** wrong number of parameters for getMetadata");
+        PDL_JSException(params, "wrong number of parameters for getMetadata");
+        return PDL_FALSE;
+    }
+
+    /* parameters are directory, pattern */
+    int *save = new int;
+    *save = PDL_GetJSParamInt(params, 0);
+
+    /* since we don't process this in the method thread, instead post a
+     * SDL event that will be received in the main thread and used to 
+     * launch the code. */
+    SDL_Event event;
+    event.user.type = SDL_USEREVENT;
+    event.user.code = EVENT_CLOSE_CARTRIDGE;
+    event.user.data1 = save;
+    
+    syslog(LOG_WARNING, "*** sending closeCartridge event");
+    SDL_PushEvent(&event);
+    
+    return PDL_TRUE;
+}
+
+
+/**
  * @param refresh (int) Return saved (0) or scan dir for new packages (1)
  */
 static PDL_bool getCartridgesJS(PDL_JSParameters *params)
@@ -122,6 +152,7 @@ static void setup()
     
 	PDL_RegisterJSHandler("getCartridges", getCartridgesJS);
     PDL_RegisterJSHandler("openCartridge", openCartridgeJS);
+    PDL_RegisterJSHandler("closeCartridge", closeCartridgeJS);
     PDL_JSRegistrationComplete();
     
     // Workaround for old webos devices:
@@ -241,6 +272,14 @@ static void OutputCartridgesToJS(int *refresh)
 static int messageBox(lua_State *L) {
 	const char *text = lua_tostring(L, 1);  /* get argument */
 	cerr << "Message:" << text << endl;
+	
+    PDL_Err err;
+    err = PDL_CallJS("popupMessage", (const char **)&text, 1);
+    if (err) {
+        syslog(LOG_ERR, "*** PDL_CallJS failed, %s", PDL_GetError());
+        //SDL_Delay(5);
+    }
+	
 	return 0;  /* number of results */
 }
 
@@ -415,6 +454,12 @@ static void loop(){
 					char *filename = (char *)event.user.data1;
 					openCartridgeToJS(filename);
 					delete filename;
+					}
+					break;
+				case EVENT_CLOSE_CARTRIDGE: {
+					int *save = (int *)event.user.data1;
+					//openCartridgeToJS(filename);
+					delete save;
 					}
 					break;
 			}

@@ -49,7 +49,8 @@ enyo.kind({
 
 
    	openError: function() {
-		this.$.errorMessage.openAtCenter();
+		//this.$.errorMessage.openAtCenter();
+		this.owner.$.plugin.popupMessage("Zprava chybova");
 	},
 	closeError: function(inSender, inEvent) {
 		this.$.errorMessage.close();
@@ -57,7 +58,7 @@ enyo.kind({
 
 	create: function() {
 		this.inherited(arguments);
-		//this.getCartridges(0);
+		this.getCartridges(0);
 	},
 	
 	refreshClicked: function(){
