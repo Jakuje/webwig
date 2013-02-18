@@ -18,7 +18,7 @@
 
 using namespace std;
 
-enum EVENT_CODES {GET_CARTRIDGES, GET_METADATA};
+enum EVENT_CODES {EVENT_GET_CARTRIDGES, EVENT_OPEN_CARTRIDGE};
 
 lua_State *L;
 
@@ -46,9 +46,9 @@ std::string escapeJsonString(const std::string& input) {
 }
 
 /**
- * @param cartridge (string) Name of file to get cartridges
+ * @param filename (string) Filename to open and start
  */
-static PDL_bool getMetadata(PDL_JSParameters *params)
+static PDL_bool openCartridgeJS(PDL_JSParameters *params)
 {
     if (PDL_GetNumJSParams(params) != 1) {
         syslog(LOG_INFO, "**** wrong number of parameters for getMetadata");
@@ -57,26 +57,26 @@ static PDL_bool getMetadata(PDL_JSParameters *params)
     }
 
     /* parameters are directory, pattern */
-    const char *cartridge = PDL_GetJSParamString(params, 0);
+    const char *filename = PDL_GetJSParamString(params, 0);
 
     /* since we don't process this in the method thread, instead post a
      * SDL event that will be received in the main thread and used to 
      * launch the code. */
     SDL_Event event;
     event.user.type = SDL_USEREVENT;
-    event.user.code = GET_METADATA;
-    event.user.data1 = strdup(cartridge);
+    event.user.code = EVENT_OPEN_CARTRIDGE;
+    event.user.data1 = strdup(filename);
     
-    syslog(LOG_WARNING, "*** sending getMetadata event");
+    syslog(LOG_WARNING, "*** sending openCartridge event");
     SDL_PushEvent(&event);
     
     return PDL_TRUE;
 }
 
 /**
- * @param refresh (bool) Return 
+ * @param refresh (int) Return saved (0) or scan dir for new packages (1)
  */
-static PDL_bool getCartridges(PDL_JSParameters *params)
+static PDL_bool getCartridgesJS(PDL_JSParameters *params)
 {
     if (PDL_GetNumJSParams(params) != 1) {
         syslog(LOG_INFO, "**** wrong number of parameters for getCartridges");
@@ -93,7 +93,7 @@ static PDL_bool getCartridges(PDL_JSParameters *params)
      * launch the code. */
     SDL_Event event;
     event.user.type = SDL_USEREVENT;
-    event.user.code = GET_CARTRIDGES;
+    event.user.code = EVENT_GET_CARTRIDGES;
     event.user.data1 = refresh;
     
     syslog(LOG_WARNING, "*** sending getCartridges event");
@@ -120,8 +120,8 @@ static void setup()
         exit(0);
     }*/
     
-	PDL_RegisterJSHandler("getMetadata", getMetadata);
-    PDL_RegisterJSHandler("getCartridges", getCartridges);
+	PDL_RegisterJSHandler("getCartridges", getCartridgesJS);
+    PDL_RegisterJSHandler("openCartridge", openCartridgeJS);
     PDL_JSRegistrationComplete();
     
     // Workaround for old webos devices:
@@ -238,65 +238,11 @@ static void OutputCartridgesToJS(int *refresh)
     delete buffer;
 }
 
-static void loop(){
-
-	SDL_Event event;
-    if (SDL_WaitEvent(&event)) {
-        if (event.type == SDL_QUIT)
-            exit(0);
-        else if (event.type == SDL_MOUSEBUTTONDOWN) {
-           if (PDL_GetPDKVersion() >= 300) {
-                gKeyboardVisible = !gKeyboardVisible;
-                PDL_SetKeyboardState(gKeyboardVisible ? PDL_TRUE : PDL_FALSE);
-           }
-        } else if (event.type == SDL_USEREVENT) {
-            syslog(LOG_WARNING, "*** processing * event");
-            switch( event.user.code ){
-				/*case GET_METADATA:
-					// extract our arguments
-					char *cartridge = (char *)event.user.data1;
-					
-					// call our output function
-					OutputMetadataToJS(cartridge);
-
-					// free memory since this event is processed now
-					free(cartridge);
-					break;*/
-				case GET_CARTRIDGES:
-					int *refresh = (int *)event.user.data1;
-					OutputCartridgesToJS(refresh);
-					delete refresh;
-					break;
-			}
-        }
-    }
+static int messageBox(lua_State *L) {
+	const char *text = lua_tostring(L, 1);  /* get argument */
+	cerr << "Message:" << text << endl;
+	return 0;  /* number of results */
 }
-
-
-
-static void exit_lua(){
-    lua_close(L);
-}
-
-class ZObject {
-
-};
-
-class Player: ZObject {
-
-};
-
-class ZCartridge: ZObject {
-	
-	/*bool lua_register(){
-		Lunar<ZCartridge>::RegType ZCartridge::methods[] = {
-			LUNAR_DECLARE_METHOD(ZCartridge, deposit),
-	}*/
-
-};
-
-//const char ZCartridge::className[] = "ZCartrige";
-
 
 struct Smain {
   int argc;
@@ -319,38 +265,29 @@ int pmain (lua_State *L) {
 	return report(L, status);
 }
 
-static int messageBox(lua_State *L) {
-	const char *text = lua_tostring(L, 1);  /* get argument */
-	cerr << "Message:" << text << endl;
-	return 0;  /* number of results */
+static void exit_lua(){
+    lua_close(L);
 }
 
-int main (int argc, char **argv) {
-	// SDL setup and graphics display
-  setup();
-  my_error("*** MAIN Setup");
- 
-  
-  // new Lua state
-  int status;
-  L = lua_open();  /* create state */
-  if (L == NULL) {
-    l_message(argv[0], "cannot create state: not enough memory");
-    return EXIT_FAILURE;
-  }
-  luaL_openlibs(L);
-  
-  atexit( exit_lua );
-  my_error("*** MAIN LUA");
- 
-  // load file
-  /*Wherigo *w = new Wherigo("wherigo.lua.gwc");
-  w->setup();
+static int openCartridge(char *filename){
+	Wherigo w( string(DATA_DIR).append(filename) );
+	w.setup(); // scan file
+	w.createTmp(); // create dir and files
+	
+	// new Lua state
+	int status;
+	L = lua_open();  /* create state */
+	if (L == NULL) {
+		l_message("", "cannot create state: not enough memory");
+		return EXIT_FAILURE;
+	}
+	luaL_openlibs(L);
 
-  w->createTmp();
-  
-  lua_register(L, "messageBox", messageBox);
-  status = luaL_dostring(L, "package.loaded['Wherigo'] = 1 \
+	atexit( exit_lua );
+	my_error("*** MAIN LUA");
+
+	lua_register(L, "messageBox", messageBox);
+	status = luaL_dostring(L, "package.loaded['Wherigo'] = 1 \
 Wherigo = {}\
 function Wherigo.MessageBox(text)\
 	messageBox(text) \
@@ -403,23 +340,115 @@ function Wherigo.ZonePoint.__init( self, cartridge )\
 	return self\
 	end\
 ");
-  report(L, status);
+	report(L, status);
 
-  string *bytecode = new string( w->getTmp() );
-  bytecode->append("/wg.lua");
-  status = lua_cpcall(L, &pmain, bytecode);
-  report(L, status);
-  status = !status && luaL_dostring(L, "cart = cart.OnStart() debug.debug() ");
+	string bytecode = string( w.getTmp() );
+	bytecode.append("/wg.lua");
+	status = lua_cpcall(L, &pmain, &bytecode);
+	report(L, status);
+	status = !status && luaL_dostring(L, "cart = cart.OnStart() debug.debug() ");
+
+	my_error("Everything ok");
+	
+} 
+
+static void openCartridgeToJS(char *filename){
+	stringstream *buffer = new stringstream(stringstream::in | stringstream::out);
+	if( openCartridge(filename) ){
+		*buffer << "{\"type\": \"ok\", \"data\": {\n"
+				<< "\"locations\": [{\"name\": \"Somewhere\"}],"
+				<< "\"youSee\": [],"
+				<< "\"inventory\": [{\"name\": \"Something\"}, {\"name\": \"Pen\"}],"
+				<< "\"tasks\": [{\"name\": \"To do something\"}],"
+			<< "}}";
+	} else {
+		*buffer << "{\"type\": \"error\", \"message\": \"Unable to open cartidge file\"}";
+	}
+	
+	string str = buffer->str();	
+	const char * data = str.c_str();
+	
+    // send data back to the JavaScript side
+    syslog(LOG_WARNING, "*** returning results");
+    PDL_Err err;
+    err = PDL_CallJS("openCartridgeResult", (const char **)&data, 1);
+    if (err) {
+        syslog(LOG_ERR, "*** PDL_CallJS failed, %s", PDL_GetError());
+        //SDL_Delay(5);
+    }
+    
+    // now that we're done, free our working memory
+    delete buffer;
+}
+
+static void loop(){
+
+	SDL_Event event;
+    if (SDL_WaitEvent(&event)) {
+        if (event.type == SDL_QUIT)
+            exit(0);
+        else if (event.type == SDL_MOUSEBUTTONDOWN) {
+           if (PDL_GetPDKVersion() >= 300) {
+                gKeyboardVisible = !gKeyboardVisible;
+                PDL_SetKeyboardState(gKeyboardVisible ? PDL_TRUE : PDL_FALSE);
+           }
+        } else if (event.type == SDL_USEREVENT) {
+            syslog(LOG_WARNING, "*** processing * event");
+            switch( event.user.code ){
+				/*case GET_METADATA:
+					// extract our arguments
+					char *cartridge = (char *)event.user.data1;
+					
+					// call our output function
+					OutputMetadataToJS(cartridge);
+
+					// free memory since this event is processed now
+					free(cartridge);
+					break;*/
+				case EVENT_GET_CARTRIDGES: {
+					int *refresh = (int *)event.user.data1;
+					OutputCartridgesToJS(refresh);
+					delete refresh;
+					}
+					break;
+				case EVENT_OPEN_CARTRIDGE: {
+					char *filename = (char *)event.user.data1;
+					openCartridgeToJS(filename);
+					delete filename;
+					}
+					break;
+			}
+        }
+    }
+}
+
+
+
+class ZObject {
+
+};
+
+class Player: ZObject {
+
+};
+
+class ZCartridge: ZObject {
+	
+	/*bool lua_register(){
+		Lunar<ZCartridge>::RegType ZCartridge::methods[] = {
+			LUNAR_DECLARE_METHOD(ZCartridge, deposit),
+	}*/
+
+};
+
+//const char ZCartridge::className[] = "ZCartrige";
+
+int main (int argc, char **argv) {
+	// SDL setup and graphics display
+  setup();
+  my_error("*** MAIN Setup");
+ 
   
-  delete bytecode;*/
-  /* call 'pmain' in protected mode */
-  /*s.argc = 2;
-  char *arg[] = {"prg", strdup(bytecode->c_str()) };
-  s.argv = arg;
-  status = lua_cpcall(L, &pmain, &s);*/
-  //return (result && status == LUA_OK) ? EXIT_SUCCESS : EXIT_FAILURE;
-  
-  my_error("Everything ok");
 
   // alive UI
   while (1) {

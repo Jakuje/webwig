@@ -57,7 +57,7 @@ enyo.kind({
 
 	create: function() {
 		this.inherited(arguments);
-		this.getCartridges(0);
+		//this.getCartridges(0);
 	},
 	
 	refreshClicked: function(){

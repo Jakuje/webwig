@@ -13,8 +13,8 @@ enyo.kind({
 		this.inherited(arguments);
 		// we create this as a deferred callback so we can call back into the
 		// plugin immediately
-		this.addCallback("getMetadataResult", enyo.bind(this, this._getMetaCallback), true);
 		this.addCallback("getCartridgesResult", enyo.bind(this, this._getMetaCallback), true);
+		this.addCallback("openCartridgeResult", enyo.bind(this, this._getMetaCallback), true);
 	},
 	
 	_resultsCallbacks: [],
@@ -39,19 +39,6 @@ enyo.kind({
 		}
 	},
 	
-	getMetadata: function(cartridge, callback) {
-		if ( window.PalmSystem) {
-			console.error("***** WIG Enyo: getFiles " + cartridge);
-			this._resultsCallbacks.push(callback);
-			this.callPluginMethodDeferred(enyo.nop, "getMetadata", cartridge);
-		}
-		else {
-			// if not on device, return mock data
-			enyo.nextTick(this, function() { callback([
-					{ name: "Moje prvni cartridge", filename: "wherigo.gwc", iconID: "28", type: "geocache", author: "jakuje", description: "sjovhnaiphv uiah uiah vuiah iuah aiuhiuah asuih viuah viou" }
-				]); });
-		}
-	},
 	getCartridges: function(refresh, callback) {
 		if ( window.PalmSystem) {
 			console.error("***** WIG Enyo: getCartridges refresh = " + refresh);
@@ -86,6 +73,13 @@ enyo.kind({
 			]);
 			});
 		}
-	}
+	},
+	openCartridge: function(filename, callback){
+		if ( window.PalmSystem) {
+			console.error("***** WIG Enyo: openCartridge filename = " + filename);
+			this._resultsCallbacks.push(callback);
+			this.callPluginMethodDeferred(enyo.nop, "openCartridge", filename);
+		}
+	},
 
 });

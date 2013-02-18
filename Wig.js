@@ -27,7 +27,8 @@ enyo.kind({
 
 	create: function() {
 		this.inherited(arguments);
-		this.$.pane.selectViewByName("cList");
+		//this.$.pane.selectViewByName("cList");
+		//this.$.pane.selectViewByName("gMain");
 	},
 	
 	cartSelected: function(inSender, inMetadata) {
