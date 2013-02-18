@@ -16,14 +16,13 @@ enyo.kind({
 		this.addCallback("getCartridgesResult", enyo.bind(this, this._getMetaCallback), true);
 		this.addCallback("openCartridgeResult", enyo.bind(this, this._getMetaCallback), true);
 		
-		this.addCallback("popupMessage", enyo.bind(this, this.popupMessage), true);
+		this.addCallback("popupMessage", enyo.bind(this, this.messageBox), true);
 	},
 	
-	popupMessage: function(message){
-		this.owner.$.cList.$.errorMessage.setContent(message);
-		this.owner.$.cList.$.errorMessage.openAtCenter();
+	messageBox: function(message){
+		console.error("***** WIG Enyo: messageBox:" + message);
+		this.owner.popupMessage(message);
 	},
-	
 	_resultsCallbacks: [],
 	_getMetaCallback: function(filesJSON) {
 		console.error("***** WIG Enyo: _getMetaCallback");

@@ -21,7 +21,25 @@ enyo.kind({
 			{caption: "Refresh", onclick: "turnLightsOn"},
 			/*{kind: "HelpMenu", target: "http://jakuje.dta3.com"}*/
 		]},
-		{ kind: enyo.ApplicationEvents, onBack: "goBack" }
+		{ kind: enyo.ApplicationEvents, onBack: "goBack" },
+		{
+		   kind: "ModalDialog",
+		   name: "errorMessage",
+		   caption: "Error",
+		   lazy: false,
+		   components: [
+				{
+					name: "errorText",
+					content: "Chyba toho a toho.",
+					className: "enyo-text-error warning-icon"
+				},
+				{
+					kind: "Button",
+					caption: "OK",
+					onclick: "closePopup",
+				}
+		   ]
+		}
 	],
 	
 
@@ -29,6 +47,14 @@ enyo.kind({
 		this.inherited(arguments);
 		//this.$.pane.selectViewByName("cList");
 		//this.$.pane.selectViewByName("gMain");
+	},
+	
+	popupMessage: function(message){
+		this.$.errorText.setContent(message);
+		this.$.errorMessage.openAtCenter();
+	},
+	closePopup: function(inSender, inEvent) {
+		this.$.errorMessage.close();
 	},
 	
 	cartSelected: function(inSender, inMetadata) {

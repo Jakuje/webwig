@@ -28,32 +28,13 @@ enyo.kind({
 			}
 		]},
       {kind: "Button", caption: "Dialog", onclick: "openError"},
-	  {
-		   kind: "ModalDialog",
-		   name: "errorMessage",
-		   caption: "Error",
-		   components: [
-				{
-					content: "Chyba toho a toho.",
-					className: "enyo-text-error warning-icon"
-				},
-				{
-					kind: "Button",
-					caption: "OK",
-					onclick: "closeError",
-				}
-		   ]
-		}
     ],
    	metadata: [],
 
 
    	openError: function() {
 		//this.$.errorMessage.openAtCenter();
-		this.owner.$.plugin.popupMessage("Zprava chybova");
-	},
-	closeError: function(inSender, inEvent) {
-		this.$.errorMessage.close();
+		this.owner.popupMessage("Zprava chybova");
 	},
 
 	create: function() {
