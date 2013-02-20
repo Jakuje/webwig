@@ -11,8 +11,13 @@
 /**
  * Includes for PDK for webOS app
  */
+
+#ifndef DESKTOP
+
 #include "SDL.h"
 #include "PDL.h"
+
+#endif /* DESKTOP */
 
 #include "lua_common.h"
 
@@ -45,6 +50,7 @@ std::string escapeJsonString(const std::string& input) {
     return ss.str();
 }
 
+#ifndef DESKTOP
 /**
  * @param filename (string) Filename to open and start
  */
@@ -131,15 +137,25 @@ static PDL_bool getCartridgesJS(PDL_JSParameters *params)
     
     return PDL_TRUE;
 }
+#endif
 
 static int openCartridge(char *filename);
+static void OutputCartridgesToJS(int *refresh);
 
 void CommandLineTests(){
-	openCartridge("wherigo.lua.gwc");
+	// OutputCartridges
+	int *refresh = new int;
+	*refresh = 1;
+	OutputCartridgesToJS(refresh);
+	delete refresh;
+	
+	openCartridge("minimal.gwc");
 }
 
 static void setup()
 {
+
+#ifndef DESKTOP
     openlog("com.dta3team.app.wherigo", 0, LOG_USER);
     
     int result = SDL_Init(SDL_INIT_VIDEO);
@@ -153,9 +169,11 @@ static void setup()
     atexit(PDL_Quit);
 
 	if (!PDL_IsPlugin()) {
+#endif
 		cerr << "call from cmd" << endl;
         CommandLineTests();
         exit(0);
+#ifndef DESKTOP
     }
     
 	PDL_RegisterJSHandler("getCartridges", getCartridgesJS);
@@ -172,7 +190,7 @@ static void setup()
 	// call a "ready" callback to let JavaScript know that we're initialized
     PDL_CallJS("ready", NULL, 0);
     syslog(LOG_INFO, "**** Registered");
-	
+#endif	
 }
 
 bool gKeyboardVisible = false;
@@ -256,6 +274,7 @@ static void OutputCartridges(stringstream *buf, int *refresh){
 	return;
 }
 
+
 static void OutputCartridgesToJS(int *refresh)
 {
     stringstream *buffer = new stringstream(stringstream::in | stringstream::out);
@@ -264,6 +283,7 @@ static void OutputCartridgesToJS(int *refresh)
 	string str = buffer->str();	
 	const char * data = str.c_str();
 	
+#ifndef DESKTOP
     // send data back to the JavaScript side
     syslog(LOG_WARNING, "*** returning results");
     PDL_Err err;
@@ -272,11 +292,11 @@ static void OutputCartridgesToJS(int *refresh)
         syslog(LOG_ERR, "*** PDL_CallJS failed, %s", PDL_GetError());
         //SDL_Delay(5);
     }
+#endif
     
     // now that we're done, free our working memory
     delete buffer;
 }
-
 /**
  * Lua function
  * @param string Message to show
@@ -286,12 +306,14 @@ static int messageBox(lua_State *L) {
 	cerr << "Message:" << text << endl;
 	syslog(LOG_WARNING, "*** MessageBox with message: %s", text);
 	
+#ifndef DESKTOP
     PDL_Err err;
     err = PDL_CallJS("popupMessage", (const char **)&text, 1);
     if (err) {
         syslog(LOG_ERR, "*** PDL_CallJS failed, %s", PDL_GetError());
         //SDL_Delay(5);
     }
+#endif
 	
 	return 0;  /* number of results */
 }
@@ -321,9 +343,41 @@ static void exit_lua(){
     lua_close(L);
 }
 
+// http://cc.byexamples.com/2008/11/19/lua-stack-dump-for-c/
+void stackdump_g(lua_State* l)
+{
+    int i;
+    int top = lua_gettop(l);
+ 
+    printf("total in stack %d\n",top);
+ 
+    for (i = 1; i <= top; i++)
+    {  /* repeat for each level */
+        int t = lua_type(l, i);
+        switch (t) {
+            case LUA_TSTRING:  /* strings */
+                printf("string: '%s'\n", lua_tostring(l, i));
+                break;
+            case LUA_TBOOLEAN:  /* booleans */
+                printf("boolean %s\n",lua_toboolean(l, i) ? "true" : "false");
+                break;
+            case LUA_TNUMBER:  /* numbers */
+                printf("number: %g\n", lua_tonumber(l, i));
+                break;
+            default:  /* other values */
+                printf("%s\n", lua_typename(l, t));
+                break;
+        }
+        printf("  ");  /* put a separator */
+    }
+    printf("\n");  /* end the listing */
+}
+
 static int openCartridge(char *filename){
 	Wherigo w( string(DATA_DIR).append(filename) );
-	w.setup(); // scan file
+	if( ! w.setup() ){
+		return 0;
+	}
 	w.createTmp(); // create dir and files
 	
 	// new Lua state
@@ -338,24 +392,32 @@ static int openCartridge(char *filename){
 	atexit( exit_lua );
 	my_error("*** MAIN LUA");
 
+	// messageBox as CFunction
 	lua_register(L, "messageBox", messageBox);
+	// library, for now in Lua
 	status = luaL_dofile(L, "wherigo.lua");
 	report(L, status);
 	
-	luaL_dostring(L, "function run_file() ");
-	
+	// do bytecode from cartridge
 	string bytecode = string( w.getTmp() );
 	bytecode.append("/wg.lua");
-	status = lua_cpcall(L, &pmain, &bytecode);
+	//status = lua_cpcall(L, &pmain, &bytecode);
+	status = luaL_dofile(L, bytecode.c_str());
 	report(L, status);
-	luaL_dostring(L, "end \n cart = run_file() ");
+	// create global Lua variable
+	lua_setglobal(L, "cartridge"); // by http://wherigobuilder.wikispaces.com/Globals
 	
-	status = !status && luaL_dostring(L, "cart.OnStart() debug.debug() ");
-
+	// run onStart event
+	status = !status && luaL_dostring(L, "cart.OnStart()");
+	report(L, status);
+	
+	//stackdump_g(L);
+	
 	my_error("Everything ok");
 	return 1;
 } 
 
+#ifndef DESKTOP
 static void openCartridgeToJS(char *filename){
 	stringstream *buffer = new stringstream(stringstream::in | stringstream::out);
 	if( openCartridge(filename) ){
@@ -384,9 +446,11 @@ static void openCartridgeToJS(char *filename){
     // now that we're done, free our working memory
     delete buffer;
 }
+#endif
 
 static void loop(){
 
+#ifndef DESKTOP
 	SDL_Event event;
     if (SDL_WaitEvent(&event)) {
         if (event.type == SDL_QUIT)
@@ -430,6 +494,7 @@ static void loop(){
 			}
         }
     }
+#endif
 }
 
 

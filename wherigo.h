@@ -6,10 +6,17 @@
 /*   Description                                                              */
 /*                                                                            */
 /* ========================================================================== */
+#include <cstdlib>
 #include <string>
+#include <cstring>
 #include "filereader.h"
 
+#ifndef DESKTOP
 const string DATA_DIR = "/media/internal/appdata/com.dta3team.app.wherigo/";
+#else
+const string DATA_DIR = "data/";
+#endif
+
 const string CONF_DIR = DATA_DIR;
 const string CONFIG_FILE = "database.json";
 
@@ -56,19 +63,19 @@ public:
 
 	~Wherigo(){
 		if( ids != NULL ){
-			delete ids;
+			delete [] ids;
 		}
 		if( offsets != NULL ){
-			delete offsets;
+			delete [] offsets;
 		}
 		fd.close();
 		if( tmpdir != NULL ){
 			remove(tmpdir);
-			delete tmpdir;
+			free(tmpdir);
 		}
 	}
 
-	int setup();
+	bool setup();
 
 	bool scanHead ();
 
@@ -78,7 +85,7 @@ public:
 
 	char *getTmp(){ return tmpdir; }
 
-	bool createBytecode(string *tmpname);
+	bool createBytecode(string tmpname);
 
 	bool createIcons();
 	

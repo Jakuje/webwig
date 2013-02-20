@@ -1,6 +1,6 @@
 PRE=0
-PIXI=1
-DESKTOP=0
+PIXI=0
+DESKTOP=1
 DEBUG=1
 
 ifeq (1,$(DEBUG))
@@ -9,28 +9,43 @@ else
 DEVICEOPTS=
 endif
 
+LIBS=-lSDL -lpdl
+INC="-I%PalmPDK%\include" "-I%PalmPDK%\include\SDL" 
+LDFLAGS="-L%PalmPDK%\device\lib" $(LIBS) -Wl,--allow-shlib-undefined
+RM = -rd /S /Q
+COPY = copy
+PACKAGE = package
+
 ifeq (1,$(PRE))
 DEVICEOPTS += -mcpu=cortex-a8 -mfpu=neon -mfloat-abi=softfp
 else ifeq (1,$(PIXI))
 DEVICEOPTS += -mcpu=arm1136jf-s -mfpu=vfp -mfloat-abi=softfp
+else ifeq (1, $(DESKTOP))
+DEVICEOPTS += -DDESKTOP
+LIBS =
+INC=
+PACKAGE = 
+LDFLAGS=$(LIBS) -Wl,--allow-shlib-undefined
+RM = rm -rf
+COPY = cp -r 
 else
 $(error Must set either PRE or PIXI variable to 1 to build)
 endif
 
-INC="-I%PalmPDK%\include" "-I%PalmPDK%\include\SDL" 
-
-#CC=arm-none-linux-gnueabi-gcc
-# ../webos_common/libstdc++.so.6
 CFLAGS=$(INC) $(DEVICEOPTS) -pedantic -Wall
+
+ifeq (0, DESKTOP)
 CPP=arm-none-linux-gnueabi-g++
+else
+CPP=g++
+endif
+
 CPPFLAGS=$(CFLAGS)
-LIBS=-lSDL -lSDL_image -lSDL_ttf -lpdl -lGLESv2 
-LDFLAGS="-L%PalmPDK%\device\lib" $(LIBS) -Wl,--allow-shlib-undefined
               
 PLUGIN=wig
-LIB="lua\liblua.a"
+LIB="lua/liblua.a"
 
-all: $(PLUGIN) package
+all: $(PLUGIN) $(PACKAGE)
 
 #.cpp.o::
 #	$(CPP) $(CPPFLAGS) -c $<
@@ -40,7 +55,7 @@ all: $(PLUGIN) package
 
 liblua.a: lua/lua.c
 	make -C lua a
-	copy $(LIB) liblua.a
+	$(COPY) $(LIB) liblua.a
 
 $(PLUGIN): $(PLUGIN).cpp lua_common.o liblua.a lua_common.h \
  lua/lua.h lua/luaconf.h lua/lauxlib.h lua/lua.h lua/lualib.h \
@@ -48,36 +63,36 @@ $(PLUGIN): $(PLUGIN).cpp lua_common.o liblua.a lua_common.h \
 	$(CPP) $(CPPFLAGS) $(LDFLAGS) -o $@ $^ $(LIBS)
 
 package: $(PLUGIN) appinfo.json logo.png
-	-rd /S /Q STAGING
+	$(RM) STAGING
 	mkdir STAGING
-	copy $(PLUGIN) STAGING
-#	copy $(LIB) STAGING
-	copy appinfo.json STAGING
-	copy framework_config.js STAGING
-	copy Wig.js STAGING
-	copy wherigo_plugin_appinfo.json STAGING
-	copy depends.js STAGING
-	copy index.html STAGING
-	copy logo.png STAGING
+	$(COPY) $(PLUGIN) STAGING
+#	$(COPY) $(LIB) STAGING
+	$(COPY) appinfo.json STAGING
+	$(COPY) framework_config.js STAGING
+	$(COPY) Wig.js STAGING
+	$(COPY) wherigo_plugin_appinfo.json STAGING
+	$(COPY) depends.js STAGING
+	$(COPY) index.html STAGING
+	$(COPY) logo.png STAGING
 	mkdir STAGING\images
-	copy images STAGING\images
+	$(COPY) images STAGING/images
 	mkdir STAGING\enyo
-	copy enyo STAGING\enyo
+	$(COPY) enyo STAGING\enyo
 #sources
-	copy wig.cpp STAGING
-	copy wherigo.cpp STAGING
-	copy wherigo.lua STAGING
+	$(COPY) wig.cpp STAGING
+	$(COPY) wherigo.cpp STAGING
+	$(COPY) wherigo.lua STAGING
 	echo filemode.755=$(PLUGIN) > STAGING\package.properties
-#	palm-package STAGING
-#	palm-install com.dta3team.app.wherigo_1.0.0_all.ipk
-	palm-run STAGING
+	palm-package STAGING
+	palm-install com.dta3team.app.wherigo_1.0.0_all.ipk
+#	palm-run STAGING
 
 clean:
-	-rd /S /Q STAGING
-	-del $(PLUGIN)
-	-del liblua.a
-	-del *.o
-	-del $(LIB)
+	$(RM) STAGING
+	$(RM) $(PLUGIN)
+	$(RM) liblua.a
+	$(RM) *.o
+	$(RM) $(LIB)
 
 depend:
 	@$(CC) $(CFLAGS) -MM lua_common.c *.cpp

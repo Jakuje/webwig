@@ -18,30 +18,30 @@ void my_error(string message){
 
 
 
-int Wherigo::setup(){
+bool Wherigo::setup(){
 	fd.open( filename.c_str(), ios::in | ios::binary);
 	if( ! fd.is_open() ){
 		my_error("Error opening GWC file!!");
-		return EXIT_FAILURE;
+		return false;
 	}
 
 	if( ! scanHead() ){
 		my_error("Wrong file - problem with GWC head");
-		return EXIT_FAILURE;
+		return false;
 	}
 
 	files = scanOffsets();
 	if( files == 0 ){
 		my_error("Wrong file - problem with offsets and ids");
-		return EXIT_FAILURE;
+		return false;
 	}
 
 	if( ! scanHeader() ){
 		my_error("Wrong file - problem with GWC header");
-		return EXIT_FAILURE;
+		return false;
 	}
 
-	return EXIT_SUCCESS;
+	return true;
   
 }
 
@@ -62,10 +62,12 @@ bool Wherigo::scanHead (){
 			stringstream t;
 			t << i << ": " << CART_ID[i] << "_" << data[i];
 			my_error( t.str() );
+			delete [] data;
 			return false;
 		}
 		i++;
 	}
+	delete [] data;
 	return true;   
 }
 
@@ -128,16 +130,16 @@ bool Wherigo::scanHeader (){
 	return true;
 }
 
-bool Wherigo::createBytecode(string *tmpname){
+bool Wherigo::createBytecode(string tmpname){
 	fd.seekg( offsets[0] );
 	int len = fd.readLong();
 	char *lua = new char [len];
 	fd.read(lua, len);
 	
-	ofstream f( tmpname->c_str(), ios_base::out | ios_base::binary);
+	ofstream f( tmpname.c_str(), ios_base::out | ios_base::binary);
 	f.write(lua, len);
 	f.close();
-	delete lua;
+	delete [] lua;
   
 	return true;
 }
@@ -177,7 +179,7 @@ bool Wherigo::createFile(int i, string path){
 		ofstream f( path.c_str(), ios_base::out | ios_base::binary);
 		f.write(data, len);
 		f.close();
-		delete data;
+		delete [] data;
 		return true;
 	} else {
 		return false;
@@ -202,8 +204,8 @@ int Wherigo::createTmp(){
 		my_error("Failed to init tmp dir");
 		return EXIT_FAILURE;
 	}
-	string *file_bytecode = new string(tmpdir);
-	file_bytecode->append("/wg.lua");
+	string file_bytecode = string(tmpdir);
+	file_bytecode.append("/wg.lua");
 	this->createBytecode(file_bytecode);
 	this->createFiles( );
 	return EXIT_SUCCESS;
