@@ -8,8 +8,8 @@
 PLAT= webos
 
 PRE=0
-PIXI=1
-DESKTOP=0
+PIXI=0
+DESKTOP=1
 DEBUG=1
 
 
@@ -18,15 +18,6 @@ DEVICEOPTS=-g
 else
 DEVICEOPTS=
 endif
-
-ifeq (1,$(PRE))
-DEVICEOPTS += -mcpu=cortex-a8 -mfpu=neon -mfloat-abi=softfp
-else ifeq (1,$(PIXI))
-DEVICEOPTS += -mcpu=arm1136jf-s -mfpu=vfp -mfloat-abi=softfp
-else
-$(error Must set either PRE or PIXI variable to 1 to build)
-endif
-
 
 CC=arm-none-linux-gnueabi-gcc
 # ../webos_common/libstdc++.so.6
@@ -40,6 +31,21 @@ CPPFLAGS=$(CFLAGS)
 AR= arm-none-linux-gnueabi-ar rcu
 RANLIB= arm-none-linux-gnueabi-ranlib
 RM= -del
+
+ifeq (1,$(PRE))
+DEVICEOPTS += -mcpu=cortex-a8 -mfpu=neon -mfloat-abi=softfp
+else ifeq (1,$(PIXI))
+DEVICEOPTS += -mcpu=arm1136jf-s -mfpu=vfp -mfloat-abi=softfp
+else ifeq (1,$(DESKTOP))
+CPP=g++
+CC= gcc
+AR= ar rcu
+RM= rm
+RANLIB= ranlib
+else
+$(error Must set either PRE or PIXI variable to 1 to build)
+endif
+
 
 
 # == END OF USER SETTINGS. NO NEED TO CHANGE ANYTHING BELOW THIS LINE =========
