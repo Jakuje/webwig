@@ -4,3 +4,6 @@ mess
 *.a
 wig
 *.gwc
+lua/*.o
+lua/*.a
+lua/lua
