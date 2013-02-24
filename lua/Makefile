@@ -7,9 +7,9 @@
 # Your platform. See PLATS for possible values.
 PLAT= webos
 
-PRE=0
-PIXI=0
 DESKTOP=1
+PRE=0
+PIXI=1
 DEBUG=1
 
 

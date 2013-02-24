@@ -7,3 +7,4 @@ wig
 lua/*.o
 lua/*.a
 lua/lua
+data/*
