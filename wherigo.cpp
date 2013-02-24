@@ -93,7 +93,7 @@ int Wherigo::scanOffsets (){
  */ 
 bool Wherigo::scanHeader (){
 	
-	int len = fd.readLong(); // header length
+	/*int len = */fd.readLong(); // header length
 	
 	lat = fd.readDouble(); // latitude
 	lon = fd.readDouble(); // longitude
@@ -125,7 +125,7 @@ bool Wherigo::scanHeader (){
 	
 	fd.readLong(); // unknown
 
-	string completionCode = fd.readASCIIZ();
+	completionCode = fd.readASCIIZ();
 	
 	return true;
 }
@@ -145,8 +145,9 @@ bool Wherigo::createBytecode(string tmpname){
 }
 
 bool Wherigo::createIcons(){
-	this->createFileById(this->iconID, string(DATA_DIR).append(this->cartridgeGUID).append("_icon.png"));
-	this->createFileById(this->splashID, string(DATA_DIR).append(this->cartridgeGUID).append("_splash.png"));
+	bool ok = this->createFileById(this->iconID, string(DATA_DIR).append(this->cartridgeGUID).append("_icon.png"));
+	ok = this->createFileById(this->splashID, string(DATA_DIR).append(this->cartridgeGUID).append("_splash.png")) && ok;
+	return ok;
 }
 
 /**
@@ -171,7 +172,7 @@ bool Wherigo::createFile(int i, string path){
 		if( fd.readByte() == 0 ){
 			return false;
 		}
-		int type = fd.readLong();
+		/*int type = */fd.readLong(); // will use to export to lua
 		int len = fd.readLong();
 		char *data = new char [len];
 		fd.read(data, len);

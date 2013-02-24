@@ -52,7 +52,8 @@ public:
 	string author;
 	string company;
 	string recomandedDevice;
-
+	
+	string completionCode;
 
 	Wherigo( string filename ){
 		this->filename = filename;
