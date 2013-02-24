@@ -17,11 +17,7 @@ RM = -rd /S /Q
 COPY = copy
 PACKAGE = package
 
-ifeq (1,$(PRE))
-DEVICEOPTS += -mcpu=cortex-a8 -mfpu=neon -mfloat-abi=softfp
-else ifeq (1,$(PIXI))
-DEVICEOPTS += -mcpu=arm1136jf-s -mfpu=vfp -mfloat-abi=softfp
-else ifeq (1, $(DESKTOP))
+ifeq (1, $(DESKTOP))
 DEVICEOPTS += -DDESKTOP
 PDL=
 INC=
@@ -29,7 +25,10 @@ PACKAGE =
 LDFLAGS=$(LIBS) -Wl,--allow-shlib-undefined
 RM = rm -rf
 COPY = cp -r 
-else
+else ifeq (1,$(PRE))
+DEVICEOPTS += -mcpu=cortex-a8 -mfpu=neon -mfloat-abi=softfp
+else ifeq (1,$(PIXI))
+DEVICEOPTS += -mcpu=arm1136jf-s -mfpu=vfp -mfloat-abi=softfp
 $(error Must set either PRE or PIXI variable to 1 to build)
 endif
 

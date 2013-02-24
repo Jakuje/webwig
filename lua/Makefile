@@ -32,18 +32,17 @@ AR= arm-none-linux-gnueabi-ar rcu
 RANLIB= arm-none-linux-gnueabi-ranlib
 RM= -del
 
-ifeq (1,$(PRE))
-DEVICEOPTS += -mcpu=cortex-a8 -mfpu=neon -mfloat-abi=softfp
-else ifeq (1,$(PIXI))
-DEVICEOPTS += -mcpu=arm1136jf-s -mfpu=vfp -mfloat-abi=softfp
-else ifeq (1,$(DESKTOP))
+ifeq (1,$(DESKTOP))
 CPP=g++
 CC= gcc
 AR= ar rcu
 RM= rm
 RANLIB= ranlib
-else
-$(error Must set either PRE or PIXI variable to 1 to build)
+else ifeq (1,$(PRE))
+DEVICEOPTS += -mcpu=cortex-a8 -mfpu=neon -mfloat-abi=softfp
+else ifeq (1,$(PIXI))
+DEVICEOPTS += -mcpu=arm1136jf-s -mfpu=vfp -mfloat-abi=softfp
+else$(error Must set either PRE or PIXI variable to 1 to build)
 endif
 
 
