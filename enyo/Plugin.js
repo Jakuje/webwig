@@ -14,14 +14,50 @@ enyo.kind({
 		// we create this as a deferred callback so we can call back into the
 		// plugin immediately
 		this.addCallback("getCartridgesResult", enyo.bind(this, this._getMetaCallback), true);
-		this.addCallback("openCartridgeResult", enyo.bind(this, this._getMetaCallback), true);
+		this.addCallback("openCartridgeResult", enyo.bind(this, this.openCartridgeResult), true);
 		
 		this.addCallback("popupMessage", enyo.bind(this, this.messageBox), true);
+		this.addCallback("playAudio", enyo.bind(this, this.playAudio), true);
+		this.owner.$.plugin.addCallback("updateState",
+			enyo.bind(this, this.updateUI), true);
 	},
+	tmpdir: null,
 	
-	messageBox: function(message){
-		console.error("***** WIG Enyo: messageBox:" + message);
-		this.owner.popupMessage(message);
+	playAudio: function(media){
+		console.error("***** WIG Enyo: playAudio: " + media);
+		this.owner.$.sound.setSrc(media);
+		this.owner.$.sound.play();
+	},
+	messageBox: function(message, media, button1, button2, callback){
+		console.error("***** WIG Enyo: messageBox:" + message + "b:" + button1 + ", " + button2 + " m:" + media);
+		if( media ){
+			//path = this.tmpdir + "/" + media;
+			console.error("***** WIG Enyo: Media url: " + media);
+			// not alowed to load local resource
+		} else {
+			path = false;
+		}
+		this.owner.popupMessage(message, "Message", media, button1, button2, callback);
+	},
+	MessageBoxResponse: function( value ){
+		console.error("***** WIG Enyo: MessageBoxResponse value: " + value);
+		if ( window.PalmSystem) {
+			this.callPluginMethodDeferred(enyo.nop, "MessageBoxResponse", value);
+		}
+		
+	},
+	updateUI: function( JSONdata ){
+		console.error(JSONdata);
+		result = enyo.json.parse(JSONdata);
+		if(result.type == "ok") {
+			this.owner.$.gMain.updateUI(result.data);
+		} else if( result.type == "error" ){
+			console.error("***** WIG Enyo: UpdateUI failed ...");
+			this.owner.popupMessage(result.message);
+			//enyo.windows.addBannerMessage(result.message, "{}");
+		} else {
+			console.error("***** WIG Enyo: Unknown result of getMetaCallback");
+		}
 	},
 	_resultsCallbacks: [],
 	_getMetaCallback: function(filesJSON) {
@@ -35,6 +71,8 @@ enyo.kind({
 			if(result.type == "ok") {
 				callback(result.data);
 			} else if( result.type == "error" ){
+				console.error("***** WIG Enyo: Result failed ...");
+				this.owner.popupMessage(result.message);
 				enyo.windows.addBannerMessage(result.message, "{}");
 			} else {
 				console.error("***** WIG Enyo: Unknown result of getMetaCallback");
@@ -42,6 +80,20 @@ enyo.kind({
 		}
 		else {
 			console.error("WIG Enyo: got results with no callbacks registered: " + filesJSON);
+		}
+	},
+	openCartridgeResult: function(JSONdata){
+		console.error(JSONdata);
+		result = enyo.json.parse(JSONdata);
+		if(result.type == "ok") {
+			//this.tmpdir = result.data.tmpdir;
+			this.owner.$.pane.selectViewByName("gMain");
+		} else if( result.type == "error" ){
+			console.error("***** WIG Enyo: Open failed ...");
+			this.owner.popupMessage(result.message);
+			//enyo.windows.addBannerMessage(result.message, "{}");
+		} else {
+			console.error("***** WIG Enyo: Unknown result of getMetaCallback");
 		}
 	},
 	
@@ -83,10 +135,10 @@ enyo.kind({
 	openCartridge: function(filename, callback){
 		if ( window.PalmSystem) {
 			console.error("***** WIG Enyo: openCartridge filename = " + filename);
-			this._resultsCallbacks.push(callback);
+			//this._resultsCallbacks.push(callback);
 			this.callPluginMethodDeferred(enyo.nop, "openCartridge", filename);
 		} else {
-			enyo.nextTick(this, function() { callback(
+			enyo.nextTick(this, function() { this.owner.$.gMain.updateUI(
 			{
 					"locations": [{"name": "Somewhere"}],
 					"youSee": [],
