@@ -12,7 +12,8 @@ enyo.kind({
 			{kind: "Spacer"},
 			{kind: "IconButton", icon: "images/menu-icon-sync.png", onclick: "refreshClicked"}
 		]},
-		{kind: "Scroller", flex: 1, components: [
+		{kind: "Scroller", flex: 1, horizontal: false, autoHorizontal: false,
+			components: [
 			{name: "list", kind: "VirtualRepeater",
 				onSetupRow: "listGetItem", onclick: "playCartridge",
 				components: [
@@ -27,6 +28,7 @@ enyo.kind({
 				]
 			}
 		]},
+		{name: "error", showing: "false", flex: 1, textAlign: "center"},
       {kind: "Button", caption: "Dialog", onclick: "openError"},
     ],
    	metadata: [],
@@ -34,7 +36,8 @@ enyo.kind({
 
    	openError: function() {
 		//this.$.errorMessage.openAtCenter();
-		this.owner.popupMessage("Zprava chybova");
+		this.owner.popupMessage("Zprava chybova", "Message", "images/tasks.png", "Dobre", "Spatne", true);
+		this.owner.popupMessage("Je prave zobrazena prvni zprava a tato by mela zustat v zasobniku", "Error", "images/tasks.png", "Good", "Wrong", false);
 	},
 
 	create: function() {
@@ -54,9 +57,16 @@ enyo.kind({
 	
 	updateFileList: function(metadata) {
 		console.error("***** WIG Enyo: updateFileList");
-		this.metadata = metadata;
-		this.$.list.render();
-		this.$.scroller.setScrollTop(0);
+		if( metadata.length == 0 ){
+			this.$.scroller.hide();
+			this.$.error.setContent("No cartridges found in working directory");
+		} else {
+			this.$.scroller.show();
+			this.$.error.hide();
+			this.metadata = metadata;
+			this.$.list.render();
+			this.$.scroller.setScrollTop(0);
+		}
 	},
 
 	listGetItem: function(inSender, inIndex) {

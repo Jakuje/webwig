@@ -46,7 +46,8 @@ enyo.kind({
 		this.$.version.setContent(data.version);
 		this.$.author.setContent(data.author);
 		*/
-		this.owner.$.plugin.openCartridge(data.filename, enyo.bind(this, this.updateUI));
+		this.owner.$.plugin.openCartridge(data.filename, enyo.nop);
+		// enyo.bind(this, this.updateUI)
 	},
 	
 	updateUI: function(data){
