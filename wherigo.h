@@ -9,6 +9,8 @@
 #include <cstdlib>
 #include <string>
 #include <cstring>
+#include <sys/stat.h>
+#include <sys/types.h>
 #include "filereader.h"
 
 #ifndef DESKTOP
@@ -25,13 +27,15 @@ using namespace std;
 void my_error(string message);
 
 class Wherigo {
+	enum FileTypes { UNDEFINED = 0, BMP = 1, PNG = 2, JPG = 3, GIF = 4, WAV = 17, MP3 = 18, FDL = 19};
 public:
 	string filename;
 	fileReader fd;
-	char *tmpdir;
+	string cartDir;
 
 	int *ids; 
 	long *offsets;
+	int *types;
 	int files;
 
 	double lat;
@@ -58,22 +62,23 @@ public:
 	Wherigo( string filename ){
 		this->filename = filename;
 		this->ids = NULL;
+		this->types = NULL;
 		this->offsets = NULL;
-		this->tmpdir = NULL;
+		files = 0;
+		cerr << files;
 	}
 
 	~Wherigo(){
 		if( ids != NULL ){
 			delete [] ids;
 		}
+		if( types != NULL ){
+			delete [] types;
+		}
 		if( offsets != NULL ){
 			delete [] offsets;
 		}
 		fd.close();
-		if( tmpdir != NULL ){
-			remove(tmpdir);
-			free(tmpdir);
-		}
 	}
 
 	bool setup();
@@ -84,19 +89,23 @@ public:
 
 	bool scanHeader ();
 
-	char *getTmp(){ return tmpdir; }
+	string getCartDir();
 
-	bool createBytecode(string tmpname);
+	bool createBytecode();
 
 	bool createIcons();
 	
 	bool createFileById(int id, string path);
 	
+	bool createFile(int i);
 	bool createFile(int i, string path);
 	
 	bool createFiles();
 
-	int createTmp();
+	string getFilePath(int i);
+	string getFilePath(const char *str_i);
+	string getFilePath(int i, string name);
+	//int createTmp();
 
 };
 

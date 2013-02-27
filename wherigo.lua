@@ -52,8 +52,8 @@ function Wherigo.MessageBox(t)
 	local callback = rawget(t, "Callback")
 	--print("Message: ", text) 
 	if media then
-		--print("Media: ", media.Id)
-		media = media.Id
+		--print("Media: ", media._id)
+		media = media._id
 	else
 		media = nil
 		end
@@ -87,7 +87,7 @@ function Wherigo.Dialog(table)
 	--print("Message: ", text)
 	if media then
 		--print("Media: ", media.Name)
-		media = media.Id
+		media = media._id
 	else
 		media = nil
 		end
@@ -95,7 +95,7 @@ function Wherigo.Dialog(table)
 	end
 
 function Wherigo.PlayAudio(media)
-	WIGInternal.PlayAudio(media.Id)
+	WIGInternal.PlayAudio(media._id)
 	end
 	
 function Wherigo.ShowStatusText(text)

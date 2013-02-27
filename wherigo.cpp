@@ -40,7 +40,9 @@ bool Wherigo::setup(){
 		my_error("Wrong file - problem with GWC header");
 		return false;
 	}
-
+	
+	//getCartDir();
+	
 	return true;
   
 }
@@ -78,11 +80,13 @@ int Wherigo::scanOffsets (){
 	files = fd.readUShort();
 	
 	ids = new int[files];
+	types = new int[files];
 	offsets = new long[files];
 	
 	for(int i = 0;i < files; i++){
 		ids[i] = fd.readUShort();
 		offsets[i] = fd.readLong();
+		types[i] = UNDEFINED;
 	}
 	return files;
 }
@@ -100,8 +104,7 @@ bool Wherigo::scanHeader (){
 
 	// altitude (by https://github.com/wijnen/python-wherigo/blob/master/wherigo.py)
 	alt = fd.readDouble(); 
-	/*fd.readLong();
-	fd.readLong();*/
+	
 	fd.readLong();
 	fd.readLong();// unknown values
 
@@ -130,13 +133,13 @@ bool Wherigo::scanHeader (){
 	return true;
 }
 
-bool Wherigo::createBytecode(string tmpname){
+bool Wherigo::createBytecode(){
 	fd.seekg( offsets[0] );
 	int len = fd.readLong();
 	char *lua = new char [len];
 	fd.read(lua, len);
 	
-	ofstream f( tmpname.c_str(), ios_base::out | ios_base::binary);
+	ofstream f( getCartDir().append("wig.luac").c_str(), ios_base::out | ios_base::binary);
 	f.write(lua, len);
 	f.close();
 	delete [] lua;
@@ -145,18 +148,18 @@ bool Wherigo::createBytecode(string tmpname){
 }
 
 bool Wherigo::createIcons(){
-	bool ok = this->createFileById(this->iconID, string(DATA_DIR).append(this->cartridgeGUID).append("_icon.png"));
-	ok = this->createFileById(this->splashID, string(DATA_DIR).append(this->cartridgeGUID).append("_splash.png")) && ok;
+	bool ok = this->createFileById(this->iconID, "icon");
+	ok = this->createFileById(this->splashID, "splash") && ok;
 	return ok;
 }
 
 /**
  * Creates file by global ID
  */
-bool Wherigo::createFileById(int id, string path){
+bool Wherigo::createFileById(int id, string name){
 	for(int i = 1;i < files; i++){
 		if( ids[i] == id ){
-			this->createFile(i, path);
+			this->createFile(i, name);
 			return true;
 		}
 	}
@@ -166,13 +169,20 @@ bool Wherigo::createFileById(int id, string path){
 /**
  * Creates file by internal index
  */
-bool Wherigo::createFile(int i, string path){
+bool Wherigo::createFile(int i){
+	stringstream ss;
+	ss << i;
+	return createFile(i, ss.str());
+}
+bool Wherigo::createFile(int i, string name){
+	
 	if( i < files ){
 		fd.seekg( offsets[i] );
 		if( fd.readByte() == 0 ){
 			return false;
 		}
-		/*int type = */fd.readLong(); // will use to export to lua
+		types[i] = fd.readLong(); // will use to export to lua
+		string path = getFilePath(i, name);
 		int len = fd.readLong();
 		char *data = new char [len];
 		fd.read(data, len);
@@ -187,18 +197,96 @@ bool Wherigo::createFile(int i, string path){
 	}
 }
 
+string Wherigo::getFilePath(int i){
+	stringstream ss;
+	ss << i;
+	return getFilePath(i, ss.str());
+}
+string Wherigo::getFilePath(const char *str_i){
+	stringstream ss;
+	ss << str_i;
+	int i;
+	ss >> i;
+	return getFilePath(i, str_i);
+}
+string Wherigo::getFilePath(int i, string name){
+	if( i < files ){
+		if( types[i] == UNDEFINED ){
+			createFile(i);
+		}
+		string path = this->getCartDir().append(name);
+		switch (types[i]){
+			case BMP:
+				path = path.append(".bmp");
+				break;
+			case PNG:
+				path = path.append(".png");
+				break;
+			case JPG:
+				path = path.append(".jpg");
+				break;
+			case GIF:
+				path = path.append(".gif");
+				break;
+			case WAV:
+				path = path.append(".wav");
+				break;
+			case MP3:
+				path = path.append(".mp3");
+				break;
+			case FDL:
+				path = path.append(".fdl");
+				break;
+			default:
+				// log missing file extension ... and learn it ...
+				stringstream message;
+				message << "Unknown file type ID: " << types[i];
+				my_error(message.str());
+				break;
+		}
+		return path;
+	} else {
+		my_error("Unknown file (id out of bounds)");
+		my_error(name);
+		return "";
+	}
+}
+
 bool Wherigo::createFiles(){
 	ostringstream str;
-	string path = string(tmpdir).append("/");
+	//string path = this.getCartDir();
 	for(int i = 1;i < files; i++){
 		str.str("");
 		str << ids[i];
-		this->createFile(i, string(path).append(str.str()));
+		createFile(i);
 	}
 	return true;
 }
 
-int Wherigo::createTmp(){
+string Wherigo::getCartDir(){
+	if( cartDir.empty() ){
+		cartDir = string(DATA_DIR);
+		cartDir.append( cartridgeGUID ).append("/");
+		struct stat st;
+		bool is_dir = false;
+		if(stat(cartDir.c_str(), &st) == 0){
+			if( (st.st_mode & S_IFDIR) != 0){
+				is_dir = true;
+			}
+		}
+		if( !is_dir ){
+			if( mkdir(cartDir.c_str(), 0777) != 0){
+				my_error("Can't create directory");
+				return "";
+			} else {
+				createBytecode();
+				createFiles();
+			}
+		}
+	}
+	return cartDir;
+}
+/*int Wherigo::createTmp(){
 	tmpdir = strdup("/tmp/wig.lua.XXXXXX");
 	tmpdir = mkdtemp(tmpdir);
 	if( tmpdir == NULL ){
@@ -210,4 +298,4 @@ int Wherigo::createTmp(){
 	this->createBytecode(file_bytecode);
 	this->createFiles( );
 	return EXIT_SUCCESS;
-}
+}*/

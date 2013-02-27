@@ -25,7 +25,12 @@
 
 using namespace std;
 
-enum EVENT_CODES {EVENT_GET_CARTRIDGES, EVENT_OPEN_CARTRIDGE, EVENT_CLOSE_CARTRIDGE};
+enum EVENT_CODES {
+	EVENT_GET_CARTRIDGES,
+	EVENT_OPEN_CARTRIDGE,
+	EVENT_CLOSE_CARTRIDGE,
+	EVENT_MESSAGE_BOX_RESPONSE
+	};
 
 // Copy&Paste from wherigo.lua
 enum SCREENS {
@@ -39,6 +44,8 @@ enum SCREENS {
 
 
 lua_State *L;
+
+Wherigo *WherigoOpen;
 
 
 #define EXIT(n) do { fprintf(stderr, "Early exit at %s:%d\n", __FILE__, __LINE__); exit(n); } while (0)
@@ -104,13 +111,9 @@ static PDL_bool closeCartridgeJS(PDL_JSParameters *params)
         return PDL_FALSE;
     }
 
-    /* parameters are directory, pattern */
     int *save = new int;
     *save = PDL_GetJSParamInt(params, 0);
 
-    /* since we don't process this in the method thread, instead post a
-     * SDL event that will be received in the main thread and used to 
-     * launch the code. */
     SDL_Event event;
     event.user.type = SDL_USEREVENT;
     event.user.code = EVENT_CLOSE_CARTRIDGE;
@@ -134,13 +137,9 @@ static PDL_bool getCartridgesJS(PDL_JSParameters *params)
         return PDL_FALSE;
     }
 
-    /* parameters are directory, pattern */
     int *refresh = new int;
     *refresh = PDL_GetJSParamInt(params, 0);
 
-    /* since we don't process this in the method thread, instead post a
-     * SDL event that will be received in the main thread and used to 
-     * launch the code. */
     SDL_Event event;
     event.user.type = SDL_USEREVENT;
     event.user.code = EVENT_GET_CARTRIDGES;
@@ -151,6 +150,32 @@ static PDL_bool getCartridgesJS(PDL_JSParameters *params)
     
     return PDL_TRUE;
 }
+
+/**
+ * @param value (char *) user response to MessageBox (button1 or button2)
+ */
+static PDL_bool MessageBoxResponseJS(PDL_JSParameters *params)
+{
+    if (PDL_GetNumJSParams(params) != 1) {
+        syslog(LOG_INFO, "**** wrong number of parameters for MessageBoxResponse");
+        PDL_JSException(params, "wrong number of parameters for MessageBoxResponse");
+        return PDL_FALSE;
+    }
+
+    const char *value = PDL_GetJSParamString(params, 0);
+
+    SDL_Event event;
+    event.user.type = SDL_USEREVENT;
+    event.user.code = EVENT_MESSAGE_BOX_RESPONSE;
+    event.user.data1 = strdup(value);
+    
+    syslog(LOG_WARNING, "*** sending MessageBoxResponse event");
+    SDL_PushEvent(&event);
+    
+    return PDL_TRUE;
+}
+
+
 #endif
 
 static int openCartridge(char *filename);
@@ -192,20 +217,24 @@ static void MessageBox(const char *text, const char *media,
 	if( button1 || button2 ){
 		cerr << " >> Options: " << button1 << " | " << button2;
 	}
+	string m;
 	if( media ){
-		cerr << " >> Media id: " << media;
+		m = WherigoOpen->getFilePath(media);
+		cerr << " >> Media id: " << m;
 	}
 	cerr << endl;
 	syslog(LOG_WARNING, "*** MessageBox with message: %s", text);
 	
 #ifndef DESKTOP
     PDL_Err err;
-    const char *params[4];
+    const char *c = (callback ? "1" : "0");
+    const char *params[5];
     params[0] = text;
-    params[1] = media;
+    params[1] = m.c_str();
     params[2] = button1;
     params[3] = button2;
-    err = PDL_CallJS("popupMessage", params, 4);
+    params[4] = c;
+    err = PDL_CallJS("popupMessage", params, 5);
     if (err) {
         syslog(LOG_ERR, "*** PDL_CallJS failed, %s", PDL_GetError());
         //SDL_Delay(5);
@@ -217,13 +246,21 @@ static void MessageBox(const char *text, const char *media,
 #endif
 	return;
 }
+static void MessageBoxResponse(const char *value){
+	lua_getfield(L, LUA_GLOBALSINDEX, "Wherigo");
+	lua_getfield(L, -1, "_MessageBoxResponse");
+	lua_remove(L, -2);
+	lua_pushstring(L, value);
+	lua_call(L, 1, 0);
+}
 
 static void PlayAudio(const char *media) {
 	syslog(LOG_WARNING, "*** PlayAudio");
 	
 #ifndef DESKTOP
     PDL_Err err;
-    err = PDL_CallJS("popupMessage", (const char **)&text, 1);
+    const char *params = WherigoOpen->getFilePath(media).c_str();
+    err = PDL_CallJS("playAudio", (const char **)&params, 1);
     if (err) {
         syslog(LOG_ERR, "*** PDL_CallJS failed, %s", PDL_GetError());
         //SDL_Delay(5);
@@ -237,7 +274,10 @@ static void ShowScreen(int screen, int detail) {
 	
 #ifndef DESKTOP
     PDL_Err err;
-    err = PDL_CallJS("showScreen", (const char **)&text, 1);
+    const char *params[2];
+    /*params[0] = screen;
+    params[1] = detail;*/
+    err = PDL_CallJS("showScreen", params, 1);
     if (err) {
         syslog(LOG_ERR, "*** PDL_CallJS failed, %s", PDL_GetError());
         //SDL_Delay(5);
@@ -322,7 +362,8 @@ static bool runTests(char * filter){
 	int status;
 	string pattern = string("tests/").append(filter).append("*");
 	
-	Wherigo w("testname.gwc");
+	WherigoOpen = new Wherigo("testname.gwc");
+	
 	if (0 == glob(pattern.c_str(), GLOB_BRACE, NULL, &matches)) {
 		for (size_t i = 0; i < matches.gl_pathc; ++i) {
 			string name = string(matches.gl_pathv[i]);
@@ -334,7 +375,7 @@ static bool runTests(char * filter){
 
 			// output a file entry for regular files
 			if (S_ISREG(details.st_mode)) {
-				L = openLua(&w);
+				L = openLua(WherigoOpen);
 				if( L == NULL ){
 					cerr << "Can't create lua state" << endl;
 					return false;
@@ -343,11 +384,17 @@ static bool runTests(char * filter){
 				status = luaL_dofile(L, name.c_str());
 				report(L, status);
 				cerr << "Test " << name << ": " << (status == 0
+#ifdef DESKTOP
 					? "\033[1;32mOK\e[m"
-					: "\033[1;31mERROR!!!\e[m") << endl;
+					: "\033[1;31mERROR\e[m") << endl;
+#else
+					? "OK"
+					: "ERROR") << endl;
+#endif
 			}
 		}
 	}
+	delete WherigoOpen;
 	globfree(&matches);
 	
 	return true;
@@ -406,6 +453,7 @@ static void setup(int argc, char **argv)
 	PDL_RegisterJSHandler("getCartridges", getCartridgesJS);
     PDL_RegisterJSHandler("openCartridge", openCartridgeJS);
     PDL_RegisterJSHandler("closeCartridge", closeCartridgeJS);
+    PDL_RegisterJSHandler("MessageBoxResponse", MessageBoxResponseJS);
     PDL_JSRegistrationComplete();
     
     // Workaround for old webos devices:
@@ -426,7 +474,7 @@ static bool OutputMetadata(stringstream *buf, const char *cartridge, bool first 
 	string filename( DATA_DIR );
 	filename.append(cartridge);
 	Wherigo *w = new Wherigo(filename);
-	if( w->setup() == EXIT_FAILURE ){
+	if( w->setup() == false ){
 		delete w;
 		return false;		
 	}
@@ -546,28 +594,26 @@ int pmain (lua_State *L) {
 }
 
 static int openCartridge(char *filename){
-	Wherigo w( string(DATA_DIR).append(filename) );
-	if( ! w.setup() ){
+	WherigoOpen = new Wherigo( string(DATA_DIR).append(filename) );
+	if( ! WherigoOpen->setup() ){
+		delete WherigoOpen;
+		WherigoOpen = NULL;
 		return 0;
 	}
-	w.createTmp(); // create dir and files
+	//WherigoOpen->createFiles(); // create dir and files
 	
 	int status;
-	L = openLua(&w);
+	L = openLua(WherigoOpen);
 	
 	// do bytecode from cartridge
-	string bytecode = string( w.getTmp() );
-	bytecode.append("/wg.lua");
+	string bytecode = WherigoOpen->getCartDir();
+	bytecode.append("wig.luac");
 	
 	//status = lua_cpcall(L, &pmain, &bytecode);
 	status = luaL_dofile(L, bytecode.c_str());
 	report(L, status);
 	// create global Lua variable
 	lua_setglobal(L, "cartridge"); // by http://wherigobuilder.wikispaces.com/Globals
-	
-	// run onStart event
-	status = !status && luaL_dostring(L, "cartridge.OnStart() ");
-	report(L, status);
 	
 	//stackdump_g(L);
 	
@@ -576,17 +622,43 @@ static int openCartridge(char *filename){
 } 
 
 #ifndef DESKTOP
+
+static void updateStateToJS(){
+	int status;
+	stringstream *buffer = new stringstream(stringstream::in | stringstream::out);
+	
+	*buffer << "{\"type\": \"ok\", \"data\": {\n"
+			<< "\"locations\": [{\"name\": \"Somewhere\"}],"
+			<< "\"youSee\": [],"
+			<< "\"inventory\": [{\"name\": \"Something\"}, {\"name\": \"Pen\"}],"
+			<< "\"tasks\": [{\"name\": \"To do something\"}],"
+		<< "}}";
+	
+	string str = buffer->str();	
+	const char *data = str.c_str();
+	
+	syslog(LOG_WARNING, "*** Updating State");
+    PDL_Err err;
+    err = PDL_CallJS("updateState", (const char **)&data, 1);
+    if (err) {
+        syslog(LOG_ERR, "*** PDL_CallJS failed, %s", PDL_GetError());
+        //SDL_Delay(5);
+        return;
+    }
+
+    delete buffer;
+    
+}
 static void openCartridgeToJS(char *filename){
 	stringstream *buffer = new stringstream(stringstream::in | stringstream::out);
+	int status = 0;
 	if( openCartridge(filename) ){
 		*buffer << "{\"type\": \"ok\", \"data\": {\n"
-				<< "\"locations\": [{\"name\": \"Somewhere\"}],"
-				<< "\"youSee\": [],"
-				<< "\"inventory\": [{\"name\": \"Something\"}, {\"name\": \"Pen\"}],"
-				<< "\"tasks\": [{\"name\": \"To do something\"}],"
+				//<< "\"tmpdir\": \"" << WherigoOpen->getTmp() << "\","
 			<< "}}";
 	} else {
 		*buffer << "{\"type\": \"error\", \"message\": \"Unable to load cartidge file\"}";
+		status = 1;
 	}
 	
 	string str = buffer->str();	
@@ -599,10 +671,19 @@ static void openCartridgeToJS(char *filename){
     if (err) {
         syslog(LOG_ERR, "*** PDL_CallJS failed, %s", PDL_GetError());
         //SDL_Delay(5);
+        return;
     }
-    
-    // now that we're done, free our working memory
+	if( status == 1 ){
+		return;
+	}
+	
+	// run onStart event
+	status = luaL_dostring(L, "cartridge.OnStart() ");
+	report(L, status);
+	
     delete buffer;
+
+	updateStateToJS();
 }
 #endif
 
@@ -649,6 +730,13 @@ static void loop(){
 					delete save;
 					}
 					break;
+				case EVENT_MESSAGE_BOX_RESPONSE: {
+					char *value = (char *)event.user.data1;
+					MessageBoxResponse(value);
+					delete value;
+					}
+					break;
+				
 			}
         }
     }
