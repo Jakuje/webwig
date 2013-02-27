@@ -7,7 +7,7 @@
 # Your platform. See PLATS for possible values.
 PLAT= webos
 
-DESKTOP=1
+DESKTOP=0
 PRE=0
 PIXI=1
 DEBUG=1
@@ -36,13 +36,14 @@ ifeq (1,$(DESKTOP))
 CPP=g++
 CC= gcc
 AR= ar rcu
-RM= rm
+RM= rm -f
 RANLIB= ranlib
 else ifeq (1,$(PRE))
 DEVICEOPTS += -mcpu=cortex-a8 -mfpu=neon -mfloat-abi=softfp
 else ifeq (1,$(PIXI))
 DEVICEOPTS += -mcpu=arm1136jf-s -mfpu=vfp -mfloat-abi=softfp
-else$(error Must set either PRE or PIXI variable to 1 to build)
+else
+$(error Must set either PRE or PIXI variable to 1 to build)
 endif
 
 

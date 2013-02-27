@@ -17,6 +17,7 @@ extern "C" {
 #include "lua/lauxlib.h"
 #include "lua/lualib.h"
 
+#include <syslog.h>
 
 
 static lua_State *globalL = NULL;
@@ -57,6 +58,7 @@ static void print_usage (void) {
 
 extern void l_message (const char *pname, const char *msg) {
   if (pname) fprintf(stderr, "%s: ", pname);
+  syslog(LOG_WARNING, "LUA: %s\n", msg);
   fprintf(stderr, "%s\n", msg);
   fflush(stderr);
 }
