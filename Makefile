@@ -1,4 +1,4 @@
-DESKTOP=1
+DESKTOP=0
 PRE=0
 PIXI=1
 DEBUG=1
@@ -13,37 +13,43 @@ PDL=-lpdl -lSDL
 LIBS= 
 INC="-I%PalmPDK%\include" "-I%PalmPDK%\include\SDL" 
 LDFLAGS="-L%PalmPDK%\device\lib" $(PDL) $(LIBS) -Wl,--allow-shlib-undefined
-RM = -rd /S /Q
+RMDIR = -rd /S /Q
+RM = -del
 COPY = copy
 PACKAGE = package
 
-ifeq (1, $(DESKTOP))
+PLUGIN=wig
+LIB="lua\liblua.a"
+
+ifeq (1,$(DESKTOP))
 DEVICEOPTS += -DDESKTOP
 PDL=
 INC=
 PACKAGE = 
 LDFLAGS=$(LIBS) -Wl,--allow-shlib-undefined
-RM = rm -rf
+RMDIR = rm -rf
+RM = rm -f
 COPY = cp -r 
+LIB="lua/liblua.a"
 else ifeq (1,$(PRE))
 DEVICEOPTS += -mcpu=cortex-a8 -mfpu=neon -mfloat-abi=softfp
 else ifeq (1,$(PIXI))
 DEVICEOPTS += -mcpu=arm1136jf-s -mfpu=vfp -mfloat-abi=softfp
+else
 $(error Must set either PRE or PIXI variable to 1 to build)
 endif
 
 CFLAGS=$(INC) $(DEVICEOPTS) -pedantic -Wall
 
-ifeq (0, DESKTOP)
-CPP=arm-none-linux-gnueabi-g++
-else
+ifeq (1,$(DESKTOP))
 CPP=g++
+else
+CPP=arm-none-linux-gnueabi-g++
 endif
 
 CPPFLAGS=$(CFLAGS)
               
-PLUGIN=wig
-LIB="lua/liblua.a"
+.PHONY: all package clean depend
 
 all: $(PLUGIN) $(PACKAGE)
 
@@ -63,7 +69,7 @@ $(PLUGIN): $(PLUGIN).cpp lua_common.o liblua.a lua_common.h \
 	$(CPP) $(CPPFLAGS) $(LDFLAGS) -o $@ $^ $(PDL) $(LIBS)
 
 package: $(PLUGIN) appinfo.json logo.png
-	$(RM) STAGING
+	$(RMDIR) STAGING
 	mkdir STAGING
 	$(COPY) $(PLUGIN) STAGING
 #	$(COPY) $(LIB) STAGING
@@ -75,7 +81,7 @@ package: $(PLUGIN) appinfo.json logo.png
 	$(COPY) index.html STAGING
 	$(COPY) logo.png STAGING
 	mkdir STAGING\images
-	$(COPY) images STAGING/images
+	$(COPY) images STAGING\images
 	mkdir STAGING\enyo
 	$(COPY) enyo STAGING\enyo
 #sources
@@ -88,8 +94,9 @@ package: $(PLUGIN) appinfo.json logo.png
 #	palm-run STAGING
 
 clean:
-	$(RM) STAGING
+	$(RMDIR) STAGING
 	$(RM) $(PLUGIN)
+	make -C lua clean
 	$(RM) liblua.a
 	$(RM) *.o
 	$(RM) $(LIB)
