@@ -1,4 +1,4 @@
-DESKTOP=0
+DESKTOP=1
 PRE=0
 PIXI=1
 DEBUG=1
@@ -23,8 +23,8 @@ LIB="lua\liblua.a"
 
 ifeq (1,$(DESKTOP))
 DEVICEOPTS += -DDESKTOP
-PDL=
-INC=
+PDL= -lSDL
+INC= -I/usr/include/SDL/
 PACKAGE = 
 LDFLAGS=$(LIBS) -Wl,--allow-shlib-undefined
 RMDIR = rm -rf
