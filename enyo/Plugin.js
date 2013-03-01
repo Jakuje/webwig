@@ -18,6 +18,8 @@ enyo.kind({
 		
 		this.addCallback("popupMessage", enyo.bind(this, this.messageBox), true);
 		this.addCallback("playAudio", enyo.bind(this, this.playAudio), true);
+		this.addCallback("GetInput", enyo.bind(this, this.getInput), true);
+		this.addCallback("ShowStatusText", enyo.bind(this, this.ShowStatusText), true);
 		this.owner.$.plugin.addCallback("updateState",
 			enyo.bind(this, this.updateUI), true);
 	},
@@ -45,6 +47,21 @@ enyo.kind({
 			this.callPluginMethodDeferred(enyo.nop, "MessageBoxResponse", value);
 		}
 		
+	},
+	getInput: function(type, text){
+		console.error("***** WIG Enyo: getInput: type" + type + " text:" + text);
+		/*if( media ){
+			//path = this.tmpdir + "/" + media;
+			console.error("***** WIG Enyo: Media url: " + media);
+			// not alowed to load local resource
+		} else {
+			path = false;
+		}*/
+		//this.owner.popupMessage(text, "Message", media, button1, button2, callback);
+		// @todo
+	},
+	ShowStatusText: function(text){
+		enyo.windows.addBannerMessage(text, "{}");
 	},
 	updateUI: function( JSONdata ){
 		console.error(JSONdata);
