@@ -3,7 +3,7 @@ package.loaded['Wherigo'] = 1
 _VERSION = "Lua 5.1"
 
 Wherigo = {
-	INVALID_ZONEPOINT 	= 0,
+	INVALID_ZONEPOINT 	= nil,
 	
 	MAINSCREEN			= 0,
 	INVENTORYSCREEN 	= 1,
@@ -17,6 +17,16 @@ Wherigo = {
 	LOGINFO				= 152,
 	LOGWARNING			= 153,
 	LOGERROR			= 154,
+	
+	CLASS_ZONE			= 20,
+	CLASS_ZMEDIA		= 21,
+	CLASS_ZCARTRIDGE	= 22,
+	CLASS_ZCHARACTER	= 23,
+	CLASS_ZCOMMAND		= 24,
+	CLASS_ZINPUT		= 25,
+	CLASS_ZTASK			= 26,
+	CLASS_ZITEM			= 27,
+	CLASS_ZTIMER		= 28,
 	
 	_MBCallbacks = {},
 	_GICallbacks = {}
@@ -100,10 +110,39 @@ function Wherigo.PlayAudio(media)
 	
 function Wherigo.ShowStatusText(text)
 	-- for PPC devices only?
+	WIGInternal.ShowStatusText(text)
 	end
 
-function Wherigo.VectorToZone() end
-function Wherigo.VectorToSegment() end
+function Wherigo.VectorToZone(point, zone)
+	if Wherigo.IsPointInZone (point, zone) then
+		return Distance (0), Bearing (0) end
+	local points = zone.Points
+	local current, b = Wherigo.VectorToSegment (point, points[ #points ], points[1])
+	for k,v in pairs (points) do
+		if k > 1 then
+			local this, tb = Wherigo.VectorToSegment (point, points[k - 1], points[k])
+			if this.value < current.value then
+				current = this
+				b = tb end
+			end
+		end
+	return current, b
+	end
+
+function Wherigo.VectorToSegment(point, p1, p2)
+	local d1, b1 = Wherigo.VectorToPoint (p1, point)
+	local d1 = math.rad (d1('nauticalmiles') / 60.)
+	local ds, bs = Wherigo.VectorToPoint (p1, p2)
+	local dist = math.asin (math.sin (d1) * math.sin (math.rad (b1.value - bs.value)))
+	local dat = math.acos (math.cos (d1) / math.cos (dist))
+	if dat <= 0 then
+		return Wherigo.VectorToPoint (point, p1)
+	elseif dat >= math.rad (ds('nauticalmiles') / 60.) then
+		return Wherigo.VectorToPoint (point, p2) end
+	local intersect = Wherigo.TranslatePoint (p1, Distance (dat * 60, 'nauticalmiles'), bs)
+	return Wherigo.VectorToPoint (point, intersect)
+	end
+
 function Wherigo.Inject() end
 
 function Wherigo.IsPointInZone(point, zone)
@@ -121,21 +160,59 @@ function Wherigo.IsPointInZone(point, zone)
 	return (num % 2) == 0
 	end
 	
-function Wherigo.TranslatePoint(point, distance, angle)
-	
-	return point
+function Wherigo.TranslatePoint(point, distance, bearing)
+	local d = math.rad (distance.GetValue ('nauticalmiles') / 60.)
+	local b = math.rad (bearing.value)
+	local lat1 = math.rad (point.latitude)
+	local lat2 = math.asin (math.sin (lat1) * math.cos (d) + math.cos (lat1) * math.sin (d) * math.cos(b))
+	local dlon = math.atan2 (math.sin(b) * math.sin (d) * math.cos (lat1), math.cos (d) - math.sin (lat1) * math.sin (lat2))
+	return ZonePoint (math.deg (lat2), point.longitude + math.deg (dlon), point.altitude)
+	end
+
+function Wherigo.VectorToPoint(p1, p2)
+	if p1.longitude == p2.longitude then
+		local d = Wherigo.Distance ( math.abs(p1.latitude - p2.latitude) * 60, 'nauticalmiles')
+		local b
+		if p1.latitude <= p2.latitude then
+			b = Wherigo.Bearing (0)
+		else
+			b = Wherigo.Bearing (180) end
+		return d, b
+		end
+	local lat1 = math.rad (p1.latitude)
+	local lon1 = math.rad (p1.longitude)
+	local lat2 = math.rad (p2.latitude)
+	local lon2 = math.rad (p2.longitude)
+	local dist = 2 * math.asin (math.sqrt (
+		math.sin ((lat1 - lat2) / 2) ^ 2 +
+		math.cos (lat1) * math.cos (lat2) * math.sin ((lon1 - lon2) / 2) ^ 2
+		))
+	local bearing = math.atan2 (
+		math.sin (lon2 - lon1) * math.cos(lat2),
+		math.cos (lat1) * math.sin (lat2) - math.sin (lat1) * math.cos (lat2) * math.cos (lon2 - lon1)
+		)
+	return Wherigo.Distance (math.deg (dist) * 60, 'nauticalmiles'), Wherigo.Bearing (math.deg (bearing))
 	end
 
 function Wherigo.NoCaseEquals(f, s)
-	return f == s
+	return f.lower() == s.lower()
 	end
 	
 function Wherigo.Command(text)
-	-- SaveClose, DriveTo, StopSound, Alert
+	if text == 'SaveClose' then
+		WIGInternal.Save()
+		WIGInternal.Close()
+	elseif text == 'DriveTo' then
+		WIGInternal.DriveTo()
+	elseif text == 'StopSound' then
+		WIGInternal.StopSound()
+	elseif text == 'Alert' then
+		WIGInternal.Alert()
+		end
 	end
 
 function Wherigo.LogMessage(text, level)
-	
+	WIGInternal.LogMessage(text, level)
 	end
 function Wherigo.LogMessage(table)
 	text = rawget(table, "Text")
@@ -146,11 +223,10 @@ function Wherigo.LogMessage(table)
 function Wherigo.GetInput(input)
 	-- ZInput is dialog to show and returns value from user
 	table.insert(Wherigo._GICallbacks, input.OnGetInput)
-	if input.Type == "Text" then
-		
-		end
+	--if input.Type == "Text" then
+	--	end
 	
-	WIGInternal.GetInput( input.Text, input.Type) -- think about it
+	WIGInternal.GetInput( input.Type, input.Text) -- think about it
 	end
 function Wherigo._GetInputResponse( response )
 	if # Wherigo._MBCallbacks > 0 then
@@ -209,7 +285,7 @@ function Wherigo.Distance.new(value, units)
 		error("Unknown units used in Distance: " .. units)
 		end
 	
-	function self.getValue(units)
+	function self.GetValue(units)
 		units = units or 'meters'
 
 		if units == 'meters' or units == 'm' then
@@ -233,7 +309,7 @@ function Wherigo.Distance.new(value, units)
 			return "Distance (" .. s.value .. " meters)"
 			end,
 		__call = function (s, units)
-			return self.getValue(units)
+			return self.GetValue(units)
 			end,
 		__eq = function( op1, op2 )
 			print("Comparing")
@@ -326,18 +402,49 @@ function Wherigo.ZObject.new(cartridge, container )
 	function self.MoveTo(owner)
 		self.Container = owner
 		end
+	function self._is_visible()
+		if not (self.Active and self.Visible) then
+			return false
+			end
+		if self.Container == nil then
+			return false
+			end
+		if not self.Container.Active or self.Container._classname ~= Wherigo.CLASS_ZONE then
+			return false
+			end
+		if self.Container.ShowObjects == 'OnEnter' and self.Container.State ~= 'Inside' then
+			return false
+		elseif self.Container.ShowObjects == 'OnProximity' and self.Container.State ~= 'Inside' and self.Container.State ~= 'Proximity' then
+			return false
+		elseif self.Container.ShowObjects == 'Always' then
+			return true
+			end
+		return true
+		end
 	
+	function self._get_pos ()
+		if self._classname == Wherigo.CLASS_ZONE then
+			return self.OriginalPoint end
+		if self._classname ~= Wherigo.CLASS_ZCHARACTER and self._classname ~= Wherigo.CLASS_ZITEM then
+			return nil end
+		if not self.ObjectLocation then
+			if self.Container then
+				return self.Container._get_pos ()
+				end
+			end
+		return self.ObjectLocation
+		end
 	
 	-- initialization
 	if cartridge == nil then
 		-- todo
-		--print(debug.traceback())
 		self.ObjIndex = -1
 		return self
 		end
 	if Wherigo.ZCartridge._store ~= nil then
+		--print(debug.traceback())
 		self.ObjIndex = # cartridge.AllZObjects + 1;
-		table.insert(self.Cartridge.AllZObjects, self)
+		table.insert(cartridge.AllZObjects, self)
 		end
 	return self
 	end
@@ -377,12 +484,14 @@ Wherigo.Zone = {
 		}
 	}
 function Wherigo.Zone.new(cartridge)
-	local self = Wherigo.ZObject(cartridge)
+	local self = Wherigo.ZObject.new(cartridge)
+	self._classname = Wherigo.CLASS_ZONE
 	self.OriginalPoint = Wherigo.INVALID_ZONEPOINT
 	
 	self._state = Wherigo.Zone.NotInRange
 	self.Active = false
 	self.Visible = false
+	self._inside = false
 	self.Name = "NoName"
 	--[[
 	
@@ -403,7 +512,6 @@ function Wherigo.Zone.new(cartridge)
 				end
 			end
 	}) 
-	
 	return self
 	end
 setmetatable(Wherigo.Zone, {
@@ -417,6 +525,7 @@ Wherigo.ZCartridge = { }
 function Wherigo.ZCartridge.new(  )
 	Wherigo.ZCartridge._store = true
 	local self = Wherigo.ZObject.new( ) 
+	self._classname = Wherigo.CLASS_ZCARTRIDGE
 	self.AllZObjects = {}
 	self.Name = 'Old name'
 	self._mediacount = -1
@@ -456,7 +565,88 @@ function Wherigo.ZCartridge.new(  )
 				end
 			end
 		end
-
+	
+	function self._update(position, t)
+		for k,v in pairs(self.AllZObjects) do
+			if v._classname == Wherigo.CLASS_ZTIMER and v._target ~= nil then
+				v.Remaining = v._target - t
+				end
+			end
+		local update_all = false
+		if not position then
+			return false end
+		Wherigo.Player.ObjectLocation = position
+		for k,v in pairs(self.AllZObjects) do
+			if v.Active then
+				if (v._classname == Wherigo.CLASS_ZITEM and v.Container ~= Wherigo.Player)
+						or v._classname == Wherigo.CLASS_ZCHARACTER then
+					local pos = v._get_pos()
+					if pos then
+						v.CurrentDistance, v.CurrentBearing = Wherigo.VectorToPoint(Wherigo.Player.ObjectLocation, pos)
+						end
+				elseif v._classname == Wherigo.CLASS_ZONE then
+					-- something with Active and _active ???
+					local inside = Wherigo.IsPointInZone (Wherigo.Player.ObjectLocation, v)
+					if inside ~= v._inside then
+						update_all = true
+						v._inside = inside
+						if inside then
+							if v._state == 'NotInRange' and v.OnDistant then
+								v.OnDistant() end
+							if v._state ~= 'Proximity' and v.OnProximity then
+								v.OnProximity() end
+							if v.OnDistant then
+								v.OnEnter() end
+						else
+							if v.OnExit then
+								v.OnExit() end
+							end
+						end
+					if inside then
+						v.State = 'Inside'
+						v._state = v.State
+					else
+						-- how far?
+						v.CurrentDistance, v.CurrentBearing = Wherigo.VectorToZone (Wherigo.Player.ObjectLocation, v)
+						if v.CurrentDistance() < v.ProximityRange() then
+							if v._state == 'NotInRange' and v.OnDistant then
+								v.OnDistant ()
+								update_all = true
+								end
+							v.State = 'Proximity'
+						elseif v.DistanceRange() < 0 or v.CurrentDistance() < v.DistanceRange() then
+							if v._state == 'Inside' and v.OnProximity then
+								v.OnProximity()
+								update_all = true
+								end
+							v.State = 'Distant'
+						else
+							if v._state == 'Inside' and v.OnProximity then
+								v.OnProximity()
+								update_all = true
+								end
+							if (v._state == 'Proximity' or v._state == 'Inside') and v.OnDistant then
+								v.OnDistant()
+								update_all = true
+								end
+							v.State = 'NotInRange'
+							end
+						if v._state ~= v.State then
+							local s = v._state
+							v._state = v.State
+							local attr = 'On' .. v.State
+							local event = rawget(v, attr)
+							if event then
+								event()
+								update_all = true
+								end
+							end
+						end
+					end
+				end
+			end
+		end
+	
 	return self
 	end
 setmetatable(Wherigo.ZCartridge, {
@@ -468,6 +658,7 @@ setmetatable(Wherigo.ZCartridge, {
 Wherigo.ZMedia = {}
 function Wherigo.ZMedia.new( cartridge )
 	self = Wherigo.ZObject(cartridge)
+	self._classname = Wherigo.CLASS_ZMEDIA
 	--[[
 	self.AltText = ''
 	self.Description = ''
@@ -479,6 +670,12 @@ function Wherigo.ZMedia.new( cartridge )
 	if cartridge._mediacount > 0 then
 		cartridge._mediacount = cartridge._mediacount + 1;
 		end
+	setmetatable(self, {
+		__tostring  = function(s)
+			return "<ZMedia Id=" .. s._id .. ">"
+			end
+	}) 
+
 	return self
 	end
 setmetatable(Wherigo.ZMedia, {
@@ -489,7 +686,20 @@ setmetatable(Wherigo.ZMedia, {
 
 Wherigo.ZItem = {}
 function Wherigo.ZItem.new( cartridge, container )
+	if type(cartridge) == 'table' and not cartridge._classname  then
+		container = cartridge.Container
+		cartridge = cartridge.Cartridge
+		end
 	local self = Wherigo.ZObject(cartridge, container)
+	self._classname = Wherigo.CLASS_ZITEM
+	self._target = nil
+	
+	setmetatable(self, {
+		__tostring = function( s )
+			return "ZItem (" .. s.Name .. ")"
+			end,
+	})
+	
 	return self
 	end
 setmetatable(Wherigo.ZItem, {
@@ -501,6 +711,14 @@ setmetatable(Wherigo.ZItem, {
 Wherigo.ZTask = {}
 function Wherigo.ZTask.new( cartridge, container )
 	local self = Wherigo.ZObject( cartridge, container )
+	self._classname = Wherigo.CLASS_ZTASK
+	
+	setmetatable(self, {
+		__tostring = function( s )
+			return "ZTask (" .. s.Name .. ")"
+			end,
+	})
+	
 	return self
 	end
 setmetatable(Wherigo.ZTask, {
@@ -512,6 +730,7 @@ setmetatable(Wherigo.ZTask, {
 Wherigo.ZTimer = {}
 function Wherigo.ZTimer.new(cartridge)
 	local self = Wherigo.ZObject(cartridge)
+	self._classname = Wherigo.CLASS_ZTIMER
 	self.Type = 'Countdown'
 	self.Duration = -1
 	self.Remaining = -1
@@ -560,6 +779,11 @@ function Wherigo.ZTimer.new(cartridge)
 			end
 		end
 	
+	setmetatable(self, {
+		__tostring = function( s )
+			return "ZTimer (" .. s.Name .. ")"
+			end,
+	})
 	
 	return self
 	end
@@ -572,9 +796,17 @@ setmetatable(Wherigo.ZTimer, {
 Wherigo.ZInput = {}
 function Wherigo.ZInput.new( cartridge )
 	local self = Wherigo.ZObject( cartridge )
+	self._classname = Wherigo.CLASS_ZINPUT
 	--[[
 	OnGetInput event
 	]]
+	
+	setmetatable(self, {
+		__tostring = function( s )
+			return "ZInput (" .. s.Name .. ")"
+			end,
+	})
+	
 	return self
 	end
 setmetatable(Wherigo.ZInput, {
@@ -584,13 +816,25 @@ setmetatable(Wherigo.ZInput, {
 	})
 
 Wherigo.ZCharacter = {}
-function Wherigo.ZCharacter.new( cartridge )
+function Wherigo.ZCharacter.new( cartridge, container )
+	if type(cartridge) == 'table' and not cartridge._classname  then
+		container = cartridge.Container
+		cartridge = cartridge.Cartridge
+		end
 	self = Wherigo.ZObject.new(cartridge)
+	self._classname = Wherigo.CLASS_ZCHARACTER
 	self.Name = "Unnamed"
 	self.InsideZones = {}
 	self.Inventory = {}
 	self.ObjectLocation = Wherigo.INVALID_ZONEPOINT
 	self.PositionAccuracy = Wherigo.Distance(5)
+	
+	setmetatable(self, {
+		__tostring = function( s )
+			return "ZCharacter (" .. s.Name .. ")"
+			end,
+	})
+	
 	return self
 	end
 setmetatable(Wherigo.ZCharacter, {
@@ -617,3 +861,71 @@ for k,v in pairs(zonePaloucek) do print(k,v) end
 ]]
 
 -- After runing script, setup media ?
+
+
+Wherigo._getUI = function()
+	--[[for k,v in pairs(cartridge.AllZObjects) do
+		print(v)
+		end]]
+	return "{ \"locations\": " .. Wherigo._getLocations() .. ", "
+		.. "\"youSee\": " .. Wherigo._getYouSee() .. ", "
+		.. "\"inventory\": " .. Wherigo._getInventory() .. ", "
+		.. "\"tasks\": " .. Wherigo._getTasks() .. "}"
+	end
+
+Wherigo._getLocations = function()
+	local locations = "["
+	local first = true
+	for k,v in pairs(cartridge.AllZObjects) do
+		if v._classname == Wherigo.CLASS_ZONE and v.Active and v.Visible then
+			if not first then
+				locations = locations .. "," end
+			locations = locations .. "{\"" .. v.Name .. "\", " .. v.CurrentDistance("m") .. "}"
+			first = false
+			end
+		end
+	return locations .. "]"
+end
+
+Wherigo._getInventory = function()
+	local inventory = "["
+	local first = true
+	for k,v in pairs(cartridge.AllZObjects) do
+		if v.Active and v.Visible and v.Container == Wherigo.Player then
+			if not first then
+				locations = locations .. "," end
+			inventory = inventory .. "{\"" .. v.Name .. "\"}"
+			first = false
+			end
+		end
+	
+	return inventory .. "]"
+end
+
+Wherigo._getYouSee = function()
+	local yousee = "["
+	local first = true
+	for k,v in pairs(cartridge.AllZObjects) do
+		if v._is_visible() and v.Container ~= Wherigo.Player then
+			if not first then
+				yousee = yousee .. "," end
+			yousee = yousee .. "{\"" .. v.Name .. "\"}"
+			first = false
+			end
+		end
+	
+	return yousee .. "]"
+end
+
+Wherigo._getTasks = function()
+	local tasks = "["
+	local first = true
+	for k,v in pairs(cartridge.AllZObjects) do
+		if v._classname == Wherigo.CLASS_ZTASK and v.Active and v.Visible then
+			if not first then
+				tasks = tasks .. "," end
+			tasks = tasks .. "{\"" .. v.Name .. "\"}"
+			end
+		end
+	return tasks .. "]"
+end
