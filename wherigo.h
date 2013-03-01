@@ -65,7 +65,6 @@ public:
 		this->types = NULL;
 		this->offsets = NULL;
 		files = 0;
-		cerr << files;
 	}
 
 	~Wherigo(){
