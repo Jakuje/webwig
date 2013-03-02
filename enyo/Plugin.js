@@ -31,15 +31,11 @@ enyo.kind({
 		this.owner.$.sound.play();
 	},
 	messageBox: function(message, media, button1, button2, callback){
-		console.error("***** WIG Enyo: messageBox:" + message + "b:" + button1 + ", " + button2 + " m:" + media);
+		console.error("***** WIG Enyo: messageBox:" + message + "b:" + button1 + ", " + button2 + " m:" + media + " c:" + callback);
 		if( media ){
-			//path = this.tmpdir + "/" + media;
 			console.error("***** WIG Enyo: Media url: " + media);
-			// not alowed to load local resource
-		} else {
-			path = false;
 		}
-		this.owner.popupMessage(message, "Message", media, button1, button2, callback);
+		this.owner.popupMessage(message, "Message", media, button1, button2, (callback == "1"));
 	},
 	MessageBoxResponse: function( value ){
 		console.error("***** WIG Enyo: MessageBoxResponse value: " + value);
@@ -67,13 +63,14 @@ enyo.kind({
 		console.error(JSONdata);
 		result = enyo.json.parse(JSONdata);
 		if(result.type == "ok") {
+			console.error("***** WIG Enyo: UpdateUI ok ...", JSONdata);
 			this.owner.$.gMain.updateUI(result.data);
 		} else if( result.type == "error" ){
 			console.error("***** WIG Enyo: UpdateUI failed ...");
 			this.owner.popupMessage(result.message);
 			//enyo.windows.addBannerMessage(result.message, "{}");
 		} else {
-			console.error("***** WIG Enyo: Unknown result of getMetaCallback");
+			console.error("***** WIG Enyo: Unknown result of updateUI");
 		}
 	},
 	_resultsCallbacks: [],
@@ -155,6 +152,8 @@ enyo.kind({
 			//this._resultsCallbacks.push(callback);
 			this.callPluginMethodDeferred(enyo.nop, "openCartridge", filename);
 		} else {
+			enyo.nextTick(this, function() { this.openCartridgeResult( "{\"type\": \"ok\", \"data\": {}}");
+			});
 			enyo.nextTick(this, function() { this.owner.$.gMain.updateUI(
 			{
 					"locations": [{"name": "Somewhere"}],
