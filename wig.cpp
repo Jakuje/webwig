@@ -215,22 +215,22 @@ void stackdump_g(lua_State* l)
 }
 
 static void MessageBox(const char *text, const char *media,
-		const char *button1, const char *button2, bool callback /*lua_State *L*/) {
+		const char *button1, const char *button2, const char *callback /*lua_State *L*/) {
 	cerr << "MessageBox:" << text;
-	if( button1 || button2 ){
+	if( strcmp(button1, "") != 0 || strcmp(button2, "") != 0 ){
 		cerr << " >> Options: " << button1 << " | " << button2;
 	}
 	string m;
-	if( media ){
+	if( strcmp(media, "") != 0 ){
 		m = WherigoOpen->getFilePath(media);
-		cerr << " >> Media id: " << m;
+		cerr << " >> Media (" << media << "): " << m;
 	}
 	cerr << endl;
 	syslog(LOG_WARNING, "*** MessageBox with message: %s", text);
 	
 #ifndef DESKTOP
     PDL_Err err;
-    const char *c = (callback ? "1" : "0");
+    const char *c = (strcmp(callback,"1") == 0 ? "1" : "0");
     const char *params[5];
     params[0] = text;
     params[1] = m.c_str();
@@ -287,14 +287,14 @@ static void ShowStatusText(const char *text) {
 }
 
 
-static void ShowScreen(int screen, int detail) {
-	syslog(LOG_WARNING, "*** ShowScreen %d %d", screen, detail);
+static void ShowScreen(const char *screen, const char *detail) {
+	syslog(LOG_WARNING, "*** ShowScreen %s %s", screen, detail);
 	
 #ifndef DESKTOP
-    PDL_Err err;
+	PDL_Err err;
     const char *params[2];
-    /*params[0] = screen;
-    params[1] = detail;*/
+    params[0] = screen;
+    params[1] = detail;
     err = PDL_CallJS("showScreen", params, 1);
     if (err) {
         syslog(LOG_ERR, "*** PDL_CallJS failed, %s", PDL_GetError());
@@ -311,7 +311,7 @@ static void GetInput(const char *type, const char *text) {
     PDL_Err err;
     const char *params[2];
     params[0] = type;
-    porams[1] = text;
+    params[1] = text;
     err = PDL_CallJS("GetInput", params, 2);
     if (err) {
         syslog(LOG_ERR, "*** PDL_CallJS failed, %s", PDL_GetError());
@@ -451,44 +451,31 @@ static void updateStateToJS(){
 		int type = lua_type(L, 1);
 		if( type == LUA_TSTRING ){
 			result = lua_tostring(L,1);
-			cerr << result;
 		}
-		/*if( type == LUA_TTABLE ){
-			lua_pushnil(L);
-			stackdump_g(L);
-			while(lua_next(L, 1) != 0){
-				printf("%s - %s\n", 
-					  lua_typename(L, lua_type(L, -2)),
-					  lua_typename(L, lua_type(L, -1)));
-				lua_pop(L, 1);
-			}
-		}*/
 		*buffer << "{\"type\": \"ok\", \"data\": \n"
 			<< result
-				/*<< "{\"locations\": [{\"name\": \"Somewhere\"}],"
-				<< "\"youSee\": [],"
-				<< "\"inventory\": [{\"name\": \"Something\"}, {\"name\": \"Pen\"}],"
-				<< "\"tasks\": [{\"name\": \"To do something\"}]}"*/
 			<< "}";
 	} else {
 		my_error("Problem getting UI informations");
 	}
 	
-	
-	
 #ifndef DESKTOP
-	string str = buffer->str();	
-	const char *data = str.c_str();
-	
-	syslog(LOG_WARNING, "*** Updating State");
-    PDL_Err err;
-    err = PDL_CallJS("updateState", (const char **)&data, 1);
-    if (err) {
-        syslog(LOG_ERR, "*** PDL_CallJS failed, %s", PDL_GetError());
-        //SDL_Delay(5);
-        return;
-    }
+	if( PDL_IsPlugin() ){
+		string str = buffer->str();	
+		const char *data = str.c_str();
+		
+		syslog(LOG_WARNING, "*** Updating State");
+		PDL_Err err;
+		err = PDL_CallJS("updateState", (const char **)&data, 1);
+		if (err) {
+			syslog(LOG_ERR, "*** PDL_CallJS failed, %s", PDL_GetError());
+			//SDL_Delay(5);
+			return;
+		}
+	} else 
 #endif
+		cerr << buffer->str() << endl;
+	
     delete buffer;
     
 }
@@ -528,7 +515,7 @@ static void setup(int argc, char **argv)
     openlog("com.dta3team.app.wherigo", 0, LOG_USER);
 #endif
     
-    int result = SDL_Init(SDL_INIT_TIMER);
+    int result = SDL_Init(SDL_INIT_VIDEO |SDL_INIT_TIMER);
     if ( result != 0 ) {
         printf("Could not init SDL: %s\n", SDL_GetError());
         exit(1);
@@ -539,11 +526,12 @@ static void setup(int argc, char **argv)
     PDL_Init(0);
     atexit(PDL_Quit);
     
-    PDL_Err error = PDL_EnableLocationTracking(PDL_TRUE);
+    /*PDL_Err error = PDL_EnableLocationTracking(PDL_TRUE);
     if( error != PDL_NOERROR ){
-		my_error("Could not init PDL Location Tracking: %s\n", SDL_GetError());
+		my_error("Could not init PDL Location Tracking: %s\n");
+		my_error(SDL_GetError());
         exit(1);
-	}
+	}*/
 
 	if (!PDL_IsPlugin()) {
 #endif
@@ -581,7 +569,7 @@ static bool OutputMetadata(stringstream *buf, const char *cartridge, bool first 
 		delete w;
 		return false;		
 	}
-	w->createIcons();
+	//w->createIcons();
 	
 	if (!first) {
 		*buf << ",\n";
@@ -589,8 +577,8 @@ static bool OutputMetadata(stringstream *buf, const char *cartridge, bool first 
 	
 	*buf << "{\n"
 		<< "\"filename\": \"" << escapeJsonString(string(cartridge)) << "\""
-		<< ",\"iconID\": \"" << w->iconID << "\""
-		<< ",\"splashID\": \"" << w->splashID << "\""
+		<< ",\"icon\": \"" << w->getFilePathById(w->iconID) << "\""
+		<< ",\"splash\": \"" << w->getFilePathById(w->splashID) << "\""
 		<< ",\"type\": \"" << w->type << "\""
 		<< ",\"name\": \"" << escapeJsonString(w->cartridgeName) << "\""
 		<< ",\"guid\": \"" << w->cartridgeGUID << "\""
@@ -719,7 +707,8 @@ static int openCartridge(char *filename){
 		WherigoOpen = NULL;
 		return 0;
 	}
-	//WherigoOpen->createFiles(); // create dir and files
+	WherigoOpen->createFiles(); // files
+	WherigoOpen->createBytecode();
 	
 	int status;
 	L = openLua(WherigoOpen);
@@ -736,15 +725,19 @@ static int openCartridge(char *filename){
 	
 	//stackdump_g(L);
 	
-	gpsTimer = SDL_AddTimer( (Uint32)5000, createUpdateEvent, NULL );
+	//gpsTimer = SDL_AddTimer( (Uint32)5000, createUpdateEvent, NULL );
 	
-	my_error("Everything ok");
 	return 1;
 } 
 
-static int closeCartridge(char *filename){
-	// @todo
-	SDL_RemoveTimer(gpsTimer);
+static void closeCartridge(int *save){
+	// @todo save
+	
+	//SDL_RemoveTimer(gpsTimer);
+	
+	delete WherigoOpen;
+	
+	exit_lua();
 }
 
 static void openCartridgeToJS(char *filename){
@@ -760,22 +753,25 @@ static void openCartridgeToJS(char *filename){
 	}
 	
 #ifndef DESKTOP
-	string str = buffer->str();	
-	const char * data = str.c_str();
-	
-    // send data back to the JavaScript side
-    syslog(LOG_WARNING, "*** returning results");
-    PDL_Err err;
-    err = PDL_CallJS("openCartridgeResult", (const char **)&data, 1);
-    if (err) {
-        syslog(LOG_ERR, "*** PDL_CallJS failed, %s", PDL_GetError());
-        //SDL_Delay(5);
-        return;
-    }
-	if( status == 1 ){
-		return;
-	}
+	if( PDL_IsPlugin() ){
+		string str = buffer->str();	
+		const char * data = str.c_str();
+		
+		// send data back to the JavaScript side
+    	syslog(LOG_WARNING, "*** returning results");
+		PDL_Err err;
+		err = PDL_CallJS("openCartridgeResult", (const char **)&data, 1);
+		if (err) {
+			syslog(LOG_ERR, "*** PDL_CallJS failed, %s", PDL_GetError());
+			//SDL_Delay(5);
+			return;
+		}
+		if( status == 1 ){
+			return;
+		}
+	} else 
 #endif
+		cerr << buffer->str() << endl;
 	
 	// move to starting coordinates and call update position
 	cerr << "Updating position" << endl;
@@ -799,18 +795,20 @@ static void openCartridgeToJS(char *filename){
 #ifndef DESKTOP
 void UpdateGPS(){
 	PDL_Location location;
-	PDL_Err status = PDL_GetLocation(location);
-	if( status == PDL_NOERROR ){
-		if( location.latitude > -1 && location.longitude > -1 )
+	PDL_Err err = PDL_GetLocation(&location);
+	if( err == PDL_NOERROR ){
+		if( location.latitude > -1 && location.longitude > -1 ){
 			stringstream ss;
 			ss << "cartridge._update(Wherigo.ZonePoint("
 				<< location.latitude << ", " << location.longitude << "), 0)";
-			int status lual_dostring(L, ss.c_str());
-			report(status);
+			int status = luaL_dostring(L, ss.str().c_str());
+			report(L, status);
 			my_error("GPS updated successfully");
+			my_error(ss.str());
 		}
 	} else {
-		my_error("Get Location failed: Error = ", PDL_GetError)
+		my_error("Get Location failed:");
+		my_error(PDL_GetError());
 	}
 }
 
@@ -823,13 +821,8 @@ static void loop(){
     if (SDL_WaitEvent(&event)) {
         if (event.type == SDL_QUIT)
             exit(0);
-        else if (event.type == SDL_MOUSEBUTTONDOWN) {
-           if (PDL_GetPDKVersion() >= 300) {
-                gKeyboardVisible = !gKeyboardVisible;
-                PDL_SetKeyboardState(gKeyboardVisible ? PDL_TRUE : PDL_FALSE);
-           }
-        } else if (event.type == SDL_USEREVENT) {
-            syslog(LOG_WARNING, "*** processing * event");
+        else if (event.type == SDL_USEREVENT) {
+            syslog(LOG_WARNING, "*** processing * event code = %d", event.user.code);
             switch( event.user.code ){
 				/*case GET_METADATA:
 					// extract our arguments
@@ -858,7 +851,7 @@ static void loop(){
 					break;
 				case EVENT_CLOSE_CARTRIDGE: {
 					int *save = (int *)event.user.data1;
-					//openCartridgeToJS(filename);
+					closeCartridge(save);
 					delete save;
 					}
 					break;
@@ -899,9 +892,6 @@ class ZCartridge: ZObject {
 int main (int argc, char **argv) {
 	// SDL setup and graphics display
   setup(argc, argv);
-  my_error("*** MAIN Setup");
- 
-  
 
   // alive UI
   while (1) {

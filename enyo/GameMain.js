@@ -8,57 +8,49 @@ enyo.kind({
 			{name: "title", kind: enyo.VFlexBox, content: "Wherigo name"},
 			{kind: "Spacer"}
 		]},
-		{kind: enyo.VFlexBox, flex: 1, components: [
-			
-			{name: "locations", kind: "WIGApp.GameMain.ActionRow"},
-			{name: "youSee", kind: "WIGApp.GameMain.ActionRow"},
-			{name: "inventory", kind: "WIGApp.GameMain.ActionRow"},
-			{name: "tasks", kind: "WIGApp.GameMain.ActionRow"},
-		]},
+		{name: "pane", kind: "Pane", flex: 1,
+			components: [
+				{name: "gMain", className: "enyo-bg", kind: "WIGApp.GameMain.HomeScreen"},
+				{name: "gList", className: "enyo-bg", kind: "WIGApp.GameMain.List"},
+				{name: "gDetail", className: "enyo-bg", kind: "WIGApp.GameMain.Detail"}
+			]
+		},
 	],
+	data: [],
 	create: function(){
 		this.inherited(arguments);
-		this.$.locations.$.icon.setSrc("images/locations.png");
-		this.$.locations.$.title.setContent("Locations");
-		this.$.youSee.$.icon.setSrc("images/you_see.png");
-		this.$.youSee.$.title.setContent("You see");
-		this.$.inventory.$.icon.setSrc("images/inventory.png");
-		this.$.inventory.$.title.setContent("Inventory");
-		this.$.tasks.$.icon.setSrc("images/tasks.png");
-		this.$.tasks.$.title.setContent("Tasks");
 	},
 	
 	setup: function(data){
 		this.$.title.setContent(data.name);
-		/*if(data.iconID != "-1"){
-			this.$.icon.setIcon(CONF_DIR + data.guid + '_icon.png');
-		} else {
-			this.$.icon.setIcon('');
-		}
-		if(data.splashID != "-1"){
-			this.$.splash.setSrc(CONF_DIR + data.guid + '_splash.png');
-		} else {
-			this.$.splash.setSrc('');
-		}
-		this.$.description.setContent(data.description);
-		this.$.startDescription.setContent(data.startingLocationDescription);
-		this.$.type.setContent(data.type);
-		this.$.version.setContent(data.version);
-		this.$.author.setContent(data.author);
-		*/
 		this.owner.$.plugin.openCartridge(data.filename, enyo.nop);
-		// enyo.bind(this, this.updateUI)
 	},
 	
 	updateUI: function(data){
-		this.$.locations.setup(data.locations);
-		this.$.youSee.setup(data.youSee);
-		this.$.inventory.setup(data.inventory);
-		this.$.tasks.setup(data.tasks);
+		this.data = data;
+		if( this.$.pane.getViewName() ==  "gMain" ){
+			this.$.gMain.updateUI(data);
+		} else {
+			this.$.gList.updateUI(data);
+		}
+	},
+	showScreen: function(screen, item){
+		if( item == undefined ){
+			this.$.gList.setup(screen, this.data);
+			this.$.pane.selectViewByName("gList");
+		} else {
+			this.$.gDetail.setup(screen, item, this.data);
+			this.$.pane.selectViewByName("gDetail");
+		}
 	},
 	
 	goBack: function(inSender, inEvent){
-		// prompt
-		this.owner.goBack(inSender, inEvent);
+		if( this.$.pane.getViewName() ==  "gMain" ){
+			// prompt
+			this.owner.goBack(inSender, inEvent);
+		} else {
+			this.$.pane.back(inEvent);
+		}
+		// todo: Back swipe
 	}
 });

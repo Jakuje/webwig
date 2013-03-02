@@ -5,5 +5,8 @@ enyo.depends(
   "enyo/CartList.js",
   "enyo/CartDetail.js",
   "enyo/GameMain.js",
-  "enyo/GameMain.ActionRow.js"
+  "enyo/GameMain.ActionRow.js",
+  "enyo/GameMain.List.js",
+  "enyo/GameMain.Detail.js",
+  "enyo/GameMain.HomeScreen.js"
 );

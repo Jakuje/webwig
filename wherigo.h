@@ -27,7 +27,7 @@ using namespace std;
 void my_error(string message);
 
 class Wherigo {
-	enum FileTypes { UNDEFINED = 0, BMP = 1, PNG = 2, JPG = 3, GIF = 4, WAV = 17, MP3 = 18, FDL = 19};
+	enum FileTypes { UNDEFINED = -1, BMP = 1, PNG = 2, JPG = 3, GIF = 4, WAV = 17, MP3 = 18, FDL = 19};
 public:
 	string filename;
 	fileReader fd;
@@ -92,7 +92,7 @@ public:
 
 	bool createBytecode();
 
-	bool createIcons();
+	//bool createIcons();
 	
 	bool createFileById(int id, string path);
 	
@@ -101,6 +101,7 @@ public:
 	
 	bool createFiles();
 
+	string getFilePathById(int i);
 	string getFilePath(int i);
 	string getFilePath(const char *str_i);
 	string getFilePath(int i, string name);
