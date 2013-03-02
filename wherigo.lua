@@ -5,12 +5,12 @@ _VERSION = "Lua 5.1"
 Wherigo = {
 	INVALID_ZONEPOINT 	= nil,
 	
-	MAINSCREEN			= 0,
-	INVENTORYSCREEN 	= 1,
-	ITEMSCREEN 			= 2,
-	LOCATIONSCREEN		= 3,
-	TASKSCREEN			= 4,
-	DETAILSCREEN 		= 10,
+	MAINSCREEN			= "main",
+	INVENTORYSCREEN 	= "inventory",
+	ITEMSCREEN 			= "you_see",
+	LOCATIONSCREEN		= "locations",
+	TASKSCREEN			= "tasks",
+	DETAILSCREEN 		= "detail",
 	
 	LOGDEBUG			= 150,
 	LOGCARTRIDGE		= 151,
@@ -62,23 +62,28 @@ function Wherigo.MessageBox(t)
 	local callback = rawget(t, "Callback")
 	--print("Message: ", text) 
 	if media then
-		--print("Media: ", media._id)
+		print("Media: ", media._id)
 		media = media._id
 	else
-		media = nil
+		media = ""
 		end
 	if buttons then
 		button1 = rawget(buttons, 1)
 		button2 = rawget(buttons, 2)
 		--print("Buttons: ", button1, " _ ", button2)
+		if button2 == nil then
+			button2 = "" end
 	else
-		button1 = nil
-		button2 = nil
+		button1 = ""
+		button2 = ""
 		end
 	if callback then
 		table.insert(Wherigo._MBCallbacks, callback)
+		callback = "1"
+	else
+		callback = "0"
 		end
-	WIGInternal.MessageBox(text, media, button1, button2, (callback ~= nil) )
+	WIGInternal.MessageBox(text, media, button1, button2, callback )
 	end
 function Wherigo._MessageBoxResponse(action)
 	if # Wherigo._MBCallbacks > 0 then
@@ -90,18 +95,22 @@ function Wherigo._MessageBoxResponse(action)
 	end
 	
 function Wherigo.Dialog(table)
-	-- OK button
-	-- sequence ???
-	text = rawget(table, "Text")
-	media = rawget(table, "Media")
-	--print("Message: ", text)
-	if media then
-		--print("Media: ", media.Name)
-		media = media._id
-	else
-		media = nil
+	for k,v in pairs(table) do
+		if type(v) == 'table' then
+			text = rawget(v, "Text")
+			media = rawget(v, "Media")
+		else
+			text = rawget(table, "Text")
+			media = rawget(table, "Media")
+			end
+		if media then
+			media = media._id
+		else
+			media = ""
+			end
+		WIGInternal.MessageBox(text, media, "", "", "0")
 		end
-	WIGInternal.MessageBox(text, media, nil, nil, false)
+	
 	end
 
 function Wherigo.PlayAudio(media)
@@ -212,12 +221,11 @@ function Wherigo.Command(text)
 	end
 
 function Wherigo.LogMessage(text, level)
+	if type(text) == 'table' then
+		level = text.Level
+		text = text.Text
+		end
 	WIGInternal.LogMessage(text, level)
-	end
-function Wherigo.LogMessage(table)
-	text = rawget(table, "Text")
-	level = rawget(table, "Level")
-	Wherigo.LogMessage(text, level)
 	end
 
 function Wherigo.GetInput(input)
@@ -712,13 +720,15 @@ Wherigo.ZTask = {}
 function Wherigo.ZTask.new( cartridge, container )
 	local self = Wherigo.ZObject( cartridge, container )
 	self._classname = Wherigo.CLASS_ZTASK
+	self.Name = 'NoName'
+	self.Description = ''
 	
 	setmetatable(self, {
 		__tostring = function( s )
 			return "ZTask (" .. s.Name .. ")"
 			end,
 	})
-	
+	-- events OnClick, SetCorrectState, OnSetComplete, OnSetActive
 	return self
 	end
 setmetatable(Wherigo.ZTask, {
@@ -866,6 +876,8 @@ for k,v in pairs(zonePaloucek) do print(k,v) end
 Wherigo._getUI = function()
 	--[[for k,v in pairs(cartridge.AllZObjects) do
 		print(v)
+		if v._classname == Wherigo.CLASS_ZMEDIA and v.Resources then
+			print(v.Resources.Type, v.Resources.Filename) end
 		end]]
 	return "{ \"locations\": " .. Wherigo._getLocations() .. ", "
 		.. "\"youSee\": " .. Wherigo._getYouSee() .. ", "
@@ -880,7 +892,7 @@ Wherigo._getLocations = function()
 		if v._classname == Wherigo.CLASS_ZONE and v.Active and v.Visible then
 			if not first then
 				locations = locations .. "," end
-			locations = locations .. "{\"" .. v.Name .. "\", " .. v.CurrentDistance("m") .. "}"
+			locations = locations .. "{\"name\": \"" .. v.Name .. "\", \"distance\": " .. v.CurrentDistance("m") .. "}"
 			first = false
 			end
 		end
@@ -893,8 +905,8 @@ Wherigo._getInventory = function()
 	for k,v in pairs(cartridge.AllZObjects) do
 		if v.Active and v.Visible and v.Container == Wherigo.Player then
 			if not first then
-				locations = locations .. "," end
-			inventory = inventory .. "{\"" .. v.Name .. "\"}"
+				inventory = inventory .. "," end
+			inventory = inventory .. "{\"name\": \"" .. v.Name .. "\"}"
 			first = false
 			end
 		end
@@ -909,7 +921,7 @@ Wherigo._getYouSee = function()
 		if v._is_visible() and v.Container ~= Wherigo.Player then
 			if not first then
 				yousee = yousee .. "," end
-			yousee = yousee .. "{\"" .. v.Name .. "\"}"
+			yousee = yousee .. "{\"name\": \"" .. v.Name .. "\"}"
 			first = false
 			end
 		end
@@ -924,7 +936,12 @@ Wherigo._getTasks = function()
 		if v._classname == Wherigo.CLASS_ZTASK and v.Active and v.Visible then
 			if not first then
 				tasks = tasks .. "," end
-			tasks = tasks .. "{\"" .. v.Name .. "\"}"
+			tasks = tasks .. "{\"name\": \"" .. v.Name .. "\", \"description\": \"" .. v.Description .. "\""
+			if v.OnClick then
+				tasks = tasks .. ", \"onclick\": true"
+				end
+			tasks = tasks .. "}"
+			first = false
 			end
 		end
 	return tasks .. "]"
