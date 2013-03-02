@@ -41,13 +41,13 @@ enyo.kind({
 	setup: function(data){
 		this.data = data;
 		this.$.title.setContent(data.name);
-		if(data.iconID != "-1"){
-			this.$.icon.setIcon(CONF_DIR + data.guid + '_icon.png');
+		if( data.icon ){
+			this.$.icon.setIcon( data.icon );
 		} else {
 			this.$.icon.setIcon('');
 		}
-		if(data.splashID != "-1"){
-			this.$.splash.setSrc(CONF_DIR + data.guid + '_splash.png');
+		if( data.splash ){
+			this.$.splash.setSrc( data.splash );
 		} else {
 			this.$.splash.setSrc('');
 		}
