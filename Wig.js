@@ -27,19 +27,23 @@ enyo.kind({
 		   kind: "ModalDialog",
 		   name: "errorMessage",
 		   caption: "Message",
+		   layoutKind: "VFlexLayout",
 		   lazy: false,
 		   components: [
-				{
-					name: "media",
-					kind: "Image",
-					showing: "false"
-				},
-				{
-					name: "errorText",
-					content: "Chyba toho a toho.",
-					allowHTML: true,
-					className: "",
-				},
+				{kind: "BasicScroller", autoVertical: true, style: "height: auto;", flex: 1, 
+					components: [{
+							name: "media",
+							kind: "Image",
+							showing: "false"
+						},
+						{
+							name: "errorText",
+							content: "Chyba toho a toho.",
+							allowHtml: true,
+							className: "",
+						},
+					]
+			   },
 				{
 					name: "Button1",
 					kind: "Button",
@@ -53,21 +57,21 @@ enyo.kind({
 					onclick: "closePopup",
 					showing: "false"
 				}
-		   ],
-		}
-	],
+			   ],
+		   }],
 	
 
 	create: function() {
 		this.inherited(arguments);
 		//this.$.pane.selectViewByName("cList");
 		//this.$.pane.selectViewByName("gMain");
-		this.$.cList.getCartridges(0);
+		//this.$.cList.getCartridges(0);
 	},
 	
 	popupCallback: false,
 	popupQueue: [], // push(), shift()
 	popupMessage: function(message, title, media, button1, button2, callback){
+		console.log("Callback: ", callback);
 		if( this.$.errorMessage.isOpen ){
 			this.popupQueue.push([message, title, media, button1, button2, callback]);
 			return;
@@ -139,7 +143,15 @@ enyo.kind({
 	},
 
 	goBack: function(inSender, inEvent) {
+		console.log("back");
 		inEvent.stopPropagation();
+		if( this.$.pane.getViewName() ==  "gMain" ){
+			// @todo Prompt and in case OK => goBack directly
+			this.popupMessage("Do you really want to exit game without saving?", "Prompt");
+			//return false;
+			this.$.plugin.closeCartridge(1);
+		}
+		
 		if( this.$.pane.getViewName() !=  "cList" ){
 			inEvent.preventDefault();
 		}
