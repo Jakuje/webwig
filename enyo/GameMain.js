@@ -39,15 +39,14 @@ enyo.kind({
 			this.$.gList.setup(screen, this.data);
 			this.$.pane.selectViewByName("gList");
 		} else {
-			this.$.gDetail.setup(screen, item, this.data);
+			this.$.gDetail.setup(screen, this.data[screen][item]);
 			this.$.pane.selectViewByName("gDetail");
 		}
 	},
 	
 	goBack: function(inSender, inEvent){
 		if( this.$.pane.getViewName() ==  "gMain" ){
-			// prompt
-			this.owner.goBack(inSender, inEvent);
+			this.owner.goBack(inSender, inEvent, true);
 		} else {
 			this.$.pane.back(inEvent);
 		}

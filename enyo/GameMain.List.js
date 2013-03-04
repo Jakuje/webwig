@@ -14,10 +14,10 @@ enyo.kind({
 	setup: function(screen, data){
 		this.screen = screen;
 		this.$.title.setContent( this.$.detail.getTitle(screen) );
-		this.$.detail.setup( data[screen] );
+		this.$.detail.setup( data[screen], this.screen );
 	},
 	
 	updateUI: function(data){
-		this.$.detail.setup( data[this.screen] );
+		this.$.detail.setup( data[this.screen], this.screen );
 	}
 });

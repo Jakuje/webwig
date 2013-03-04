@@ -11,15 +11,17 @@ enyo.kind({
 		]},
 		{kind: "Scroller", flex: 1, components: [
 			{kind: "VirtualRepeater", name: "items", onSetupRow: "getItem", components: [
-				{kind: "Item", layoutKind: "HFlexLayout", onclick: "showScreenDetail", components: [
+				{kind: "Item", layoutKind: "HFlexLayout", onclick: "itemClicked", components: [
+					{name: "itemIcon", kind: "Image", flex: 1, style: "width: 25px;height:25px;"},
 					{name: "itemTitle", flex: 1},
 				]}
 			]},
 			{kind: "Item", name: "empty", layoutKind: "HFlexLayout", components: [
-				{content: "Nothing here", flex: 1, style: "font-style:italic;text-align:center;"}
+				{content: "Nothing here", flex: 1, style: "font-style:italic;text-align:center; color:#999999;"}
 			]}
 		]}
 	],
+	screen: "",
 	getTitle: function(name){
 		switch(name){
 			case 'locations':
@@ -32,18 +34,24 @@ enyo.kind({
 				return "Tasks";
 		}
 	},
-	showScreenDetail: function(inSender, inEvent){
-		this.owner.owner.showScreen("detail", inEvent.rowIndex); // todo
-	},
-	showScreen: function(){
-		if( this.name != "detail" ){
-			this.owner.owner.showScreen(this.name);
+	itemClicked: function(inSender, inEvent){
+		if( this.data[inEvent.rowIndex].onclick ){
+			this.owner.owner.owner.$.plugin.callback("OnClick", this.data[inEvent.rowIndex].id)
+		} else {
+			this.owner.owner.showScreen(this.screen, inEvent.rowIndex);
 		}
 	},
+	showScreen: function(){
+		this.owner.owner.showScreen(this.screen);
+	},
 	
-	setup: function(data){
-		this.$.title.setContent( this.getTitle(this.name) );
-		this.$.icon.setSrc("images/" + this.name + ".png");
+	setup: function(data, screen){
+		if( ! screen ){
+			screen = this.name;
+		}
+		this.screen = screen;
+		this.$.title.setContent( this.getTitle(this.screen) );
+		this.$.icon.setSrc("images/" + this.screen + ".png");
 		
 		this.data = data;
 		this.$.numRows.setContent(data.length);
@@ -58,6 +66,12 @@ enyo.kind({
 	getItem: function(inSender, inIndex){
 		if (inIndex < this.data.length) {
 			this.$.itemTitle.setContent(this.data[inIndex].name);
+			if( this.data[inIndex].icon ){
+				this.$.itemIcon.setSrc(this.data[inIndex].icon);
+				this.$.itemIcon.show();
+			} else {
+				this.$.itemIcon.hide();
+			}
 			return true;
 		}
 	}
