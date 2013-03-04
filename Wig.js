@@ -71,7 +71,6 @@ enyo.kind({
 	popupCallback: false,
 	popupQueue: [], // push(), shift()
 	popupMessage: function(message, title, media, button1, button2, callback){
-		console.log("Callback: ", callback);
 		if( this.$.errorMessage.isOpen ){
 			this.popupQueue.push([message, title, media, button1, button2, callback]);
 			return;
@@ -93,7 +92,7 @@ enyo.kind({
 			this.$.errorMessage.setClassName("enyo-text-error");
 		}
 		this.$.errorText.setContent(message);
-		if( media ){
+		if( media && media != "" ){
 			this.$.media.setSrc(media);
 			this.$.media.show();
 		} else {
@@ -116,9 +115,14 @@ enyo.kind({
 	},
 	closePopup: function(inSender, inEvent) {
 		this.$.errorMessage.close();
-		if( this.popupCallback ){
+		
+		// internal usage, JS function is callback
+		if( typeof this.popupCallback == "function" ){
+			this.popupCallback( inSender.getName() );
+		} else if( this.popupCallback == true ){
 			this.$.plugin.MessageBoxResponse(inSender.getName());
 		}
+		
 		if( this.popupQueue.length > 0 ){
 			this.popupPaint( this.popupQueue.shift() );
 		}
@@ -141,20 +145,35 @@ enyo.kind({
 			// ??
 		}
 	},
-
-	goBack: function(inSender, inEvent) {
+	
+	// handler for Back Swipe (ESC for Emulator / Chrome)
+	// and propagated from gamePane (gMain)
+	goBack: function(inSender, inEvent, force) {
 		console.log("back");
 		inEvent.stopPropagation();
-		if( this.$.pane.getViewName() ==  "gMain" ){
-			// @todo Prompt and in case OK => goBack directly
-			this.popupMessage("Do you really want to exit game without saving?", "Prompt");
-			//return false;
-			this.$.plugin.closeCartridge(1);
-		}
-		
+
+		// we are on home page and we want to go to card view
 		if( this.$.pane.getViewName() !=  "cList" ){
 			inEvent.preventDefault();
 		}
+
+		if( this.$.pane.getViewName() ==  "gMain" ){
+			if( ! force ){
+				this.$.gMain.goBack(inSender, inEvent);
+			} else {
+				// @todo Prompt and in case OK => goBack directly
+				this.popupMessage("Do you really want to exit game without saving?", "Prompt", "", "OK", "Cancel",
+					// if OK then close cartridge (cleanup and close game pane)
+					function( button ){
+						if( button == "Button1" ){
+							this.$.plugin.closeCartridge(1);
+							this.$.pane.back();
+						}
+						});
+			}
+			return false;
+		}
+		
 		this.$.pane.back(inEvent);
 	}
 });
