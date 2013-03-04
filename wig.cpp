@@ -31,7 +31,8 @@ enum EVENT_CODES {
 	EVENT_OPEN_CARTRIDGE,
 	EVENT_CLOSE_CARTRIDGE,
 	EVENT_MESSAGE_BOX_RESPONSE,
-	EVENT_UPDATE_GPS
+	EVENT_UPDATE_GPS,
+	EVENT_CALLBACK
 	};
 
 // Copy&Paste from wherigo.lua
@@ -178,8 +179,31 @@ static PDL_bool MessageBoxResponseJS(PDL_JSParameters *params)
     return PDL_TRUE;
 }
 
+static PDL_bool CallbackFunctionJS(PDL_JSParameters *params){
+	if (PDL_GetNumJSParams(params) != 2) {
+        syslog(LOG_INFO, "**** wrong number of parameters for CallbackFunction");
+        PDL_JSException(params, "wrong number of parameters for CallbackFunction");
+        return PDL_FALSE;
+    }
 
+    const char *e = PDL_GetJSParamString(params, 0);
+    int *id = new int;
+    *id = PDL_GetJSParamInt(params, 1);
+
+    SDL_Event event;
+    event.user.type = SDL_USEREVENT;
+    event.user.code = EVENT_CALLBACK;
+    event.user.data1 = strdup(e);
+    event.user.data2 = id;
+    
+    syslog(LOG_WARNING, "*** sending CallbackFunction event");
+    SDL_PushEvent(&event);
+    
+    return PDL_TRUE;
+}
 #endif
+
+
 
 static void openCartridgeToJS(char *filename);
 static void OutputCartridgesToJS(int *refresh);
@@ -340,7 +364,7 @@ lua_State * openLua(Wherigo *w){
 	int status;
 	L = lua_open();  /* create state */
 	if (L == NULL) {
-		l_message("", "cannot create state: not enough memory");
+		my_error("cannot create state: not enough memory");
 		return NULL;
 	}
 	luaL_openlibs(L);
@@ -362,7 +386,7 @@ lua_State * openLua(Wherigo *w){
 			.addVariable("CartFilename", &w->filename, true)
 			.addVariable("Device", &w->recomandedDevice, false)
 			.addVariable("Platform", &device, false)
-			.addVariable("CartFolder", &dir, false)
+			.addVariable("CartFolder", &w->cartDir, false)
 			.addVariable("SyncFolder", &dir, false)
 			.addVariable("PathSep", &slash, false)
 			.addVariable("DeviceId", &device, false)
@@ -382,14 +406,14 @@ lua_State * openLua(Wherigo *w){
 			.addFunction("ShowScreen", ShowScreen)
 			.addFunction("GetInput", GetInput)
 			.addFunction("ShowStatusText", ShowStatusText)
-			
+			.addFunction("escapeJsonString", escapeJsonString)
 		.endNamespace();
 			
 	// library in Lua
 	status = luaL_dofile(L, "wherigo.lua");
 	report(L, status);
 	if( status != 0 ){
-		cerr << "Failed to load wherigo library" << endl;
+		my_error("Failed to load wherigo library");
 		return NULL;
 	}
 	return L;
@@ -442,9 +466,14 @@ static void updateStateToJS(){
 	int status;
 	stringstream *buffer = new stringstream(stringstream::in | stringstream::out);
 	
-	cerr << "Getting state" << endl;
+	/*cerr << "Getting state" << endl;
 	status = luaL_dostring(L, "return Wherigo._getUI()");
-	report(L, status);
+	report(L, status);*/
+	
+	lua_getfield(L, LUA_GLOBALSINDEX, "Wherigo");
+	lua_getfield(L, -1, "_getUI");
+	lua_remove(L, -2);
+	status = lua_pcall(L, 0, 1, 0);
 	
 	if( status == 0 ){
 		string result;
@@ -456,6 +485,7 @@ static void updateStateToJS(){
 			<< result
 			<< "}";
 	} else {
+		report(L, status);
 		my_error("Problem getting UI informations");
 	}
 	
@@ -480,6 +510,26 @@ static void updateStateToJS(){
     
 }
 
+static void CallbackFunction(const char *event, int * id){
+	/*stringstream ss;
+	ss << "Wherigo._callback(\""
+		<< event << "\", " << *id << ")";
+	int status = luaL_dostring(L, ss.str().c_str());
+	report(L, status);*/
+	
+	lua_getfield(L, LUA_GLOBALSINDEX, "Wherigo");
+	lua_getfield(L, -1, "_callback");
+	lua_remove(L, -2);
+	lua_pushstring(L, event);
+	lua_pushinteger(L, *id);
+	int status = lua_pcall(L, 2, 0, 0);
+	report(L, status);
+	
+	//SDL_Delay(5);
+	// push updates to JS side
+	updateStateToJS();
+
+}
 
 void CommandLineTests(int argc, char **argv){
 	// OutputCartridges
@@ -504,6 +554,11 @@ void CommandLineTests(int argc, char **argv){
 		}
 		
 		openCartridgeToJS(file);
+		
+		int i = 11;
+		CallbackFunction("OnClick", &i);
+		
+		luaL_dostring(L, "debug.debug()");
 		//updateStateToJS();
 	}
 }
@@ -545,6 +600,7 @@ static void setup(int argc, char **argv)
     PDL_RegisterJSHandler("openCartridge", openCartridgeJS);
     PDL_RegisterJSHandler("closeCartridge", closeCartridgeJS);
     PDL_RegisterJSHandler("MessageBoxResponse", MessageBoxResponseJS);
+    PDL_RegisterJSHandler("CallbackFunction", CallbackFunctionJS);
     PDL_JSRegistrationComplete();
     
     // Workaround for old webos devices:
@@ -640,7 +696,6 @@ static void OutputCartridges(stringstream *buf, int *refresh){
 	return;
 }
 
-
 static void OutputCartridgesToJS(int *refresh)
 {
     stringstream *buffer = new stringstream(stringstream::in | stringstream::out);
@@ -712,6 +767,12 @@ static int openCartridge(char *filename){
 	
 	int status;
 	L = openLua(WherigoOpen);
+	if( L == NULL ){
+		if( PDL_IsPlugin() ){
+			// send error to UI
+		}
+		return 0;
+	}
 	
 	// do bytecode from cartridge
 	string bytecode = WherigoOpen->getCartDir();
@@ -861,7 +922,14 @@ static void loop(){
 					delete value;
 					}
 					break;
-				
+				case EVENT_CALLBACK: {
+					char *e = (char *)event.user.data1;
+					int *id = (int *)event.user.data2;
+					CallbackFunction(e, id);
+					delete e;
+					delete id;
+					}
+					break;				
 			}
         }
     }
