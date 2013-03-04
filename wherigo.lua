@@ -407,7 +407,7 @@ function Wherigo.ZObject.new(cartridge, container )
 			p = p.Container
 			end
 		end
-	function self.MoveTo(owner)
+	function self:MoveTo(owner)
 		self.Container = owner
 		end
 	function self._is_visible()
@@ -722,6 +722,8 @@ function Wherigo.ZTask.new( cartridge, container )
 	self._classname = Wherigo.CLASS_ZTASK
 	self.Name = 'NoName'
 	self.Description = ''
+	self.Complete = false
+	self.Correct = false
 	
 	setmetatable(self, {
 		__tostring = function( s )
@@ -872,12 +874,27 @@ for k,v in pairs(zonePaloucek) do print(k,v) end
 
 -- After runing script, setup media ?
 
+Wherigo._callback = function(event, id)
+	local t = cartridge.AllZObjects[id]
+	if event == "OnClick" and t.OnClick then
+		t.OnClick(t)
+		end
+	--cartridge.AllZObjects[id][event]()
+	end
+
+Wherigo._getMediaField = function(field, t)
+	if t then
+		return ", \"" .. field .. "\": \"" .. Env.CartFolder .. t._id .. "." .. t.Resources[1].Type .. "\""
+	else
+		return "" end
+	end
+
 
 Wherigo._getUI = function()
 	--[[for k,v in pairs(cartridge.AllZObjects) do
 		print(v)
 		if v._classname == Wherigo.CLASS_ZMEDIA and v.Resources then
-			print(v.Resources.Type, v.Resources.Filename) end
+			print(v.Resources[1].Type, v.Resources[1].Filename) end
 		end]]
 	return "{ \"locations\": " .. Wherigo._getLocations() .. ", "
 		.. "\"youSee\": " .. Wherigo._getYouSee() .. ", "
@@ -892,7 +909,9 @@ Wherigo._getLocations = function()
 		if v._classname == Wherigo.CLASS_ZONE and v.Active and v.Visible then
 			if not first then
 				locations = locations .. "," end
-			locations = locations .. "{\"name\": \"" .. v.Name .. "\", \"distance\": " .. v.CurrentDistance("m") .. "}"
+			locations = locations .. "{\"name\": \"" .. WIGInternal.escapeJsonString(v.Name) .. "\""
+				.. ", \"description\": \"" .. WIGInternal.escapeJsonString(v.Description) .. "\""
+				.. ", \"distance\": " .. v.CurrentDistance("m") .. "}"
 			first = false
 			end
 		end
@@ -906,7 +925,11 @@ Wherigo._getInventory = function()
 		if v.Active and v.Visible and v.Container == Wherigo.Player then
 			if not first then
 				inventory = inventory .. "," end
-			inventory = inventory .. "{\"name\": \"" .. v.Name .. "\"}"
+			inventory = inventory .. "{\"name\": \"" .. WIGInternal.escapeJsonString(v.Name)
+				.. "\", \"description\": \"" .. WIGInternal.escapeJsonString(v.Description) .. "\""
+			inventory = inventory .. Wherigo._getMediaField("media", v.Media)
+			inventory = inventory .. Wherigo._getMediaField("icon", v.Icon)
+			inventory = inventory .. "}"
 			first = false
 			end
 		end
@@ -921,7 +944,11 @@ Wherigo._getYouSee = function()
 		if v._is_visible() and v.Container ~= Wherigo.Player then
 			if not first then
 				yousee = yousee .. "," end
-			yousee = yousee .. "{\"name\": \"" .. v.Name .. "\"}"
+			yousee = yousee .. "{\"name\": \"" .. WIGInternal.escapeJsonString(v.Name)
+				.. "\", \"description\": \"" .. WIGInternal.escapeJsonString(v.Description) .. "\""
+			yousee = yousee .. Wherigo._getMediaField("media", v.Media)
+			yousee = yousee .. Wherigo._getMediaField("icon", v.Icon)
+			yousee = yousee .. "}"
 			first = false
 			end
 		end
@@ -936,7 +963,11 @@ Wherigo._getTasks = function()
 		if v._classname == Wherigo.CLASS_ZTASK and v.Active and v.Visible then
 			if not first then
 				tasks = tasks .. "," end
-			tasks = tasks .. "{\"name\": \"" .. v.Name .. "\", \"description\": \"" .. v.Description .. "\""
+			tasks = tasks .. "{\"name\": \"" .. WIGInternal.escapeJsonString(v.Name) .. "\""
+				.. ", \"description\": \"" .. WIGInternal.escapeJsonString(v.Description) .. "\""
+				.. ", \"id\": \"" .. k .. "\""
+			tasks = tasks .. Wherigo._getMediaField("media", v.Media)
+			tasks = tasks .. Wherigo._getMediaField("icon", v.Icon)
 			if v.OnClick then
 				tasks = tasks .. ", \"onclick\": true"
 				end
