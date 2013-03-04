@@ -38,7 +38,7 @@ enyo.kind({
 		//this.$.errorMessage.openAtCenter();
 		this.owner.popupMessage("Zprava chybova", "Message", "images/tasks.png", "Dobre", "Spatne", true);
 		this.owner.popupMessage("Je prave zobrazena prvni zprava a tato by mela zustat v zasobniku", "Error", "images/tasks.png", "Good", "Wrong", false);
-		this.owner.popupMessage("JAK HRAT:<BR><BR>V nabidce Tasks (Ukoly) najdete konkretni ukoly. Pro jejich splneni staci priblizit se k hledanemu objektu. Na poradi techto objektu pritom nezalezi.<BR><BR>Vzdy vyckejte na potvrzeni nalezu. Nekdy se muze stat, ze budete muset hledat spravne misto, aby byl nalez zaznamenan a potvrzen.<BR><BR>Pozorne ctete pruvodni texty. Reknou vam, jak postupovat dal. Kazdy dialog hned potvrdte tlacitkem.<BR><BR>Kdybyste si nevedeli rady, prozkoumejte polozky v jednotlivych nabidkach.<BR><BR>Hra se automaticky po splneni kazdeho ukolu uklada.", "Message", "images/tasks.png", "Dobre", "Spatne", false);
+		this.owner.popupMessage("JAK HRAT:<BR><BR>V nabidce Tasks (Ukoly) najdete konkretni ukoly. Pro jejich splneni staci priblizit se k hledanemu objektu. Na poradi techto objektu pritom nezalezi.<BR><BR>Vzdy vyckejte na potvrzeni nalezu. Nekdy se muze stat, ze budete muset hledat spravne misto, aby byl nalez zaznamenan a potvrzen.<BR><BR>Pozorne ctete pruvodni texty. Reknou vam, jak postupovat dal. Kazdy dialog hned potvrdte tlacitkem.<BR><BR>Kdybyste si nevedeli rady, prozkoumejte polozky v jednotlivych nabidkach.<BR><BR>Hra se automaticky po splneni kazdeho ukolu uklada.", "Message", "", "", "", false);
 	},
 
 	create: function() {
