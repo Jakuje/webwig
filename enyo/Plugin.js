@@ -104,7 +104,7 @@ enyo.kind({
 			this.owner.$.pane.selectViewByName("gMain");
 		} else if( result.type == "error" ){
 			console.error("***** WIG Enyo: Open failed ...");
-			this.owner.popupMessage(result.message);
+			this.owner.popupMessage(result.message, "Error");
 			//enyo.windows.addBannerMessage(result.message, "{}");
 		} else {
 			console.error("***** WIG Enyo: Unknown result of getMetaCallback");
@@ -155,12 +155,10 @@ enyo.kind({
 			enyo.nextTick(this, function() { this.openCartridgeResult( "{\"type\": \"ok\", \"data\": {}}");
 			});
 			enyo.nextTick(this, function() { this.owner.$.gMain.updateUI(
-			{
-					"locations": [{"name": "Somewhere"}],
-					"youSee": [],
-					"inventory": [{"name": "Something"}, {"name": "Pen"}],
-					"tasks": [{"name": "To do something"}],
-			}
+			{ "locations": [{"name": "Paloucek", "description": "Paloucek pobliz tramvajove smycky Certova rokle. ", "distance": 65.808471927813}],
+			"youSee": [], "inventory": [{"name": "denik krale Artuse", "description": "", "media": "38.jpg", "icon": "18.jpg"},{"name": " ulozit hru", "description": ""}],
+			"tasks": [{"name": "Ukol 1", "description": "Pod skupinkou stromu vedle nedalekeho paloucku hledejte imaginarni predmet. Zavede Vas k nemu sipka v polozce \"Locations\". Az na misto dorazite, naleznete predmet v polozce \"You See\"."}]}
+			
 				);
 			});
 		}
@@ -172,4 +170,10 @@ enyo.kind({
 			this.callPluginMethodDeferred(enyo.nop, "closeCartridge", save);
 		}
 	},
+	callback: function(event, id){
+		if ( window.PalmSystem) {
+			console.error("***** WIG Enyo: callback event = " + event + " id = " + id);
+			this.callPluginMethodDeferred(enyo.nop, "CallbackFunction", event, id);
+		}
+	}
 });
