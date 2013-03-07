@@ -84,12 +84,13 @@ package: $(PLUGIN) appinfo.json logo.png
 	$(COPY) images STAGING\images
 	mkdir STAGING\enyo
 	$(COPY) enyo STAGING\enyo
-#sources
-	$(COPY) wig.cpp STAGING
-	$(COPY) wherigo.cpp STAGING
+	mkdir STAGING\tests
+	$(COPY) tests STAGING\tests
 	$(COPY) wherigo.lua STAGING
 	echo filemode.755=$(PLUGIN) > STAGING\package.properties
 	palm-package STAGING
+
+install:
 	palm-install com.dta3team.app.wherigo_1.0.0_all.ipk
 #	palm-run STAGING
 
