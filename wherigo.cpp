@@ -199,7 +199,7 @@ bool Wherigo::createFile(int i, string name){
 		}
 		types[i] = fd.readLong(); // use to export to Javascript
 		string path = getFilePath(i, name);
-		my_error(string("*** Wherigo.cpp *** Creating File: ").append(path));
+		//my_error(string("*** Wherigo.cpp *** Creating File: ").append(path));
 		int len = fd.readLong();
 		char *data = new char [len];
 		fd.read(data, len);
