@@ -16,7 +16,7 @@ assert(dist.GetValue("m") == 10, "wrong result for meters \"getValue(m)\" ")
 
 
 dist = Wherigo.Distance(100, "feet")
-assert(dist.Galue == 30.48, "wrong result for feets: \"value\" ")
+assert(dist.value == 30.48, "wrong result for feets: \"value\" ")
 assert(dist.GetValue() == 30.48, "wrong result for feets \"getValue()\" ")
 assert(dist.GetValue("meters") == 30.48, "wrong result for feets \"getValue(meters)\" ")
 assert(dist.GetValue("feet") == 100, "wrong result for feets \"getValue(feet)\" ")
