@@ -20,7 +20,7 @@ enyo.kind({
 			{kind: "EditMenu"},
 			{caption: "Preferences", onclick: "turnLightsOff"},
 			{caption: "Refresh", onclick: "turnLightsOn"},
-			{caption: "Move to next Zone", onclick: "tempPostUpdateUI"},
+			{caption: "Move to Zverokruh", onclick: "tempPostUpdateUI"},
 			/*{kind: "HelpMenu", target: "http://jakuje.dta3.com"}*/
 		]},
 		{ kind: enyo.ApplicationEvents, onBack: "goBack" },
@@ -43,6 +43,17 @@ enyo.kind({
 							allowHtml: true,
 							className: "",
 						},
+						{
+							name: "getInput",
+							kind: "BasicInput",
+							showing: false
+						},
+						{	kind: "VirtualRepeater", name: "choices", onSetupRow: "getChoices", showing: false, components: [
+							{kind: "Item", layoutKind: "HFlexLayout", components: [
+								{name: "choice", kind: "Button", onclick: "closePopup", flex: 1},
+								]}
+							]
+						}
 					]
 			   },
 				{
@@ -69,60 +80,29 @@ enyo.kind({
 		//this.$.cList.getCartridges(0);
 	},
 	
-	popupCallback: false,
+	openMessage: null,
 	popupQueue: [], // push(), shift()
-	popupMessage: function(message, title, media, button1, button2, callback){
+	popupMessage: function( o ){
 		if( this.$.errorMessage.isOpen ){
-			this.popupQueue.push([message, title, media, button1, button2, callback]);
+			this.popupQueue.push( o );
 			return;
 		}
-		this.popupPaint([message, title, media, button1, button2, callback]);
+		this.popupPaint( o );
 	},
-	popupPaint: function( array ){
-		message = array[0];
-		title = array[1];
-		media = array[2];
-		button1 = array[3];
-		button2 = array[4];
-		callback = array[5];
-		
-		if( title ){
-			this.$.errorMessage.setCaption(title);
-		} else {
-			this.$.errorMessage.setCaption("Error");
-			this.$.errorMessage.setClassName("enyo-text-error");
+	popupPaint: function( o ){
+		this.openMessage = o;
+		o.showPopup(this);
+	},
+	getChoices: function( inSender, inIndex ){
+		if (this.openMessage.choices && inIndex < this.openMessage.choices.length) {
+			this.$.choice.setContent( this.openMessage.choices[inIndex] );
+			return true;
 		}
-		this.$.errorText.setContent(message);
-		if( media && media != "" ){
-			this.$.media.setSrc(media);
-			this.$.media.show();
-		} else {
-			this.$.media.hide();
-		}
-		if( button1 ){
-			this.$.Button1.setCaption(button1);
-		} else {
-			this.$.Button1.setCaption("OK");
-		}
-		if( button2 ){
-			this.$.Button2.setCaption(button2);
-			this.$.Button2.show();
-		} else {
-			this.$.Button2.hide()
-		}
-		this.popupCallback = callback;
-		
-		this.$.errorMessage.openAtCenter();
 	},
 	closePopup: function(inSender, inEvent) {
-		this.$.errorMessage.close();
+		this.openMessage.hidePopup(this, inSender, inEvent);
 		
-		// internal usage, JS function is callback
-		if( typeof this.popupCallback == "function" ){
-			this.popupCallback( inSender.getName() );
-		} else if( this.popupCallback == true ){
-			this.$.plugin.MessageBoxResponse(inSender.getName());
-		}
+		this.openMessage = null;
 		
 		if( this.popupQueue.length > 0 ){
 			this.popupPaint( this.popupQueue.shift() );
@@ -163,14 +143,14 @@ enyo.kind({
 				this.$.gMain.goBack(inSender, inEvent);
 			} else {
 				// @todo Prompt and in case OK => goBack directly
-				this.popupMessage("Do you really want to exit game without saving?", "Prompt", "", "OK", "Cancel",
+				this.popupMessage( new WIGApp.MessageBox("Do you really want to exit game without saving?", "Prompt", "", "OK", "Cancel",
 					// if OK then close cartridge (cleanup and close game pane)
-					function( button ){
+					function( context, button ){
 						if( button == "Button1" ){
-							this.$.plugin.closeCartridge(1);
-							this.$.pane.back();
+							context.$.plugin.closeCartridge(1);
+							context.$.pane.back();
 						}
-						});
+						}) );
 			}
 			return false;
 		}
@@ -184,5 +164,7 @@ enyo.kind({
 			);
 		});*/
 		this.$.plugin.setPosition(49.223878820512, 16.529799699783);
-	}
+		//this.$.plugin.setPosition(49.227367,16.62254);
+		//this.$.plugin.setPosition(49.227095,16.625119);
+	},
 });

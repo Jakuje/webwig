@@ -35,20 +35,24 @@ enyo.kind({
 		if( media ){
 			console.error("***** WIG Enyo: Media url: " + media);
 		}*/
-		this.owner.popupMessage(message, "Message", media, button1, button2, (callback == "1"));
+		this.owner.popupMessage( new WIGApp.MessageBox(message, "Message", media, button1, button2, (callback == "1"))  );
 	},
 	MessageBoxResponse: function( value ){
 		console.error("***** WIG Enyo: MessageBoxResponse value: " + value);
 		if ( window.PalmSystem) {
 			this.callPluginMethodDeferred(enyo.nop, "MessageBoxResponse", value);
 		}
-		
 	},
-	getInput: function(type, text){
-		console.error("***** WIG Enyo: getInput: type" + type + " text:" + text);
-		
-		this.owner.popupMessage(text, "Message", media, button1, button2, callback);
-		// @todo
+	getInput: function(type, text, choices, media){
+		console.error("***** WIG Enyo: getInput: type: " + type + " text:" + text + " choices: " + choices);
+		this.owner.popupMessage( new WIGApp.GetInput(text, "Message", media, type, choices) );
+	},
+	GetInputResponse: function( value ){
+		if ( window.PalmSystem) {
+			this.callPluginMethodDeferred(enyo.nop, "GetInputResponse", value);
+		} else {
+			console.error("GetInput response: " + value)
+		}
 	},
 	ShowStatusText: function(text){
 		enyo.windows.addBannerMessage(text, "{}");
@@ -61,7 +65,7 @@ enyo.kind({
 			this.owner.$.gMain.updateUI(result.data);
 		} else if( result.type == "error" ){
 			console.error("***** WIG Enyo: UpdateUI failed ...");
-			this.owner.popupMessage(result.message);
+			this.owner.popupMessage( new WIGApp.Dialog(result.message, "Error") );
 			//enyo.windows.addBannerMessage(result.message, "{}");
 		} else {
 			console.error("***** WIG Enyo: Unknown result of updateUI");
@@ -80,7 +84,7 @@ enyo.kind({
 				callback(result.data);
 			} else if( result.type == "error" ){
 				console.error("***** WIG Enyo: Result failed ...");
-				this.owner.popupMessage(result.message);
+				this.owner.popupMessage( new WIGApp.Dialog(result.message, "Error") );
 				enyo.windows.addBannerMessage(result.message, "{}");
 			} else {
 				console.error("***** WIG Enyo: Unknown result of getMetaCallback");
@@ -98,7 +102,7 @@ enyo.kind({
 			this.owner.$.pane.selectViewByName("gMain");
 		} else if( result.type == "error" ){
 			console.error("***** WIG Enyo: Open failed ...");
-			this.owner.popupMessage(result.message, "Error");
+			this.owner.popupMessage( new WIGApp.Dialog(result.message, "Error") );
 			//enyo.windows.addBannerMessage(result.message, "{}");
 		} else {
 			console.error("***** WIG Enyo: Unknown result of getMetaCallback");
@@ -151,7 +155,9 @@ enyo.kind({
 			enyo.nextTick(this, function() { this.owner.$.gMain.updateUI(
 
 {
-        "locations": [],
+        "locations": [
+			{"name": "Paloucek", "description": "Paloucek pobliz tramvajove smycky Certova rokle. ", "distance": 65.808471927813, "bearing": 184.97249242265, "commands": []}
+			],
         "youSee": [],
         "inventory": [
             {
