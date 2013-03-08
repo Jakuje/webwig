@@ -20,13 +20,20 @@ enyo.kind({
 					]}
 				]},
 			]
-		}
+		},
+		{kind: "HFlexBox", name: "distanceBox", showing: false, components: [
+			{name: "distance", flex: 1}, {kind: "Button", onclick: "moveTo"}, {name: "bearing", flex: 1}, 
+		]}
 		],
 	screen: null,
 	data: [],
 	setup: function(screen, data){
 		this.screen = screen;
 		this.data = data;
+		if( ! this.data ){
+			this.owner.goBack();
+			return;
+		}
 		this.$.title.setContent( this.owner.$.gList.$.detail.getTitle(screen) + ": " + data.name );
 		this.$.description.setContent( data.description );
 		if( data.media ) {
@@ -36,11 +43,17 @@ enyo.kind({
 			this.$.image.hide();
 		}
 		this.render();
+		if( this.screen == "locations" ){
+			this.$.distance.setContent(Math.round(data.distance) + " m");
+			this.$.bearing.setContent(Math.round(data.bearing) + "°");
+			this.$.distanceBox.show();
+		} else {
+			this.$.distanceBox.hide();
+		}
 	},
 	
 	updateUI: function(data){
-		this.data = data[this.screen];
-		this.$.detail.setup( this.screen, this.data );
+		this.setup( this.screen, data );
 	},
 	
 	getCommand: function(inSender, inIndex){
@@ -53,4 +66,9 @@ enyo.kind({
 		event = "On" + this.data.commands[inEvent.rowIndex].id;
 		this.owner.owner.$.plugin.callback(event, this.data.id)
 	},
+	moveTo: function(){
+		if( this.screen == "locations"){
+			this.owner.owner.$.plugin.setPosition(this.data.lat, this.data.lon);
+		}
+	}
 });

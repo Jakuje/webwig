@@ -29,23 +29,30 @@ enyo.kind({
 	
 	updateUI: function(data){
 		if( typeof data.locations != 'undefined' ){
-			console.error("Writing all ...");
+			//console.error("Writing all ...");
 			this.data = data;
 			this.$.gMain.updateUI(data);
 			if( this.$.pane.getViewName() !=  "gMain" ){
 				this.$.gList.updateUI(data);
+				if( this.$.pane.getViewName() == "gDetail" ){
+					this.$.gDetail.updateUI(data[this.detail_screen][this.detail_item]);
+				}
 			}
 		} else {
-			console.error("Only GPS data");
+			//console.error("Only GPS data");
 			this.data.gps = data.gps;
 		}
 		this.$.GPSState.setSrc("images/gps_"+data.gps+".png");
 	},
+	detail_item: 0,
+	detail_screen: "",
 	showScreen: function(screen, item){
+		this.detail_screen = screen;
 		if( item == undefined ){
 			this.$.gList.setup(screen, this.data);
 			this.$.pane.selectViewByName("gList");
 		} else {
+			this.detail_item = item;
 			this.$.gDetail.setup(screen, this.data[screen][item]);
 			this.$.pane.selectViewByName("gDetail");
 		}
