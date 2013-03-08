@@ -95,12 +95,15 @@ bool Wherigo::scanHead (){
 int Wherigo::scanOffsets (){
 	files = fd.readUShort();
 	
+	idsRev = new int[files];
 	ids = new int[files];
 	types = new int[files];
 	offsets = new long[files];
 	
 	for(int i = 0;i < files; i++){
 		ids[i] = fd.readUShort();
+		idsRev[ ids[i] ] = i; // sometimes it is not in correct order and we need to aceess some ID
+		cerr << i << ":" << ids[i] << endl;
 		offsets[i] = fd.readLong();
 		types[i] = UNDEFINED;
 	}
@@ -163,42 +166,25 @@ bool Wherigo::createBytecode(){
 	return true;
 }
 
-/*bool Wherigo::createIcons(){
-	bool ok = this->createFileById(this->iconID, "icon");
-	ok = this->createFileById(this->splashID, "splash") && ok;
-	return ok;
-}*/
-
 /**
  * Creates file by global ID
  */
-bool Wherigo::createFileById(int id, string name){
-	for(int i = 1;i < files; i++){ // 0 is cartridge
-		if( ids[i] == id ){
-			this->createFile(i, name);
-			return true;
-		}
-	}
-	return false;
+bool Wherigo::createFileById(int id){
+	//for(int i = 1;i < files; i++){ // 0 is cartridge
+	return this->createFile(idsRev[id]);
 }
 
 /**
  * Creates file by internal index
  */
 bool Wherigo::createFile(int i){
-	stringstream ss;
-	ss << i;
-	return createFile(i, ss.str());
-}
-bool Wherigo::createFile(int i, string name){
-	
 	if( i < files && i > 0 ){
 		fd.seekg( offsets[i] );
 		if( fd.readByte() == 0 ){
 			return false;
 		}
 		types[i] = fd.readLong(); // use to export to Javascript
-		string path = getFilePath(i, name);
+		string path = getFilePath(i);
 		//my_error(string("*** Wherigo.cpp *** Creating File: ").append(path));
 		int len = fd.readLong();
 		char *data = new char [len];
@@ -216,31 +202,23 @@ bool Wherigo::createFile(int i, string name){
 }
 
 string Wherigo::getFilePathById(int id){
-	for(int i = 1;i < files; i++){ // 0 is cartridge
-		if( ids[i] == id ){
-			return this->getFilePath(i);
-		}
-	}
-	return "";
+	return this->getFilePath(idsRev[id]);
 }
-string Wherigo::getFilePath(int i){
-	stringstream ss;
-	ss << i;
-	return getFilePath(i, ss.str());
-}
-string Wherigo::getFilePath(const char *str_i){
+string Wherigo::getFilePathById(const char *str_i){
 	stringstream ss;
 	ss << str_i;
 	int i;
 	ss >> i;
-	return getFilePath(i, str_i);
+	return getFilePath(i);
 }
-string Wherigo::getFilePath(int i, string name){
+string Wherigo::getFilePath(int i){
+	stringstream ss;
+	ss << ids[i];
 	if( i < files && i > 0 ){
 		if( types[i] == UNDEFINED ){
 			createFile(i);
 		}
-		string path = this->getCartDir().append(name);
+		string path = this->getCartDir().append(ss.str());
 		switch (types[i]){
 			case BMP:
 				path = path.append(".bmp");
@@ -272,17 +250,14 @@ string Wherigo::getFilePath(int i, string name){
 		}
 		return path;
 	} else {
-		my_error(string("Unknown file (id out of bounds)").append(name));
+		my_error(string("Unknown file (id out of bounds)").append(ss.str()));
 		return "";
 	}
 }
 
 bool Wherigo::createFiles(){
 	ostringstream str;
-	//string path = this.getCartDir();
 	for(int i = 1;i < files; i++){
-		str.str("");
-		str << ids[i];
 		createFile(i);
 	}
 	return true;
@@ -303,24 +278,8 @@ string Wherigo::getCartDir(){
 			if( mkdir(cartDir.c_str(), 0777) != 0){
 				my_error("Can't create directory");
 				return "";
-			} else {
-				/*createBytecode();
-				createFiles();*/
 			}
 		}
 	}
 	return cartDir;
 }
-/*int Wherigo::createTmp(){
-	tmpdir = strdup("/tmp/wig.lua.XXXXXX");
-	tmpdir = mkdtemp(tmpdir);
-	if( tmpdir == NULL ){
-		my_error("Failed to init tmp dir");
-		return EXIT_FAILURE;
-	}
-	string file_bytecode = string(tmpdir);
-	file_bytecode.append("/wg.lua");
-	this->createBytecode(file_bytecode);
-	this->createFiles( );
-	return EXIT_SUCCESS;
-}*/

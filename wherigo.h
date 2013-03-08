@@ -34,6 +34,7 @@ public:
 	string cartDir;
 
 	int *ids; 
+	int *idsRev;
 	long *offsets;
 	int *types;
 	int files;
@@ -62,6 +63,7 @@ public:
 	Wherigo( string filename ){
 		this->filename = filename;
 		this->ids = NULL;
+		this->idsRev = NULL;
 		this->types = NULL;
 		this->offsets = NULL;
 		files = 0;
@@ -70,6 +72,9 @@ public:
 	~Wherigo(){
 		if( ids != NULL ){
 			delete [] ids;
+		}
+		if( idsRev != NULL ){
+			delete [] idsRev;
 		}
 		if( types != NULL ){
 			delete [] types;
@@ -92,20 +97,15 @@ public:
 
 	bool createBytecode();
 
-	//bool createIcons();
-	
-	bool createFileById(int id, string path);
+	bool createFileById(int id);
 	
 	bool createFile(int i);
-	bool createFile(int i, string path);
 	
 	bool createFiles();
 
 	string getFilePathById(int i);
+	string getFilePathById(const char *str_i);
 	string getFilePath(int i);
-	string getFilePath(const char *str_i);
-	string getFilePath(int i, string name);
-	//int createTmp();
 
 };
 

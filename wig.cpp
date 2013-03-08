@@ -31,6 +31,7 @@ enum EVENT_CODES {
 	EVENT_OPEN_CARTRIDGE,
 	EVENT_CLOSE_CARTRIDGE,
 	EVENT_MESSAGE_BOX_RESPONSE,
+	EVENT_GET_INPUT_RESPONSE,
 	EVENT_CALLBACK,
 
 	EVENT_SET_POSITION_DEBUG
@@ -182,6 +183,31 @@ static PDL_bool MessageBoxResponseJS(PDL_JSParameters *params)
     return PDL_TRUE;
 }
 
+/**
+ * @param value (char *) user response to GetInput (button or text)
+ */
+static PDL_bool GetInputResponseJS(PDL_JSParameters *params)
+{
+    if (PDL_GetNumJSParams(params) != 1) {
+        syslog(LOG_INFO, "**** wrong number of parameters for GetInputResponse");
+        PDL_JSException(params, "wrong number of parameters for GetInputResponse");
+        return PDL_FALSE;
+    }
+
+    const char *value = PDL_GetJSParamString(params, 0);
+
+    SDL_Event event;
+    event.user.type = SDL_USEREVENT;
+    event.user.code = EVENT_GET_INPUT_RESPONSE;
+    event.user.data1 = strdup(value);
+    
+    syslog(LOG_WARNING, "*** sending GetInputResponse event");
+    SDL_PushEvent(&event);
+    
+    return PDL_TRUE;
+}
+
+
 static PDL_bool CallbackFunctionJS(PDL_JSParameters *params){
 	if (PDL_GetNumJSParams(params) != 2) {
         syslog(LOG_INFO, "**** wrong number of parameters for CallbackFunction");
@@ -266,6 +292,59 @@ void stackdump_g(lua_State* l)
     printf("\n");  /* end the listing */
 }
 
+static void updateStateToJS(){
+	int status;
+	stringstream *buffer = new stringstream(stringstream::in | stringstream::out);
+	
+	/*cerr << "Getting state" << endl;
+	status = luaL_dostring(L, "return Wherigo._getUI()");
+	report(L, status);*/
+	
+	lua_getfield(L, LUA_GLOBALSINDEX, "Wherigo");	// [-0, +1, e]
+	lua_getfield(L, -1, "_getUI");					// [-0, +1, e]
+	lua_remove(L, -2);								// [-1, +0, -]
+	status = lua_pcall(L, 0, 1, 0);					// [-1, +1, -] [-(nargs + 1), +(nresults|1), -]
+	
+	if( status == 0 ){
+		string result;
+		int type = lua_type(L, 1);					// [-0, +0, -]
+		if( type == LUA_TSTRING ){
+			result = lua_tostring(L, 1);			// [-0, +0, m]
+		}
+		*buffer << "{\"type\": \"ok\", \"data\": \n"
+			<< "{"
+				<< result
+				<< ", \"gps\": " << acc_class
+				<< "}"
+			<< "}";
+		lua_remove(L, 1);							// [-1, +0, -]
+	} else {
+		report(L, status);							// [-1, +0, -]
+		my_error("Problem getting UI informations");
+	}
+	
+	
+#ifndef DESKTOP
+	if( PDL_IsPlugin() ){
+		string str = buffer->str();	
+		const char *data = str.c_str();
+		
+		syslog(LOG_WARNING, "*** Updating State");
+		PDL_Err err;
+		err = PDL_CallJS("updateState", (const char **)&data, 1);
+		if (err) {
+			syslog(LOG_ERR, "*** PDL_CallJS failed, %s", PDL_GetError());
+			//SDL_Delay(5);
+			return;
+		}
+	} else 
+#endif
+		cerr << buffer->str() << endl;
+	
+    delete buffer;
+    
+}
+
 static void saveState(){
 	// save ...
 }
@@ -278,7 +357,7 @@ static void MessageBox(const char *text, const char *media,
 	}
 	string m;
 	if( strcmp(media, "") != 0 ){
-		m = WherigoOpen->getFilePath(media);
+		m = WherigoOpen->getFilePathById(media);
 		cerr << " >> Media (" << media << "): " << m;
 	}
 	cerr << endl;
@@ -312,6 +391,18 @@ static void MessageBoxResponse(const char *value){
 	lua_pushstring(L, value);						// [-0, +1, e]
 	int status = lua_pcall(L, 1, 0, 0);				// [-2, +(0|1), -] [-(nargs + 1), +(nresults|1), -]
 	report(L, status);								// [-(0|1), +0, -]
+	updateStateToJS();
+}
+
+static void GetInputResponse(const char *value){
+	lua_getfield(L, LUA_GLOBALSINDEX, "Wherigo");	// [-0, +1, e]
+	lua_getfield(L, -1, "_GetInputResponse");		// [-0, +1, e]
+	lua_remove(L, -2);								// [-1, +0, -]
+	lua_pushstring(L, value);						// [-0, +1, e]
+	int status = lua_pcall(L, 1, 0, 0);				// [-2, +(0|1), -] [-(nargs + 1), +(nresults|1), -]
+	report(L, status);								// [-(0|1), +0, -]
+	//my_error(string("GetInputResponse value:").append(value));
+	updateStateToJS();
 }
 
 static void PlayAudio(const char *media) {
@@ -319,7 +410,7 @@ static void PlayAudio(const char *media) {
 
 #ifndef DESKTOP
     PDL_Err err;
-    const char *params = WherigoOpen->getFilePath(media).c_str();
+    const char *params = WherigoOpen->getFilePathById(media).c_str();
     err = PDL_CallJS("playAudio", (const char **)&params, 1);
     if (err) {
         syslog(LOG_ERR, "*** PDL_CallJS failed, %s", PDL_GetError());
@@ -366,7 +457,7 @@ static void GetInput(const char *type, const char *text, const char* choices, co
 	
 	string m;
 	if( strcmp(media, "") != 0 ){
-		m = WherigoOpen->getFilePath(media);
+		m = WherigoOpen->getFilePathById(media);
 	}
 
 #ifndef DESKTOP
@@ -376,7 +467,7 @@ static void GetInput(const char *type, const char *text, const char* choices, co
     params[1] = text;
     params[2] = choices;
     params[3] = m.c_str();
-    err = PDL_CallJS("GetInput", params, 2);
+    err = PDL_CallJS("GetInput", params, 4);
     if (err) {
         syslog(LOG_ERR, "*** PDL_CallJS failed, %s", PDL_GetError());
         //SDL_Delay(5);
@@ -502,59 +593,6 @@ static bool runTests(char * filter){
 	return true;
 }
 
-static void updateStateToJS(){
-	int status;
-	stringstream *buffer = new stringstream(stringstream::in | stringstream::out);
-	
-	/*cerr << "Getting state" << endl;
-	status = luaL_dostring(L, "return Wherigo._getUI()");
-	report(L, status);*/
-	
-	lua_getfield(L, LUA_GLOBALSINDEX, "Wherigo");	// [-0, +1, e]
-	lua_getfield(L, -1, "_getUI");					// [-0, +1, e]
-	lua_remove(L, -2);								// [-1, +0, -]
-	status = lua_pcall(L, 0, 1, 0);					// [-1, +1, -] [-(nargs + 1), +(nresults|1), -]
-	
-	if( status == 0 ){
-		string result;
-		int type = lua_type(L, 1);					// [-0, +0, -]
-		if( type == LUA_TSTRING ){
-			result = lua_tostring(L, 1);			// [-0, +0, m]
-		}
-		*buffer << "{\"type\": \"ok\", \"data\": \n"
-			<< "{"
-				<< result
-				<< ", \"gps\": " << acc_class
-				<< "}"
-			<< "}";
-		lua_remove(L, 1);							// [-1, +0, -]
-	} else {
-		report(L, status);							// [-1, +0, -]
-		my_error("Problem getting UI informations");
-	}
-	
-	
-#ifndef DESKTOP
-	if( PDL_IsPlugin() ){
-		string str = buffer->str();	
-		const char *data = str.c_str();
-		
-		syslog(LOG_WARNING, "*** Updating State");
-		PDL_Err err;
-		err = PDL_CallJS("updateState", (const char **)&data, 1);
-		if (err) {
-			syslog(LOG_ERR, "*** PDL_CallJS failed, %s", PDL_GetError());
-			//SDL_Delay(5);
-			return;
-		}
-	} else 
-#endif
-		cerr << buffer->str() << endl;
-	
-    delete buffer;
-    
-}
-
 static void CallbackFunction(const char *event, int * id){
 	/*stringstream ss;
 	ss << "Wherigo._callback(\""
@@ -594,6 +632,7 @@ void setPosition(double *lat, double * lon){
 	if( status == 0 ){
 		update_all = lua_toboolean(L, 1);
 		lua_pop(L, 1);
+		cerr << "Update all: " << update_all << endl;
 	} else {
 		report(L, status);
 	}
@@ -637,6 +676,12 @@ void CommandLineTests(int argc, char **argv){
 		setPosition(&lat, &lon);
 		
 		//luaL_dostring(L, "debug.debug()");
+		
+		//setPosition(&lat, &lon);
+		int status = luaL_dostring(L, "return Wherigo._getUI()");
+		report(L, status);
+		cerr << "Lua result: " << lua_tostring(L, 1) << endl;
+		
 		//updateStateToJS();
 		
 	}
@@ -673,6 +718,7 @@ static void setup(int argc, char **argv)
     PDL_RegisterJSHandler("openCartridge", openCartridgeJS);
     PDL_RegisterJSHandler("closeCartridge", closeCartridgeJS);
     PDL_RegisterJSHandler("MessageBoxResponse", MessageBoxResponseJS);
+    PDL_RegisterJSHandler("GetInputResponse", GetInputResponseJS);
     PDL_RegisterJSHandler("CallbackFunction", CallbackFunctionJS);
     PDL_RegisterJSHandler("setPosition", setPositionJS);
     PDL_JSRegistrationComplete();
@@ -934,7 +980,7 @@ void UpdateGPS(PDL_Location *location){
 	PDL_Err err = PDL_GetLocation(&location);
 	if( err == PDL_NOERROR ){*/
 		double acc = location->horizontalAccuracy;
-		int old_class = acc_class;
+		//int old_class = acc_class;
 		bool update_all = false;
 		stringstream ss;
 		int status;
@@ -971,8 +1017,10 @@ void UpdateGPS(PDL_Location *location){
 		}
 		
 		if( update_all ){
-			updateStateToJS();
-		} else if( old_class != acc_class ) {
+			// try again??? 
+		}
+		updateStateToJS();
+		/*} else if( old_class != acc_class ) {
 			ss << "{\"type\": \"ok\", \"data\": {\n\"gps\": \""
 				<< acc_class << "\"}\n}";
 #ifndef DESKTOP
@@ -996,7 +1044,7 @@ void UpdateGPS(PDL_Location *location){
 				cerr << ss.str() << endl;
 		} else {
 			//cerr << "No UI change, no gps change" << endl;
-		}
+		}*/
 	/*		
 	} else {
 		my_error("Get Location failed:");
@@ -1053,6 +1101,12 @@ static void loop(){
 				case EVENT_MESSAGE_BOX_RESPONSE: {
 					char *value = (char *)event.user.data1;
 					MessageBoxResponse(value);
+					delete value;
+					}
+					break;
+				case EVENT_GET_INPUT_RESPONSE: {
+					char *value = (char *)event.user.data1;
+					GetInputResponse(value);
 					delete value;
 					}
 					break;
