@@ -45,7 +45,7 @@ enyo.kind({
 						},
 						{
 							name: "getInput",
-							kind: "BasicInput",
+							kind: "Input",
 							showing: false
 						},
 						{	kind: "VirtualRepeater", name: "choices", onSetupRow: "getChoices", showing: false, components: [

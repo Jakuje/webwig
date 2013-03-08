@@ -17,9 +17,6 @@ enyo.kind({
 		} else {
 			element.$.media.hide();
 		}
-	},
-	showPopup: function(element){
-		this.paintHeader(element);
 		
 		element.$.Button1.setCaption("OK");
 		
@@ -27,6 +24,9 @@ enyo.kind({
 		
 		element.$.getInput.hide();
 		element.$.choices.hide();
+	},
+	showPopup: function(element){
+		this.paintHeader(element);
 		
 		element.$.errorMessage.openAtCenter();
 	},
@@ -49,7 +49,7 @@ enyo.kind({
 		this.callback = callback;
 	},
 	showPopup: function(element){
-		this.inherited(arguments);
+		this.paintHeader(element);
 		
 		if( this.button1 ){
 			element.$.Button1.setCaption(this.button1);
@@ -91,15 +91,15 @@ enyo.kind({
 		this.choices = choices.split(";");
 	},
 	showPopup: function(element){
-		this.inherited(arguments);
 		this.paintHeader(element);
 		
 		if( this.type == "Text" ){
 			element.$.getInput.setValue("");
+			element.$.getInput.forceFocus();
 			element.$.getInput.show();
 		} else if( this.type == "MultipleChoice" ){
-			element.$.choices.render();
 			element.$.choices.show();
+			element.$.choices.render();
 			element.$.Button1.hide();
 		} else {
 			console.error("Unknown type of getInput")

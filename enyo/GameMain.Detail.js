@@ -30,10 +30,6 @@ enyo.kind({
 	setup: function(screen, data){
 		this.screen = screen;
 		this.data = data;
-		if( ! this.data ){
-			this.owner.goBack();
-			return;
-		}
 		this.$.title.setContent( this.owner.$.gList.$.detail.getTitle(screen) + ": " + data.name );
 		this.$.description.setContent( data.description );
 		if( data.media ) {
@@ -52,7 +48,12 @@ enyo.kind({
 		}
 	},
 	
+	id: 0,
 	updateUI: function(data){
+		if( ! data || this.id != data.id ){
+			this.owner.goBack();
+			return;
+		}
 		this.setup( this.screen, data );
 	},
 	
