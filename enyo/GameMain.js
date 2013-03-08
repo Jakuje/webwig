@@ -6,7 +6,8 @@ enyo.kind({
 			{kind: "IconButton", icon: "images/menu-icon-back.png", onclick: "goBack"},
 			{kind: "Spacer"},
 			{name: "title", kind: enyo.VFlexBox, content: "Wherigo name"},
-			{kind: "Spacer"}
+			{kind: "Spacer"},
+			{kind: "Image", name: "GPSState", src: "images/gps_0.png"},
 		]},
 		{name: "pane", kind: "Pane", flex: 1,
 			components: [
@@ -27,12 +28,18 @@ enyo.kind({
 	},
 	
 	updateUI: function(data){
-		this.data = data;
-		if( this.$.pane.getViewName() ==  "gMain" ){
+		if( typeof data.locations != 'undefined' ){
+			console.error("Writing all ...");
+			this.data = data;
 			this.$.gMain.updateUI(data);
+			if( this.$.pane.getViewName() !=  "gMain" ){
+				this.$.gList.updateUI(data);
+			}
 		} else {
-			this.$.gList.updateUI(data);
+			console.error("Only GPS data");
+			this.data.gps = data.gps;
 		}
+		this.$.GPSState.setSrc("images/gps_"+data.gps+".png");
 	},
 	showScreen: function(screen, item){
 		if( item == undefined ){
