@@ -1,4 +1,4 @@
-
+ZonePoint = Wherigo.ZonePoint
 -- IsPointInZone
 
 insidePoint = Wherigo.ZonePoint(49.22735, 16.622517, 0)
