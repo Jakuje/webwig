@@ -13,9 +13,17 @@ enyo.kind({
 				{name: "image", kind: "Image"},
 				{name: "description", allowHtml: true}
 				]
-			}]
+			},
+			{kind: "VirtualRepeater", name: "commands", onSetupRow: "getCommand", components: [
+				{kind: "Item", layoutKind: "HFlexLayout", components: [
+					{name: "action", kind: "Button", onclick: "executeCommand", flex: 1},
+					]}
+				]},
+			]
 		}
 		],
+	screen: null,
+	data: [],
 	setup: function(screen, data){
 		this.screen = screen;
 		this.data = data;
@@ -27,11 +35,22 @@ enyo.kind({
 		} else {
 			this.$.image.hide();
 		}
-			
+		this.render();
 	},
 	
 	updateUI: function(data){
-		this.data = data[screen];
-		//this.$.detail.setup( data[this.screen] );
-	}
+		this.data = data[this.screen];
+		this.$.detail.setup( this.screen, this.data );
+	},
+	
+	getCommand: function(inSender, inIndex){
+		if (this.data.commands && inIndex < this.data.commands.length) {
+			this.$.action.setContent(this.data.commands[inIndex].text);
+			return true;
+		}
+	},
+	executeCommand: function(inSender, inEvent){
+		event = "On" + this.data.commands[inEvent.rowIndex].id;
+		this.owner.owner.$.plugin.callback(event, this.data.id)
+	},
 });
