@@ -578,8 +578,10 @@ static void CallbackFunction(const char *event, int * id){
 
 void setPosition(double *lat, double * lon){
 	
+#ifndef DESKTOP
 	// disable autoupdate
 	PDL_EnableLocationTracking(PDL_FALSE);
+#endif
 	
 	bool update_all = false;
 	stringstream ss;
@@ -629,10 +631,10 @@ void CommandLineTests(int argc, char **argv){
 		/*int i = 11;
 		CallbackFunction("OnClick", &i);*/
 		
-		/*double lon, lat;
+		double lon, lat;
 		lat = 49.223878820512;
 		lon = 16.529799699783;
-		setPosition(&lat, &lon);*/
+		setPosition(&lat, &lon);
 		
 		//luaL_dostring(L, "debug.debug()");
 		//updateStateToJS();
@@ -824,9 +826,9 @@ static int openCartridge(char *filename){
 	int status;
 	L = openLua(WherigoOpen);
 	if( L == NULL ){
-		if( PDL_IsPlugin() ){
+		/*if( PDL_IsPlugin() ){
 			// send error to UI
-		}
+		}*/
 		return 0;
 	}
 	
@@ -842,12 +844,14 @@ static int openCartridge(char *filename){
 	
 	//stackdump_g(L);
 	
+#ifndef DESKTOP
 	PDL_Err error = PDL_EnableLocationTracking(PDL_TRUE);
     if( error != PDL_NOERROR ){
 		my_error("Could not init PDL Location Tracking: %s\n");
 		my_error(SDL_GetError());
         exit(1);
 	}
+#endif
 
 	
 	return 1;
@@ -859,7 +863,9 @@ static void closeCartridge(int *save){
 	//SDL_RemoveTimer(gpsTimer);
 	
 	delete WherigoOpen;
+#ifndef DESKTOP
 	PDL_EnableLocationTracking(PDL_FALSE);
+#endif
     
 	exit_lua();
 }
@@ -1061,7 +1067,7 @@ static void loop(){
 				
 				case EVENT_SET_POSITION_DEBUG: {
 					double *lat = (double *)event.user.data1;
-					double *lon = (double *)event.user.data1;
+					double *lon = (double *)event.user.data2;
 					setPosition(lat, lon);
 					delete lat;
 					delete lon;
