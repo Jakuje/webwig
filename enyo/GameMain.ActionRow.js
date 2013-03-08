@@ -12,8 +12,10 @@ enyo.kind({
 		{kind: "Scroller", flex: 1, components: [
 			{kind: "VirtualRepeater", name: "items", onSetupRow: "getItem", components: [
 				{kind: "Item", layoutKind: "HFlexLayout", onclick: "itemClicked", components: [
-					{name: "itemIcon", kind: "Image", flex: 1, style: "width: 25px;height:25px;"},
-					{name: "itemTitle", flex: 1},
+					{name: "itemIcon", kind: "Image", style: "width: 25px;height:25px;margin-right:3px;"},
+					{name: "itemTitle"},
+					{kind: "Spacer"},
+					{name: "itemDistance", showing: "false"},
 				]}
 			]},
 			{kind: "Item", name: "empty", layoutKind: "HFlexLayout", components: [
@@ -45,6 +47,7 @@ enyo.kind({
 		this.owner.owner.showScreen(this.screen);
 	},
 	
+	data: [],
 	setup: function(data, screen){
 		if( ! screen ){
 			screen = this.name;
@@ -53,16 +56,17 @@ enyo.kind({
 		this.$.title.setContent( this.getTitle(this.screen) );
 		this.$.icon.setSrc("images/" + this.screen + ".png");
 		
-		this.data = data;
-		this.$.numRows.setContent(data.length);
-		this.render();
-		if( data.length == 0 ){
-			this.$.empty.show()
-		} else {
-			this.$.empty.hide()
+		if( data ){
+			this.data = data;
+			this.$.numRows.setContent(data.length);
+			this.render();
+			if( data.length == 0 ){
+				this.$.empty.show()
+			} else {
+				this.$.empty.hide()
+			}
 		}
 	},
-	data: [],
 	getItem: function(inSender, inIndex){
 		if (inIndex < this.data.length) {
 			this.$.itemTitle.setContent(this.data[inIndex].name);
@@ -71,6 +75,13 @@ enyo.kind({
 				this.$.itemIcon.show();
 			} else {
 				this.$.itemIcon.hide();
+			}
+			if( this.screen == 'locations' ){
+				this.$.itemDistance.setContent( Math.round(this.data[inIndex].distance) + " m");
+				this.$.itemDistance.show()
+			} else {
+				this.$.itemDistance.setContent("");
+				this.$.itemDistance.hide();
 			}
 			return true;
 		}
