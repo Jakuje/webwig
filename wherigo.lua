@@ -938,6 +938,11 @@ Wherigo._addCommands = function(item)
 	return v .. "]"
 	end
 
+Wherigo._bool2str = function( b )
+	if b then return "true"
+	else return "false" end
+	end
+
 Wherigo._getUI = function()
 	--[[for k,v in pairs(cartridge.AllZObjects) do
 		print(v)
@@ -968,6 +973,7 @@ Wherigo._getLocations = function()
 				locations = locations .. ", \"distance\": " .. v.CurrentDistance("m") .. ", \"bearing\": " .. v.CurrentBearing("m")
 				end
 			locations = locations .. Wherigo._addCommands(v)
+				.. ", \"id\": \"" .. k .. "\""
 				.. "}"
 			first = false
 			end
@@ -986,8 +992,8 @@ Wherigo._getInventory = function()
 				.. "\", \"description\": \"" .. WIGInternal.escapeJsonString(v.Description) .. "\""
 				.. Wherigo._getMediaField("media", v.Media)
 				.. Wherigo._getMediaField("icon", v.Icon)
-				.. ", \"id\": \"" .. k .. "\""
 				.. Wherigo._addCommands(v)
+				.. ", \"id\": \"" .. k .. "\""
 			if v.OnClick then
 				inventory = inventory .. ", \"onclick\": true"
 				end
@@ -1035,8 +1041,8 @@ Wherigo._getTasks = function()
 				.. Wherigo._getMediaField("media", v.Media)
 				.. Wherigo._getMediaField("icon", v.Icon)
 				.. Wherigo._addCommands(v)
-				.. ", \"complete\": " .. v.Complete
 				.. ", \"id\": \"" .. k .. "\""
+				.. ", \"complete\": " .. Wherigo._bool2str(v.Complete)
 			if v.OnClick then
 				tasks = tasks .. ", \"onclick\": true"
 				end
