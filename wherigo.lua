@@ -34,28 +34,6 @@ Wherigo = {
 	_GICallbacks = {}
 	}
 
-function Wherigo._intersect(point, segment)
-	local lon1 = segment[1].longitude
-	local lon2 = segment[2].longitude
-	local lonp = point.longitude
-	if (lon2 - lon1) % 360 > 180 then
-		-- lon1 > lon2
-		if (lonp - lon2) % 360 > 180 or (lon1 - lonp) % 360 >= 180 or lon1 == lonp then
-			return 0
-			end
-		lat = segment[1].latitude + (segment[2].latitude - segment[1].latitude) * ((lonp - lon2) % 360) / ((lon1 - lon2) % 360)
-	else
-		if (lonp - lon1) % 360 > 180 or (lon2 - lonp) % 360 >= 180 or lon2 == lonp then
-			return 0
-			end
-		lat = segment[1].latitude + (segment[2].latitude - segment[1].latitude) * ((lonp - lon1) % 360) / ((lon2 - lon1) % 360)
-		end
-	if lat > point.latitude then
-		return 1
-		end
-	return 0
-	end
-
 
 function Wherigo.MessageBox(t)
 	local text = rawget(t, "Text")
@@ -126,7 +104,7 @@ function Wherigo.ShowStatusText(text)
 
 function Wherigo.VectorToZone(point, zone)
 	if Wherigo.IsPointInZone (point, zone) then
-		return Distance (0), Bearing (0) end
+		return Wherigo.Distance (0), Wherigo.Bearing (0) end
 	local points = zone.Points
 	local current, b = Wherigo.VectorToSegment (point, points[ #points ], points[1])
 	for k,v in pairs (points) do
@@ -156,17 +134,44 @@ function Wherigo.VectorToSegment(point, p1, p2)
 
 function Wherigo.Inject() end
 
+function Wherigo._intersect(point, segment)
+	--print("Loc:" .. point.latitude .. " " .. point.longitude .. " Loc:" .. segment[1].latitude .. " " .. segment[1].longitude .. " Loc:" .. segment[2].latitude .. " " .. segment[2].longitude)
+	local lon1 = segment[1].longitude
+	local lon2 = segment[2].longitude
+	local lonp = point.longitude
+	local lat
+	if (lon2 - lon1) % 360 > 180 then
+		-- lon1 > lon2
+		if (lonp - lon2) % 360 > 180 or (lon1 - lonp) % 360 >= 180 or lon1 == lonp then
+			-- lonp < lon2                  lonp > lon1   
+			return 0
+			end
+		lat = segment[1].latitude + (segment[2].latitude - segment[1].latitude) * ((lon1 - lonp) % 360) / ((lon1 - lon2) % 360)
+	else
+		if (lonp - lon1) % 360 > 180 or (lon2 - lonp) % 360 >= 180 or lon2 == lonp then
+			-- lonp < lon1                lonp > lon2
+			return 0
+			end
+		lat = segment[1].latitude + (segment[2].latitude - segment[1].latitude) * ((lonp - lon1) % 360) / ((lon2 - lon1) % 360)
+		end
+	if lat > point.latitude then
+		return 1
+		end
+	return 0
+	end
+
 function Wherigo.IsPointInZone(point, zone)
 	local num = 0
 	local points = zone.Points
-	table.insert(points, points[0])
-	local last
+	num = num + Wherigo._intersect(point, {points[ #points ], points[1]} )
+	num = num + Wherigo._intersect(zone.OriginalPoint, {points[ #points ], points[1]} )
+	--print(num, points[1])
 	for k, pnt in pairs(points) do
 		if k > 1 then
-			num = num + Wherigo._intersect(point, {last, pnt} )
-			num = num + Wherigo._intersect(zone.OriginalPoint, {last, pnt} )
+			num = num + Wherigo._intersect(point, {points[k-1], points[k]} )
+			num = num + Wherigo._intersect(zone.OriginalPoint, {points[k-1], points[k]} )
+			--print(num, pnt)
 			end
-		last = pnt
 		end
 	return (num % 2) == 0
 	end
@@ -416,7 +421,7 @@ function Wherigo.ZObject.new(cartridge, container )
 		end
 	
 	function self._is_visible()
-		if not ((v.Active and v.Visible) or DEBUG) then
+		if not ((self.Active and self.Visible) or DEBUG) then
 			return false
 			end
 		if self.Container == nil then
@@ -600,19 +605,23 @@ function Wherigo.ZCartridge.new(  )
 				elseif v._classname == Wherigo.CLASS_ZONE then
 					-- something with Active and _active ???
 					local inside = Wherigo.IsPointInZone (Wherigo.Player.ObjectLocation, v)
-					print(v.Name, inside, v.OriginalPoint, Wherigo.Player.ObjectLocation)
+					print(v.Name, inside, v._inside, v.OriginalPoint, Wherigo.Player.ObjectLocation)
 					if inside ~= v._inside then
 						update_all = true
 						v._inside = inside
 						if inside then
 							if v._state == 'NotInRange' and v.OnDistant then
+								print(v.Name, 'OnDistant')
 								v.OnDistant(v) end
 							if v._state ~= 'Proximity' and v.OnProximity then
+								print(v.Name, 'OnProximity')
 								v.OnProximity(v) end
 							if v.OnEnter then
+								print(v.Name, 'OnEnter')
 								v.OnEnter(v) end
 						else
 							if v.OnExit then
+								print(v.Name, 'OnExit')
 								v.OnExit(v) end
 							end
 						end
@@ -622,30 +631,36 @@ function Wherigo.ZCartridge.new(  )
 					else
 						-- how far?
 						v.CurrentDistance, v.CurrentBearing = Wherigo.VectorToZone (Wherigo.Player.ObjectLocation, v)
+						print(v.Name, v.CurrentDistance, v.CurrentBearing )
 						if v.CurrentDistance() < v.ProximityRange() then
 							if v._state == 'NotInRange' and v.OnDistant then
+								print(v.Name, 'OnDistant')
 								v.OnDistant (v)
 								update_all = true
 								end
 							v.State = 'Proximity'
 						elseif v.DistanceRange() < 0 or v.CurrentDistance() < v.DistanceRange() then
 							if v._state == 'Inside' and v.OnProximity then
+								print(v.Name, 'OnProximity')
 								v.OnProximity(v)
 								update_all = true
 								end
 							v.State = 'Distant'
 						else
 							if v._state == 'Inside' and v.OnProximity then
+								print(v.Name, 'OnProximity')
 								v.OnProximity(v)
 								update_all = true
 								end
 							if (v._state == 'Proximity' or v._state == 'Inside') and v.OnDistant then
+								print(v.Name, 'OnDistant')
 								v.OnDistant(v)
 								update_all = true
 								end
 							v.State = 'NotInRange'
 							end
 						if v._state ~= v.State then
+							print(v.Name, 'new state ', v.State)
 							local s = v._state
 							v._state = v.State
 							local attr = 'On' .. v.State
