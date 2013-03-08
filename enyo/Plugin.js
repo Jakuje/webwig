@@ -31,10 +31,10 @@ enyo.kind({
 		this.owner.$.sound.play();
 	},
 	messageBox: function(message, media, button1, button2, callback){
-		console.error("***** WIG Enyo: messageBox:" + message + "b:" + button1 + ", " + button2 + " m:" + media + " c:" + callback);
+		/*console.error("***** WIG Enyo: messageBox:" + message + "b:" + button1 + ", " + button2 + " m:" + media + " c:" + callback);
 		if( media ){
 			console.error("***** WIG Enyo: Media url: " + media);
-		}
+		}*/
 		this.owner.popupMessage(message, "Message", media, button1, button2, (callback == "1"));
 	},
 	MessageBoxResponse: function( value ){
@@ -46,14 +46,8 @@ enyo.kind({
 	},
 	getInput: function(type, text){
 		console.error("***** WIG Enyo: getInput: type" + type + " text:" + text);
-		/*if( media ){
-			//path = this.tmpdir + "/" + media;
-			console.error("***** WIG Enyo: Media url: " + media);
-			// not alowed to load local resource
-		} else {
-			path = false;
-		}*/
-		//this.owner.popupMessage(text, "Message", media, button1, button2, callback);
+		
+		this.owner.popupMessage(text, "Message", media, button1, button2, callback);
 		// @todo
 	},
 	ShowStatusText: function(text){
@@ -155,9 +149,43 @@ enyo.kind({
 			enyo.nextTick(this, function() { this.openCartridgeResult( "{\"type\": \"ok\", \"data\": {}}");
 			});
 			enyo.nextTick(this, function() { this.owner.$.gMain.updateUI(
-			{ "locations": [{"name": "Paloucek", "description": "Paloucek pobliz tramvajove smycky Certova rokle. ", "distance": 65.808471927813}],
-			"youSee": [], "inventory": [{"name": "denik krale Artuse", "description": "", "media": "38.jpg", "icon": "18.jpg"},{"name": " ulozit hru", "description": ""}],
-			"tasks": [{"name": "Ukol 1", "description": "Pod skupinkou stromu vedle nedalekeho paloucku hledejte imaginarni predmet. Zavede Vas k nemu sipka v polozce \"Locations\". Az na misto dorazite, naleznete predmet v polozce \"You See\"."}]}
+
+{
+        "locations": [],
+        "youSee": [],
+        "inventory": [
+            {
+                "name": "denik krale Artuse",
+                "description": "",
+                "media": "/media/internal/appdata/com.dta3team.app.wherigo/9680e562-caf2-455e-a095-654b67d8080e/38.jpg",
+                "icon": "/media/internal/appdata/com.dta3team.app.wherigo/9680e562-caf2-455e-a095-654b67d8080e/18.jpg",
+                "id": "129",
+                "commands": [
+                    {
+                        "id": "_1iJNa",
+                        "text": "cist denik"
+                    }
+                ]
+            },
+            {
+                "name": " ulozit hru",
+                "description": "",
+                "id": "136",
+                "commands": [],
+                "onclick": true
+            }
+        ],
+        "tasks": [
+            {
+                "name": "Zverokruh",
+                "description": "Dojdi doprostred Zverokruhu.",
+                "media": "/media/internal/appdata/com.dta3team.app.wherigo/9680e562-caf2-455e-a095-654b67d8080e/11.jpg",
+                "commands": [],
+                "id": "138"
+            }
+        ],
+        "gps": 3
+    }
 			
 				);
 			});
@@ -174,6 +202,12 @@ enyo.kind({
 		if ( window.PalmSystem) {
 			console.error("***** WIG Enyo: callback event = " + event + " id = " + id);
 			this.callPluginMethodDeferred(enyo.nop, "CallbackFunction", event, id);
+		}
+	},
+	setPosition: function(lat, lon){
+		if ( window.PalmSystem) {
+			console.error("***** WIG Enyo: setPosition (debug) lat = " + lat + " lon = " + lon);
+			this.callPluginMethodDeferred(enyo.nop, "setPosition", lat, lon);
 		}
 	}
 });
