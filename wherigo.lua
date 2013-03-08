@@ -42,7 +42,7 @@ function Wherigo.MessageBox(t)
 	local callback = rawget(t, "Callback")
 	--print("Message: ", text) 
 	if media then
-		print("Media: ", media._id)
+		--print("Media: ", media._id)
 		media = media._id
 	else
 		media = ""
@@ -211,7 +211,7 @@ function Wherigo.VectorToPoint(p1, p2)
 	end
 
 function Wherigo.NoCaseEquals(f, s)
-	return f.lower() == s.lower()
+	return type(f) == type(s) and f:lower() == s:lower()
 	end
 	
 function Wherigo.Command(text)
@@ -237,18 +237,27 @@ function Wherigo.LogMessage(text, level)
 
 function Wherigo.GetInput(input)
 	-- ZInput is dialog to show and returns value from user
-	table.insert(Wherigo._GICallbacks, input.OnGetInput)
+	table.insert(Wherigo._GICallbacks, input)
 	--if input.Type == "Text" then
 	--	end
-	o = "";
-	for k, v in pairs(input.Choices) do
-		o = o .. ";" .. v end
-	WIGInternal.GetInput( input.InputType, input.Text, o, input.Media._id) -- think about it
+	local o = ""
+	if input.InputType == "MultipleChoice" then
+		for k, v in pairs(input.Choices) do
+			o = o .. ";" .. v end
+		end
+	local media
+	if input.Media then
+		media = input.Media._id
+	else
+		media = ""
+		end
+	
+	WIGInternal.GetInput( input.InputType, input.Text, o, media)
 	end
 function Wherigo._GetInputResponse( response )
-	if # Wherigo._MBCallbacks > 0 then
-		callback = table.remove(Wherigo._GICallbacks)
-		callback(response)
+	if # Wherigo._GICallbacks > 0 then
+		local input = table.remove(Wherigo._GICallbacks)
+		input.OnGetInput(input, response)
 	else
 		error("Recieved GetInput response to no request")
 		end
@@ -271,6 +280,9 @@ function Wherigo.Bearing.new(value)
 	setmetatable(self, {
 		__tostring = function( s )
 			return "Bearing (" .. s.value .. "°)"
+			end,
+		__call = function (s)
+			return s.value
 			end,
 		})
 
@@ -326,7 +338,7 @@ function Wherigo.Distance.new(value, units)
 			return "Distance (" .. s.value .. " meters)"
 			end,
 		__call = function (s, units)
-			return self.GetValue(units)
+			return s.GetValue(units)
 			end,
 		__eq = function( op1, op2 )
 			print("Comparing")
@@ -949,8 +961,13 @@ Wherigo._getLocations = function()
 				locations = locations .. "," end
 			locations = locations .. "{\"name\": \"" .. WIGInternal.escapeJsonString(v.Name) .. "\""
 				.. ", \"description\": \"" .. WIGInternal.escapeJsonString(v.Description) .. "\""
-				.. ", \"distance\": " .. v.CurrentDistance("m")
-				.. Wherigo._addCommands(v)
+				.. ", \"lat\": " .. v.OriginalPoint.latitude .. ", \"lon\": " .. v.OriginalPoint.longitude
+			if v.State == 'Inside' then
+				locations = locations .. ", \"distance\": 0, \"bearing\": 0"
+			else
+				locations = locations .. ", \"distance\": " .. v.CurrentDistance("m") .. ", \"bearing\": " .. v.CurrentBearing("m")
+				end
+			locations = locations .. Wherigo._addCommands(v)
 				.. "}"
 			first = false
 			end
@@ -1018,6 +1035,7 @@ Wherigo._getTasks = function()
 				.. Wherigo._getMediaField("media", v.Media)
 				.. Wherigo._getMediaField("icon", v.Icon)
 				.. Wherigo._addCommands(v)
+				.. ", \"complete\": " .. v.Complete
 				.. ", \"id\": \"" .. k .. "\""
 			if v.OnClick then
 				tasks = tasks .. ", \"onclick\": true"
