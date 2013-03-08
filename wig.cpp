@@ -983,7 +983,7 @@ void UpdateGPS(PDL_Location *location){
 				// send data back to the JavaScript side
 				//syslog(LOG_WARNING, "*** update GPS State");
 				PDL_Err err;
-				err = PDL_CallJS("updateGPSstate", (const char **)&data, 1);
+				err = PDL_CallJS("updateState", (const char **)&data, 1);
 				if (err) {
 					syslog(LOG_ERR, "*** PDL_CallJS failed, %s", PDL_GetError());
 					return;
