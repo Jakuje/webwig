@@ -20,6 +20,7 @@ enyo.kind({
 			{kind: "EditMenu"},
 			{caption: "Preferences", onclick: "turnLightsOff"},
 			{caption: "Refresh", onclick: "turnLightsOn"},
+			{caption: "Move to next Zone", onclick: "tempPostUpdateUI"},
 			/*{kind: "HelpMenu", target: "http://jakuje.dta3.com"}*/
 		]},
 		{ kind: enyo.ApplicationEvents, onBack: "goBack" },
@@ -175,5 +176,13 @@ enyo.kind({
 		}
 		
 		this.$.pane.back(inEvent);
+	},
+	
+	tempPostUpdateUI: function(){
+		/*enyo.nextTick(this, function() { this.$.gMain.updateUI(
+			{ "locations": [{"name": "Zona 42", "description": "", "distance": 48960.724432131},{"name": "Zone another", "description": "", "distance": 51575.499790582}], "youSee": [], "inventory": [{"name": "Věc", "description": "S obrazkem a ikonkou", "media": "/media/internal/appdata/com.dta3team.app.wherigo/2ca1f78e-9c75-4d69-8cf0-7bd0b4576b7a/2.png", "icon": "/media/internal/appdata/com.dta3team.app.wherigo/2ca1f78e-9c75-4d69-8cf0-7bd0b4576b7a/3.png"}], "tasks": [{"name": "Ukol", "description": "Udelej to a to.", "id": "11", "media": "/media/internal/appdata/com.dta3team.app.wherigo/2ca1f78e-9c75-4d69-8cf0-7bd0b4576b7a/1.jpg", "icon": "/media/internal/appdata/com.dta3team.app.wherigo/2ca1f78e-9c75-4d69-8cf0-7bd0b4576b7a/3.png", "onclick": true},{"name": "Another task", "description": "", "id": "12", "icon": "/media/internal/appdata/com.dta3team.app.wherigo/2ca1f78e-9c75-4d69-8cf0-7bd0b4576b7a/3.png"}], "gps": 2}
+			);
+		});*/
+		this.$.plugin.setPosition(49.223878820512, 16.529799699783);
 	}
 });
