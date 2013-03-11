@@ -103,7 +103,7 @@ int Wherigo::scanOffsets (){
 	for(int i = 0;i < files; i++){
 		ids[i] = fd.readUShort();
 		idsRev[ ids[i] ] = i; // sometimes it is not in correct order and we need to aceess some ID
-		cerr << i << ":" << ids[i] << endl;
+		//cerr << i << ":" << ids[i] << endl;
 		offsets[i] = fd.readLong();
 		types[i] = UNDEFINED;
 	}
