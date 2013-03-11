@@ -9,7 +9,7 @@ Wherigo = {
 	
 	MAINSCREEN			= "main",
 	INVENTORYSCREEN 	= "inventory",
-	ITEMSCREEN 			= "you_see",
+	ITEMSCREEN 			= "youSee",
 	LOCATIONSCREEN		= "locations",
 	TASKSCREEN			= "tasks",
 	DETAILSCREEN 		= "detail",
@@ -242,8 +242,13 @@ function Wherigo.GetInput(input)
 	--	end
 	local o = ""
 	if input.InputType == "MultipleChoice" then
+		local first = true
 		for k, v in pairs(input.Choices) do
-			o = o .. ";" .. v end
+			if not first then
+				o = o .. ";" end
+			o = o .. v
+			first = false
+			end
 		end
 	local media
 	if input.Media then
@@ -264,10 +269,12 @@ function Wherigo._GetInputResponse( response )
 	end
 
 function Wherigo.ShowScreen(screen, item)
-	if screen == Wherigo.DETAILSCREEN and item == nil then
-		error("Item must be specified")
+	if screen == Wherigo.DETAILSCREEN then
+		if item == nil then
+			error("Item must be specified") end
+		WIGInternal.ShowScreen(screen, item.ObjIndex)
 	else
-		WIGInternal.ShowScreen(screen, item)
+		WIGInternal.ShowScreen(screen, "")
 		end
 	end
 
@@ -777,54 +784,59 @@ Wherigo.ZTimer = {}
 function Wherigo.ZTimer.new(cartridge)
 	local self = Wherigo.ZObject(cartridge)
 	self._classname = Wherigo.CLASS_ZTIMER
-	self.Type = 'Countdown'
+	self.Type = 'Countdown' -- Countdown or Interval
 	self.Duration = -1
 	self.Remaining = -1
 	self.OnStart = nil
 	self.OnStop = nil
 	self.OnTick = nil
-	self._target = nil
+	self._target = nil -- target time
 	
-	function self.Start()
+	function self:Start()
 		if self._target ~= nil then
 			print('Not starting timer: already running.')
 			return
 			end
 		if self.OnStart then
-			self.OnStart()
+			self.OnStart(self)
 			end
 		if self.Remaining < 0 then
 			self.Remaining = self.Duration
 			end
 		-- call native timer
+		this._target = WIGInternal.AddTimer(self.Remaining, self.ObjIndex);
 		end
-	function self.Stop()
+	function self:Stop()
 		if self._target == nil then
 			print('Not stopping timer: not running.')
 			return
 			end
 		-- native timer
+		WIGInternal.removeTimer(self.ObjIndex)
+		self._target = nil
 		if self.onStop then
-			self.onStop()
+			self.onStop(self)
 			end
 		
 		end
 	function self.Tick()
 		if self.Type == 'Interval' then
 			self._target = self._target + self.Duration
-			now = WIGInternal.time ()
+			now = WIGInternal.getTime()
 			if self._target < now then
 				self._target = now
 				end
+			WIGInternal.addTimer(self._target - now, self.ObjIndex)
 		else
 			-- native timer
+			self._target = nil
 			self.Remaining = -1
 			end
 		if self.OnTick then
-			self.OnTick()
+			self.OnTick(self)
 			end
 		end
-	
+
 	setmetatable(self, {
 		__tostring = function( s )
 			return "ZTimer (" .. s.Name .. ")"
@@ -837,7 +849,12 @@ setmetatable(Wherigo.ZTimer, {
 	__call = function(s, cartridge)
 		return Wherigo.ZTimer.new(cartridge)
 		end
-	}) 
+	})
+function Wherigo.ZTimer._Tick(id)
+	local t = cartridge.AllZObjects[id]
+	if( t._classname == Wherigo.CLASS_ZTIMER then
+		t.Tick() end
+	end
 
 Wherigo.ZInput = {}
 function Wherigo.ZInput.new( cartridge )
@@ -867,7 +884,7 @@ function Wherigo.ZCharacter.new( cartridge, container )
 		container = cartridge.Container
 		cartridge = cartridge.Cartridge
 		end
-	self = Wherigo.ZObject.new(cartridge)
+	self = Wherigo.ZObject.new(cartridge, container)
 	self._classname = Wherigo.CLASS_ZCHARACTER
 	self.Name = "Unnamed"
 	self.InsideZones = {}
