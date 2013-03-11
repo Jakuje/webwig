@@ -38,7 +38,12 @@ enyo.kind({
 	},
 	itemClicked: function(inSender, inEvent){
 		if( this.data[inEvent.rowIndex].onclick ){
-			this.owner.owner.owner.$.plugin.callback("OnClick", this.data[inEvent.rowIndex].id)
+			if( typeof this.data[inEvent.rowIndex].onclick == 'function') {
+				// debug UI
+				this.data[inEvent.rowIndex].onclick(this.owner);
+			} else {
+				this.owner.owner.owner.$.plugin.callback("OnClick", this.data[inEvent.rowIndex].id)
+			}
 		} else {
 			this.owner.owner.showScreen(this.screen, inEvent.rowIndex);
 		}
@@ -77,7 +82,12 @@ enyo.kind({
 				this.$.itemIcon.hide();
 			}
 			if( this.screen == 'locations' ){
-				this.$.itemDistance.setContent( Math.round(this.data[inIndex].distance) + " m");
+				d = this.data[inIndex].distance;
+				if( d == 0 ){
+					this.$.itemDistance.setContent("here");
+				} else {
+					this.$.itemDistance.setContent( Math.round(d) + " m");
+				}
 				this.$.itemDistance.show()
 			} else {
 				this.$.itemDistance.setContent("");

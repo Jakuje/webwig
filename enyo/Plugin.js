@@ -22,6 +22,7 @@ enyo.kind({
 		this.addCallback("ShowStatusText", enyo.bind(this, this.ShowStatusText), true);
 		this.owner.$.plugin.addCallback("updateState",
 			enyo.bind(this, this.updateUI), true);
+		this.addCallback("showScreen", enyo.bind(this, this.showScreen), true);
 	},
 	tmpdir: null,
 	
@@ -183,11 +184,28 @@ enyo.kind({
         ],
         "tasks": [
             {
-                "name": "Zverokruh",
-                "description": "Dojdi doprostred Zverokruhu.",
-                "media": "/media/internal/appdata/com.dta3team.app.wherigo/9680e562-caf2-455e-a095-654b67d8080e/11.jpg",
+                "name": "Go Home",
                 "commands": [],
-                "id": "138"
+                "id": "138",
+                "onclick": function(context){
+					context.owner.showScreenLua("main")
+					},
+            },
+            {
+                "name": "Go Locations",
+                "commands": [],
+                "id": "150",
+                "onclick": function(context){
+					context.owner.showScreenLua("locations")
+					},
+            },
+            {
+                "name": "Go Detail",
+                "commands": [],
+                "id": "13",
+                "onclick": function(context){
+					context.owner.showScreenLua("detail", "138")
+					},
             }
         ],
         "gps": 3
@@ -212,8 +230,13 @@ enyo.kind({
 	},
 	setPosition: function(lat, lon){
 		if ( window.PalmSystem) {
-			console.error("***** WIG Enyo: setPosition (debug) lat = " + lat + " lon = " + lon);
+			//console.error("***** WIG Enyo: setPosition (debug) lat = " + lat + " lon = " + lon);
 			this.callPluginMethodDeferred(enyo.nop, "setPosition", lat, lon);
 		}
-	}
+	},
+	showScreen: function(screen, item){
+		console.error("***** WIG Enyo: showScreen: " + screen + ", item:" + item);
+		this.owner.$.gMain.showScreenLua(screen, item);
+	},
+	
 });

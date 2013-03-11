@@ -1,4 +1,12 @@
 enyo.kind({
+	// screens constants
+	MAINSCREEN			: "main",
+	INVENTORYSCREEN 	: "inventory",
+	ITEMSCREEN 			: "youSee",
+	LOCATIONSCREEN		: "locations",
+	TASKSCREEN			: "tasks",
+	DETAILSCREEN 		: "detail",
+
 	name: "WIGApp.GameMain",
 	kind: enyo.VFlexBox,
 	components: [
@@ -32,7 +40,7 @@ enyo.kind({
 			//console.error("Writing all ...");
 			this.data = data;
 			this.$.gMain.updateUI(data);
-			if( this.$.pane.getViewName() !=  "gMain" ){
+			if( this.$.pane.getViewName() != "gMain" ){
 				this.$.gList.updateUI(data);
 				if( this.$.pane.getViewName() == "gDetail" ){
 					this.$.gDetail.updateUI(data[this.detail_screen][this.detail_item]);
@@ -46,6 +54,27 @@ enyo.kind({
 	},
 	detail_item: 0,
 	detail_screen: "",
+	showScreenLua: function(screen, item){
+		// go home
+		if( this.$.pane.getViewName() != "gMain" && (screen == "main" || screen == "detail" ) ) {
+			while( this.$.pane.getViewName() != "gMain" ){
+				this.goBack()
+			}
+		}
+		if( screen != this.MAINSCREEN ){
+			if( screen == this.DETAILSCREEN ){
+				for( var scr in this.data ){
+					for( var it in this.data[scr] ){
+						if( this.data[scr][it].id == item ){
+							this.showScreen(scr, it);
+						}
+					}
+				}
+			} else {
+				this.showScreen(screen);
+			}
+		}
+	},
 	showScreen: function(screen, item){
 		this.detail_screen = screen;
 		if( item == undefined ){
@@ -64,6 +93,5 @@ enyo.kind({
 		} else {
 			this.$.pane.back(inEvent);
 		}
-		// todo: Back swipe
 	}
 });
