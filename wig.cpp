@@ -5,6 +5,7 @@
 
 #include <glob.h>
 #include <sys/stat.h>
+#include <ctime>
 
 #include "wherigo.h"
 
@@ -33,26 +34,18 @@ enum EVENT_CODES {
 	EVENT_MESSAGE_BOX_RESPONSE,
 	EVENT_GET_INPUT_RESPONSE,
 	EVENT_CALLBACK,
+	EVENT_TIMER,
 
 	EVENT_SET_POSITION_DEBUG
 	};
 
-// Copy&Paste from wherigo.lua
-enum SCREENS {
-	MAINSCREEN 			= 0,
-	INVENTORYSCREEN 	= 1,
-	ITEMSCREEN 			= 2,
-	LOCATIONSCREEN		= 3,
-	TASKSCREEN			= 4,
-	DETAILSCREEN 		= 10
-};
 
 
 lua_State *L;
 
 Wherigo *WherigoOpen;
 
-SDL_TimerID gpsTimer;
+map<int,SDL_TimerID> timers; // @todo clenup when closing cartridge
 
 int acc_class = 0;
 
@@ -249,7 +242,7 @@ static PDL_bool setPositionJS(PDL_JSParameters *params){
     event.user.data1 = lat;
     event.user.data2 = lon;
     
-    syslog(LOG_WARNING, "*** sending setPosition event");
+    //syslog(LOG_WARNING, "*** sending setPosition event");
     SDL_PushEvent(&event);
     
     return PDL_TRUE;
@@ -349,6 +342,53 @@ static void saveState(){
 	// save ...
 }
 
+static Uint32 addTimerEvent(Uint32 interval, void *param){
+	SDL_Event event;
+	SDL_UserEvent userevent;
+
+	int *ObjId = new int;
+	ObjId = (int *) param;
+
+	userevent.type = SDL_USEREVENT;
+	userevent.code = EVENT_TIMER;
+	userevent.data1 = ObjId;
+	userevent.data2 = NULL;
+
+	event.type = SDL_USEREVENT;
+	event.user = userevent;
+
+	SDL_PushEvent(&event);
+	// cancel timer
+	return 0;
+}
+
+static int getTime(){
+	time_t t = std::time(NULL);
+	return t;
+}
+
+static int addTimer(int remaining, int ObjId){
+	timers[ObjId] = SDL_AddTimer(remaining*1000, addTimerEvent, &ObjId);
+	return getTime() + remaining * 1000;
+}
+
+static void removeTimer(int ObjId){
+	SDL_RemoveTimer( timers[ObjId] );
+}
+
+static void timerTick(int *ObjId){
+	lua_getfield(L, LUA_GLOBALSINDEX, "Wherigo");	// [-0, +1, e]
+	lua_getfield(L, -1, "ZTimer");					// [-0, +1, e]
+	lua_remove(L, -2);								// [-1, +0, -]
+	lua_getfield(L, -1, "_Tick");					// [-0, +1, e]
+	lua_remove(L, -2);								// [-1, +0, -]
+	lua_pushinteger(L, *ObjId);						// [-0, +1, e]
+	int status = lua_pcall(L, 1, 0, 0);				// [-2, +(0|1), -] [-(nargs + 1), +(nresults|1), -]
+	report(L, status);								// [-(0|1), +0, -]
+	
+	updateStateToJS(); // ??
+}
+
 static void MessageBox(const char *text, const char *media,
 		const char *button1, const char *button2, const char *callback /*lua_State *L*/) {
 	cerr << "MessageBox:" << text;
@@ -443,7 +483,7 @@ static void ShowScreen(const char *screen, const char *detail) {
     const char *params[2];
     params[0] = screen;
     params[1] = detail;
-    err = PDL_CallJS("showScreen", params, 1);
+    err = PDL_CallJS("showScreen", params, 2);
     if (err) {
         syslog(LOG_ERR, "*** PDL_CallJS failed, %s", PDL_GetError());
         //SDL_Delay(5);
@@ -538,6 +578,9 @@ lua_State * openLua(Wherigo *w){
 			.addFunction("ShowStatusText", ShowStatusText)
 			.addFunction("escapeJsonString", escapeJsonString)
 			.addFunction("save", saveState)
+			.addFunction("addTimer", addTimer)
+			.addFunction("removeTimer", removeTimer)
+			.addFunction("getTime", getTime)
 		.endNamespace();
 			
 	// library in Lua
@@ -627,14 +670,13 @@ void setPosition(double *lat, double * lon){
 	
 	ss << "return cartridge._update(Wherigo.ZonePoint("
 		<< *lat << ", " << *lon << "), 0)";
-	my_error(ss.str());
+	//my_error(ss.str());
 	status = luaL_dostring(L, ss.str().c_str());
+	report(L, status);
 	if( status == 0 ){
 		update_all = lua_toboolean(L, 1);
 		lua_pop(L, 1);
-		cerr << "Update all: " << update_all << endl;
-	} else {
-		report(L, status);
+		//cerr << "Update all: " << update_all << endl;
 	}
 	
 	//if( update_all ){
@@ -675,7 +717,7 @@ void CommandLineTests(int argc, char **argv){
 		lon = 16.529799699783;
 		setPosition(&lat, &lon);
 		
-		//luaL_dostring(L, "debug.debug()");
+		luaL_dostring(L, "debug.debug()");
 		
 		//setPosition(&lat, &lon);
 		int status = luaL_dostring(L, "return Wherigo._getUI()");
@@ -1125,6 +1167,12 @@ static void loop(){
 					setPosition(lat, lon);
 					delete lat;
 					delete lon;
+					}
+					break;
+				case EVENT_TIMER: {
+					int *ObjId = (int *)event.user.data1;
+					timerTick(ObjId);
+					delete ObjId;
 					}
 					break;
 			}
