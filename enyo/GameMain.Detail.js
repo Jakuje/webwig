@@ -48,9 +48,8 @@ enyo.kind({
 		}
 	},
 	
-	id: 0,
 	updateUI: function(data){
-		if( ! data || this.id != data.id ){
+		if( ! data || this.data.id != data.id ){
 			this.owner.goBack();
 			return;
 		}
