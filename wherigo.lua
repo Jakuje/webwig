@@ -67,6 +67,7 @@ function Wherigo.MessageBox(t)
 	end
 function Wherigo._MessageBoxResponse(action)
 	if # Wherigo._MBCallbacks > 0 then
+		Wherigo.LogMessage("MessageBox Callback: [" .. action .. "]")
 		callback = table.remove(Wherigo._MBCallbacks)
 		callback(action)
 	else
@@ -232,14 +233,14 @@ function Wherigo.LogMessage(text, level)
 		level = text.Level
 		text = text.Text
 		end
-	WIGInternal.LogMessage(text, level)
+	WIGInternal.LogMessage(text--[[, level]])
 	end
 
 function Wherigo.GetInput(input)
 	-- ZInput is dialog to show and returns value from user
+	Wherigo.LogMessage("ZInput:GetInput: " .. input.Name)
+
 	table.insert(Wherigo._GICallbacks, input)
-	--if input.Type == "Text" then
-	--	end
 	local o = ""
 	if input.InputType == "MultipleChoice" then
 		local first = true
@@ -262,6 +263,7 @@ function Wherigo.GetInput(input)
 function Wherigo._GetInputResponse( response )
 	if # Wherigo._GICallbacks > 0 then
 		local input = table.remove(Wherigo._GICallbacks)
+		Wherigo.LogMessage("ZInput:GetInput: " .. input.Name .. " -> " .. response)
 		input.OnGetInput(input, response)
 	else
 		error("Recieved GetInput response to no request")
@@ -272,8 +274,10 @@ function Wherigo.ShowScreen(screen, item)
 	if screen == Wherigo.DETAILSCREEN then
 		if item == nil then
 			error("Item must be specified") end
+		Wherigo.LogMessage("ShowScreen: " .. screen .. " (" .. item.Name .. ")")
 		WIGInternal.ShowScreen(screen, item.ObjIndex)
 	else
+		Wherigo.LogMessage("ShowScreen: " .. screen)
 		WIGInternal.ShowScreen(screen, "")
 		end
 	end
@@ -322,6 +326,8 @@ function Wherigo.Distance.new(value, units)
 		end
 	
 	function self.GetValue(units)
+		if type(units) == 'table' then
+			units = units.units end
 		units = units or 'meters'
 
 		if units == 'meters' or units == 'm' then
@@ -348,7 +354,7 @@ function Wherigo.Distance.new(value, units)
 			return s.GetValue(units)
 			end,
 		__eq = function( op1, op2 )
-			print("Comparing")
+			error("Comparing")
 			return true
 			end
 		})
@@ -436,6 +442,7 @@ function Wherigo.ZObject.new(cartridge, container )
 			end
 		end
 	function self:MoveTo(owner)
+		Wherigo.LogMessage("Move " .. self.Name .. " to " .. owner.Name)
 		self.Container = owner
 		end
 	
@@ -630,17 +637,17 @@ function Wherigo.ZCartridge.new(  )
 						v._inside = inside
 						if inside then
 							if v._state == 'NotInRange' and v.OnDistant then
-								print(v.Name, 'OnDistant')
+								Wherigo.LogMessage("Zone <" .. v.Name .. ">: Distant")
 								v.OnDistant(v) end
 							if v._state ~= 'Proximity' and v.OnProximity then
-								print(v.Name, 'OnProximity')
+								Wherigo.LogMessage("Zone <" .. v.Name .. ">: Proximity")
 								v.OnProximity(v) end
 							if v.OnEnter then
-								print(v.Name, 'OnEnter')
+								Wherigo.LogMessage("Zone <" .. v.Name .. ">: Enter")
 								v.OnEnter(v) end
 						else
 							if v.OnExit then
-								print(v.Name, 'OnExit')
+								Wherigo.LogMessage("Zone <" .. v.Name .. ">: Exit")
 								v.OnExit(v) end
 							end
 						end
@@ -653,33 +660,33 @@ function Wherigo.ZCartridge.new(  )
 						print(v.Name, v.CurrentDistance, v.CurrentBearing )
 						if v.CurrentDistance() < v.ProximityRange() then
 							if v._state == 'NotInRange' and v.OnDistant then
-								print(v.Name, 'OnDistant')
+								Wherigo.LogMessage("Zone <" .. v.Name .. ">: Distant")
 								v.OnDistant (v)
 								update_all = true
 								end
 							v.State = 'Proximity'
 						elseif v.DistanceRange() < 0 or v.CurrentDistance() < v.DistanceRange() then
 							if v._state == 'Inside' and v.OnProximity then
-								print(v.Name, 'OnProximity')
+								Wherigo.LogMessage("Zone <" .. v.Name .. ">: Proximity")
 								v.OnProximity(v)
 								update_all = true
 								end
 							v.State = 'Distant'
 						else
 							if v._state == 'Inside' and v.OnProximity then
-								print(v.Name, 'OnProximity')
+								Wherigo.LogMessage("Zone <" .. v.Name .. ">: Proximity")
 								v.OnProximity(v)
 								update_all = true
 								end
 							if (v._state == 'Proximity' or v._state == 'Inside') and v.OnDistant then
-								print(v.Name, 'OnDistant')
+								Wherigo.LogMessage("Zone <" .. v.Name .. ">: Distant")
 								v.OnDistant(v)
 								update_all = true
 								end
 							v.State = 'NotInRange'
 							end
 						if v._state ~= v.State then
-							print(v.Name, 'new state ', v.State)
+							Wherigo.LogMessage("Zone <" .. v.Name .. ">: " .. v.State)
 							local s = v._state
 							v._state = v.State
 							local attr = 'On' .. v.State
@@ -797,6 +804,7 @@ function Wherigo.ZTimer.new(cartridge)
 			print('Not starting timer: already running.')
 			return
 			end
+		Wherigo.LogMessage("ZTimer <" .. self.Name .. ">: Start")
 		if self.OnStart then
 			self.OnStart(self)
 			end
@@ -804,13 +812,14 @@ function Wherigo.ZTimer.new(cartridge)
 			self.Remaining = self.Duration
 			end
 		-- call native timer
-		this._target = WIGInternal.AddTimer(self.Remaining, self.ObjIndex);
+		self._target = WIGInternal.addTimer(self.Remaining, self.ObjIndex);
 		end
 	function self:Stop()
 		if self._target == nil then
 			print('Not stopping timer: not running.')
 			return
 			end
+		Wherigo.LogMessage("ZTimer <" .. self.Name .. ">: Stop")
 		-- native timer
 		WIGInternal.removeTimer(self.ObjIndex)
 		self._target = nil
@@ -819,7 +828,8 @@ function Wherigo.ZTimer.new(cartridge)
 			end
 		
 		end
-	function self.Tick()
+	function self:Tick()
+		Wherigo.LogMessage("ZTimer <" .. self.Name .. ">: Tick")
 		if self.Type == 'Interval' then
 			self._target = self._target + self.Duration
 			now = WIGInternal.getTime()
@@ -852,8 +862,8 @@ setmetatable(Wherigo.ZTimer, {
 	})
 function Wherigo.ZTimer._Tick(id)
 	local t = cartridge.AllZObjects[id]
-	if( t._classname == Wherigo.CLASS_ZTIMER then
-		t.Tick() end
+	if t._classname == Wherigo.CLASS_ZTIMER then
+		t.Tick(t) end
 	end
 
 Wherigo.ZInput = {}
@@ -927,6 +937,7 @@ for k,v in pairs(zonePaloucek) do print(k,v) end
 
 Wherigo._callback = function(event, id)
 	local t = cartridge.AllZObjects[id]
+	Wherigo.LogMessage("ZCommand <" .. t.Name .. ">: " .. event)
 	--[[if event == "OnClick" and t.OnClick then
 		t.OnClick(t)
 	else]]
