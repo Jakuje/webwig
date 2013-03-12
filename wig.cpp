@@ -285,6 +285,35 @@ void stackdump_g(lua_State* l)
     printf("\n");  /* end the listing */
 }
 
+char *show_detail = NULL;
+char *show_screen = NULL;
+
+static void ShowScreenLua(const char *screen, const char *detail) {
+	syslog(LOG_WARNING, "*** ShowScreen %s %s", screen, detail);
+	show_screen = strdup(screen);
+	show_detail = strdup(detail);
+}
+
+static void ShowScreen(){
+	if( show_screen ){
+#ifndef DESKTOP
+		PDL_Err err;
+		const char *params[2];
+		params[0] = show_screen;
+		params[1] = show_detail;
+		err = PDL_CallJS("showScreen", params, 2);
+		if (err) {
+			syslog(LOG_ERR, "*** PDL_CallJS failed, %s", PDL_GetError());
+			//SDL_Delay(5);
+		}
+#endif
+		free(show_screen);
+		free(show_detail);
+		show_screen = NULL;
+	}
+	return;
+}
+
 static void updateStateToJS(){
 	int status;
 	stringstream *buffer = new stringstream(stringstream::in | stringstream::out);
@@ -330,6 +359,7 @@ static void updateStateToJS(){
 			//SDL_Delay(5);
 			return;
 		}
+		ShowScreen();
 	} else 
 #endif
 		cerr << buffer->str() << endl;
@@ -339,19 +369,20 @@ static void updateStateToJS(){
 }
 
 static void saveState(){
-	// save ...
+	WherigoOpen->log("ZCartridge:Sync");
+	// save ... @todo
 }
 
 static Uint32 addTimerEvent(Uint32 interval, void *param){
 	SDL_Event event;
 	SDL_UserEvent userevent;
 
-	int *ObjId = new int;
-	ObjId = (int *) param;
+	/*int *ObjId = new int;
+	ObjId = (int *) param;*/
 
 	userevent.type = SDL_USEREVENT;
 	userevent.code = EVENT_TIMER;
-	userevent.data1 = ObjId;
+	userevent.data1 = param;
 	userevent.data2 = NULL;
 
 	event.type = SDL_USEREVENT;
@@ -368,7 +399,9 @@ static int getTime(){
 }
 
 static int addTimer(int remaining, int ObjId){
-	timers[ObjId] = SDL_AddTimer(remaining*1000, addTimerEvent, &ObjId);
+	int *id = new int;
+	*id = ObjId;
+	timers[ObjId] = SDL_AddTimer(remaining*1000, addTimerEvent, id);
 	return getTime() + remaining * 1000;
 }
 
@@ -391,17 +424,18 @@ static void timerTick(int *ObjId){
 
 static void MessageBox(const char *text, const char *media,
 		const char *button1, const char *button2, const char *callback /*lua_State *L*/) {
-	cerr << "MessageBox:" << text;
+	/*cerr << "MessageBox:" << text;
 	if( strcmp(button1, "") != 0 || strcmp(button2, "") != 0 ){
 		cerr << " >> Options: " << button1 << " | " << button2;
-	}
+	}*/
 	string m;
 	if( strcmp(media, "") != 0 ){
 		m = WherigoOpen->getFilePathById(media);
-		cerr << " >> Media (" << media << "): " << m;
+		//cerr << " >> Media (" << media << "): " << m;
 	}
-	cerr << endl;
+	//cerr << endl;
 	//syslog(LOG_WARNING, "*** MessageBox with message: %s", text);
+	WherigoOpen->log( string("MessageBox  Text: ").append(text) );
 	
 #ifndef DESKTOP
     PDL_Err err;
@@ -474,26 +508,8 @@ static void ShowStatusText(const char *text) {
 	return;
 }
 
-
-static void ShowScreen(const char *screen, const char *detail) {
-	syslog(LOG_WARNING, "*** ShowScreen %s %s", screen, detail);
-	
-#ifndef DESKTOP
-	PDL_Err err;
-    const char *params[2];
-    params[0] = screen;
-    params[1] = detail;
-    err = PDL_CallJS("showScreen", params, 2);
-    if (err) {
-        syslog(LOG_ERR, "*** PDL_CallJS failed, %s", PDL_GetError());
-        //SDL_Delay(5);
-    }
-#endif
-	return;
-}
-
 static void GetInput(const char *type, const char *text, const char* choices, const char* media) {
-	syslog(LOG_WARNING, "*** GetInput");
+	//syslog(LOG_WARNING, "*** GetInput");
 	
 	string m;
 	if( strcmp(media, "") != 0 ){
@@ -523,6 +539,10 @@ static void exit_lua(){
 		lua_close(L);
 		L = NULL;
 	}
+}
+
+void log(string message){
+	WherigoOpen->log(message);
 }
 
 lua_State * openLua(Wherigo *w){
@@ -573,7 +593,7 @@ lua_State * openLua(Wherigo *w){
 		.beginNamespace("WIGInternal")
 			.addFunction("MessageBox", MessageBox)
 			.addFunction("PlayAudio", PlayAudio)
-			.addFunction("ShowScreen", ShowScreen)
+			.addFunction("ShowScreen", ShowScreenLua)
 			.addFunction("GetInput", GetInput)
 			.addFunction("ShowStatusText", ShowStatusText)
 			.addFunction("escapeJsonString", escapeJsonString)
@@ -581,6 +601,7 @@ lua_State * openLua(Wherigo *w){
 			.addFunction("addTimer", addTimer)
 			.addFunction("removeTimer", removeTimer)
 			.addFunction("getTime", getTime)
+			.addFunction("LogMessage", log)
 		.endNamespace();
 			
 	// library in Lua
@@ -910,6 +931,7 @@ static int openCartridge(char *filename){
 	}
 	WherigoOpen->createFiles(); // files
 	WherigoOpen->createBytecode();
+	WherigoOpen->openLog();
 	
 	int status;
 	L = openLua(WherigoOpen);
@@ -949,7 +971,7 @@ static void closeCartridge(int *save){
 	// @todo save
 	
 	//SDL_RemoveTimer(gpsTimer);
-	
+	WherigoOpen->closeLog();
 	delete WherigoOpen;
 #ifndef DESKTOP
 	PDL_EnableLocationTracking(PDL_FALSE);
@@ -992,6 +1014,7 @@ static void openCartridgeToJS(char *filename){
 		cerr << buffer->str() << endl;
 	
 	// move to starting coordinates and call update position
+	// only for debug ... in production, it is not desired
 	cerr << "Updating position" << endl;
 	buffer->str("");
 	*buffer << "cartridge._update( Wherigo.ZonePoint("
@@ -1004,6 +1027,7 @@ static void openCartridgeToJS(char *filename){
 	// run onStart event
 	/*status = luaL_dostring(L, "cartridge.OnStart() ");
 	report(L, status);*/
+	WherigoOpen->log("ZCartridge:OnStart");
 	lua_getfield(L, LUA_GLOBALSINDEX, "cartridge");	// [-0, +1, e]
 	lua_getfield(L, -1, "OnStart");					// [-0, +1, e]
 	lua_remove(L, -2);								// [-1, +0, -]
