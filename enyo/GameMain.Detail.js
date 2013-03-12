@@ -40,7 +40,11 @@ enyo.kind({
 		}
 		this.render();
 		if( this.screen == "locations" ){
-			this.$.distance.setContent(Math.round(data.distance) + " m");
+			if( data.distance < 2000 ){
+				this.$.distance.setContent(Math.round(data.distance) + " m");
+			} else {
+				this.$.distance.setContent(Math.round(data.distance/1000) + " km");
+			}
 			this.$.bearing.setContent(Math.round(data.bearing) + "°");
 			this.$.distanceBox.show();
 		} else {

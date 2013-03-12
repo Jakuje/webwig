@@ -9,7 +9,7 @@ enyo.kind({
 			{name: "title", content: "You See"},
 			{name: "numRows", content: "0"}
 		]},
-		{kind: "Scroller", flex: 1, components: [
+		{kind: "Scroller", flex: 1, horizontal: false, autoHorizontal: false, components: [
 			{kind: "VirtualRepeater", name: "items", onSetupRow: "getItem", components: [
 				{kind: "Item", layoutKind: "HFlexLayout", onclick: "itemClicked", components: [
 					{name: "itemIcon", kind: "Image", style: "width: 25px;height:25px;margin-right:3px;"},
@@ -86,7 +86,7 @@ enyo.kind({
 				if( d == 0 ){
 					this.$.itemDistance.setContent("here");
 				} else {
-					this.$.itemDistance.setContent( Math.round(d) + " m");
+					this.$.itemDistance.setContent( ( d < 2000 ? (Math.round(d) + " m") : (Math.round(d/1000) + " km") ) );
 				}
 				this.$.itemDistance.show()
 			} else {
