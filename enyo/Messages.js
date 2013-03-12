@@ -97,6 +97,7 @@ enyo.kind({
 			element.$.getInput.setValue("");
 			element.$.getInput.forceFocus();
 			element.$.getInput.show();
+			element.$.Button1.show();
 		} else if( this.type == "MultipleChoice" ){
 			element.$.choices.show();
 			element.$.choices.render();
