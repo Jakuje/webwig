@@ -12,6 +12,7 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 #include "filereader.h"
+#include <ctime>
 
 #ifndef DESKTOP
 const string DATA_DIR = "/media/internal/appdata/com.dta3team.app.wherigo/";
@@ -60,6 +61,8 @@ public:
 	
 	string completionCode;
 
+	ofstream logFile;
+
 	Wherigo( string filename ){
 		this->filename = filename;
 		this->ids = NULL;
@@ -106,6 +109,10 @@ public:
 	string getFilePathById(int i);
 	string getFilePathById(const char *str_i);
 	string getFilePath(int i);
+
+	void openLog();
+	void log(string message);
+	void closeLog();
 
 };
 

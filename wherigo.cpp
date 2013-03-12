@@ -202,14 +202,23 @@ bool Wherigo::createFile(int i){
 }
 
 string Wherigo::getFilePathById(int id){
-	return this->getFilePath(idsRev[id]);
+	if( id > 0 ){
+		// -1 means no file for icon/splash
+		return this->getFilePath(idsRev[id]);
+	} else {
+		return "";
+	}
 }
 string Wherigo::getFilePathById(const char *str_i){
 	stringstream ss;
 	ss << str_i;
 	int i;
 	ss >> i;
-	return getFilePath(i);
+	if( i > 0 ){
+		return getFilePath(i);
+	} else {
+		return "";
+	}
 }
 string Wherigo::getFilePath(int i){
 	stringstream ss;
@@ -282,4 +291,26 @@ string Wherigo::getCartDir(){
 		}
 	}
 	return cartDir;
+}
+
+void Wherigo::openLog(){
+	int pos = filename.find(".gwc");
+	string logFileName = filename.substr(0, pos).append(".gwl");
+	logFile.open( logFileName.c_str() );
+	logFile << "-------------------" << endl
+		<< "Engine WebWIG Alpha, Player: " << player << " Cartridge: " << cartridgeName << endl
+		<< "-------------------" << endl;
+}
+
+void Wherigo::log(string message){
+	time_t t = time(NULL);
+	tm *ltm = localtime(&t);
+	char ts[15]; // 14 + \0
+	strftime(ts, 15, "%Y%m%d%H%M%S", ltm);
+	ts[14] = '\0';
+	logFile << ts << "|" << "gps ... |" << message << endl;
+}
+
+void Wherigo::closeLog(){
+	logFile.close();
 }
