@@ -164,6 +164,17 @@ function Wherigo._intersect(point, segment)
 function Wherigo.IsPointInZone(point, zone)
 	local num = 0
 	local points = zone.Points
+	-- Workaround for missing OriginalPoint (Whack a Lackey)
+	if not zone.OriginalPoint then
+		local lat = 0
+		local lon = 0
+		for k,v in pairs(points) do
+			lat = lat + v.latitude
+			lon = lon + v.longitude
+			end
+		zone.OriginalPoint = Wherigo.ZonePoint( lat/(#points), lon /(#points) )
+		end
+
 	num = num + Wherigo._intersect(point, {points[ #points ], points[1]} )
 	num = num + Wherigo._intersect(zone.OriginalPoint, {points[ #points ], points[1]} )
 	--print(num, points[1])
@@ -179,7 +190,12 @@ function Wherigo.IsPointInZone(point, zone)
 	
 function Wherigo.TranslatePoint(point, distance, bearing)
 	local d = math.rad (distance.GetValue ('nauticalmiles') / 60.)
-	local b = math.rad (bearing.value)
+	local b
+	if type(bearing) == 'table' then
+		b = math.rad (bearing.value)
+	else
+		b = math.rad (bearing)
+		end
 	local lat1 = math.rad (point.latitude)
 	local lat2 = math.asin (math.sin (lat1) * math.cos (d) + math.cos (lat1) * math.sin (d) * math.cos(b))
 	local dlon = math.atan2 (math.sin(b) * math.sin (d) * math.cos (lat1), math.cos (d) - math.sin (lat1) * math.sin (lat2))
@@ -217,13 +233,18 @@ function Wherigo.NoCaseEquals(f, s)
 	
 function Wherigo.Command(text)
 	if text == 'SaveClose' then
+		Wherigo.LogMessage("Wherigo.Command: SaveClose");
 		WIGInternal.Save()
-		WIGInternal.Close()
+		WIGInternal.Close() -- with prompt ... todo
+		exit;
 	elseif text == 'DriveTo' then
+		Wherigo.LogMessage("Wherigo.Command: DriveTo");
 		WIGInternal.DriveTo()
 	elseif text == 'StopSound' then
+		Wherigo.LogMessage("Wherigo.Command: StopSound");
 		WIGInternal.StopSound()
 	elseif text == 'Alert' then
+		Wherigo.LogMessage("Wherigo.Command: Alert");
 		WIGInternal.Alert()
 		end
 	end
@@ -407,15 +428,24 @@ setmetatable(Wherigo.ZCommand, {
 
 Wherigo.ZObject = {} 
 function Wherigo.ZObject.new(cartridge, container )
-	local self = {
-		Active = true,
-		Container = container or nil,
-		Cartridge = cartridge or nil,
-		Commands = {},
-		CommandsArray = {},
-		CurrentBearing = Wherigo.Bearing(0),
-		CurrentDistance = Wherigo.Distance(0),
-		Description = "NoDescription",
+	local self = {}
+	if type(cartridge) == 'table' and not cartridge._classname then
+		self = cartridge
+		-- table args
+		if self.Active == nil then
+			self.Active = true
+			end
+	else
+		self = {
+			Container = container or nil,
+			Cartridge = cartridge or nil,
+			Commands = {},
+			Active = true,
+		}
+		end
+	self.CurrentBearing = Wherigo.Bearing(0)
+	self.CurrentDistance = Wherigo.Distance(0)
+		--[[Description = "NoDescription",
 		Icon = nil,
 		Id = nil,
 		Inventory = {}, -- ZObject
@@ -423,8 +453,7 @@ function Wherigo.ZObject.new(cartridge, container )
 		Media = nil,
 		Name = "NoName",
 		ObjectLocation = Wherigo.INVALID_ZONEPOINT,
-		Visible = true,
-	}
+		Visible = true,]]--
 	
 	function self.Contains(obj)
 		if obj == Player then
@@ -480,15 +509,15 @@ function Wherigo.ZObject.new(cartridge, container )
 		end
 	
 	-- initialization
-	if cartridge == nil then
+	if self.Cartridge == nil then
 		-- todo
 		self.ObjIndex = -1
 		return self
 		end
 	if Wherigo.ZCartridge._store ~= nil then
 		--print(debug.traceback())
-		self.ObjIndex = # cartridge.AllZObjects + 1;
-		table.insert(cartridge.AllZObjects, self)
+		self.ObjIndex = # self.Cartridge.AllZObjects + 1;
+		table.insert(self.Cartridge.AllZObjects, self)
 		end
 	return self
 	end
@@ -530,14 +559,14 @@ Wherigo.Zone = {
 function Wherigo.Zone.new(cartridge)
 	local self = Wherigo.ZObject.new(cartridge)
 	self._classname = Wherigo.CLASS_ZONE
+	self._state = Wherigo.Zone.NotInRange
+	self._inside = false
+	--[[
 	self.OriginalPoint = Wherigo.INVALID_ZONEPOINT
 	
-	self._state = Wherigo.Zone.NotInRange
 	self.Active = false
 	self.Visible = false
-	self._inside = false
 	self.Name = "NoName"
-	--[[
 	
 	self.ShowObjects = "OnEnter"
 	self.DistanceRange = Wherigo.Distance(10, 'ft')
@@ -570,9 +599,9 @@ function Wherigo.ZCartridge.new(  )
 	Wherigo.ZCartridge._store = true
 	local self = Wherigo.ZObject.new( ) 
 	self._classname = Wherigo.CLASS_ZCARTRIDGE
-	self.AllZObjects = {}
-	self.Name = 'Old name'
 	self._mediacount = -1
+	self.AllZObjects = {}
+	--[[self.Name = 'Old name'
 	self.Icon = Wherigo.ZMedia(self)
 	self.Icon.Id = Env._IconId
 	self.Media = Wherigo.ZMedia(self)
@@ -585,7 +614,7 @@ function Wherigo.ZCartridge.new(  )
 	self.OnEnd = nil
 	self.OnRestore = nil
 	self.OnStart = nil
-	self.OnSync = nil
+	self.OnSync = nil]]
 	
 	Wherigo.Player.Cartridge = self
 	
@@ -593,6 +622,9 @@ function Wherigo.ZCartridge.new(  )
 	Wherigo.Player.Cartridge = self
 	
 	function self:RequestSync()
+		if self.OnSync then
+			self.Onsync(self)
+			end
 		WIGInternal.save();
 		end
 	
@@ -742,10 +774,6 @@ setmetatable(Wherigo.ZMedia, {
 
 Wherigo.ZItem = {}
 function Wherigo.ZItem.new( cartridge, container )
-	if type(cartridge) == 'table' and not cartridge._classname  then
-		container = cartridge.Container
-		cartridge = cartridge.Cartridge
-		end
 	local self = Wherigo.ZObject(cartridge, container)
 	self._classname = Wherigo.CLASS_ZITEM
 	self._target = nil
@@ -768,10 +796,10 @@ Wherigo.ZTask = {}
 function Wherigo.ZTask.new( cartridge, container )
 	local self = Wherigo.ZObject( cartridge, container )
 	self._classname = Wherigo.CLASS_ZTASK
-	self.Name = 'NoName'
+	--[[self.Name = 'NoName'
 	self.Description = ''
 	self.Complete = false
-	self.Correct = false
+	self.Correct = false]]--
 	
 	setmetatable(self, {
 		__tostring = function( s )
@@ -789,14 +817,15 @@ setmetatable(Wherigo.ZTask, {
 
 Wherigo.ZTimer = {}
 function Wherigo.ZTimer.new(cartridge)
-	local self = Wherigo.ZObject(cartridge)
-	self._classname = Wherigo.CLASS_ZTIMER
-	self.Type = 'Countdown' -- Countdown or Interval
-	self.Duration = -1
-	self.Remaining = -1
-	self.OnStart = nil
+	self = Wherigo.ZObject(cartridge)
+	self.Type = self.Type or 'Countdown' -- Countdown or Interval
+	self.Duration = self.Duration or -1
+	self.Remaining = self.Remaining or -1
+	--[[self.OnStart = nil
 	self.OnStop = nil
-	self.OnTick = nil
+	self.OnTick = nil]]
+	
+	self._classname = Wherigo.CLASS_ZTIMER
 	self._target = nil -- target time
 	
 	function self:Start()
@@ -890,16 +919,12 @@ setmetatable(Wherigo.ZInput, {
 
 Wherigo.ZCharacter = {}
 function Wherigo.ZCharacter.new( cartridge, container )
-	if type(cartridge) == 'table' and not cartridge._classname  then
-		container = cartridge.Container
-		cartridge = cartridge.Cartridge
-		end
 	self = Wherigo.ZObject.new(cartridge, container)
 	self._classname = Wherigo.CLASS_ZCHARACTER
-	self.Name = "Unnamed"
+	--[[self.Name = "Unnamed"
 	self.InsideZones = {}
 	self.Inventory = {}
-	self.ObjectLocation = Wherigo.INVALID_ZONEPOINT
+	self.ObjectLocation = Wherigo.INVALID_ZONEPOINT]]
 	self.PositionAccuracy = Wherigo.Distance(5)
 	
 	setmetatable(self, {
@@ -955,12 +980,14 @@ Wherigo._getMediaField = function(field, t)
 Wherigo._addCommands = function(item)
 	v = ", \"commands\": ["
 	first = true
-	for id,c in pairs(item.Commands) do
-		if c.Enabled then
-			if not first then
-				v = v .. "," end
-			v = v .. "{\"id\": \"" .. id .. "\", \"text\": \"" .. c.Text .. "\"}"
-			first = false
+	if item.Commands then
+		for id,c in pairs(item.Commands) do
+			if c.Enabled then
+				if not first then
+					v = v .. "," end
+				v = v .. "{\"id\": \"" .. id .. "\", \"text\": \"" .. c.Text .. "\"}"
+				first = false
+				end
 			end
 		end
 	return v .. "]"
@@ -994,7 +1021,9 @@ Wherigo._getLocations = function()
 				locations = locations .. "," end
 			locations = locations .. "{\"name\": \"" .. WIGInternal.escapeJsonString(v.Name) .. "\""
 				.. ", \"description\": \"" .. WIGInternal.escapeJsonString(v.Description) .. "\""
-				.. ", \"lat\": " .. v.OriginalPoint.latitude .. ", \"lon\": " .. v.OriginalPoint.longitude
+			if v.OriginalPoint then
+				locations = locations .. ", \"lat\": " .. v.OriginalPoint.latitude .. ", \"lon\": " .. v.OriginalPoint.longitude
+				end
 			if v.State == 'Inside' then
 				locations = locations .. ", \"distance\": 0, \"bearing\": 0"
 			else
