@@ -92,7 +92,9 @@ package: $(PLUGIN) appinfo.json logo.png
 
 install:
 	palm-install com.dta3team.app.wherigo_1.0.0_all.ipk
-#	palm-run STAGING
+
+run:
+	palm-run STAGING
 
 clean:
 	$(RMDIR) STAGING
