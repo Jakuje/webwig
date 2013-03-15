@@ -22,8 +22,18 @@ enyo.kind({
 			]
 		},
 		{kind: "HFlexBox", name: "distanceBox", showing: false, components: [
-			{name: "distance", flex: 1}, {kind: "Button", onclick: "moveTo"}, {name: "bearing", flex: 1}, 
-		]}
+			{name: "distance", flex: 1},
+			{kind: "Button", onclick: "moveTo"},
+			{name: "bearing", flex: 1},
+			{content: "MT", kind: "Button", flex: 1, onclick: "showMappingTool"},
+		]},
+		{
+			name: "mappingTool",
+			kind: "PalmService",
+			service: "palm://com.palm.applicationManager",
+			method: "launch",
+			onFailure: "mappingToolFailed"
+		}
 		],
 	screen: null,
 	data: [],
@@ -74,5 +84,18 @@ enyo.kind({
 		if( this.screen == "locations"){
 			this.owner.owner.$.plugin.setPosition(this.data.lat, this.data.lon);
 		}
+	},
+	showMappingTool: function(){
+		this.$.mappingTool.call({
+			'id': 'de.metaviewsoft.maptool',
+			'params': enyo.json.stringify( [{
+				'lat': this.data.lat,
+				'lon': this.data.lon,
+				'name': this.data.name,
+				}] )
+		});
+	},
+	mappingToolFailed: function(){
+		this.owner.owner.popupMessage( new WIGApp.Dialog("Failed to open Mapping Tool", "Error") );
 	}
 });
