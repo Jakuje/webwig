@@ -296,7 +296,7 @@ string Wherigo::getCartDir(){
 void Wherigo::openLog(){
 	int pos = filename.find(".gwc");
 	string logFileName = filename.substr(0, pos).append(".gwl");
-	logFile.open( logFileName.c_str() );
+	logFile.open( logFileName.c_str(), ios_base::app );
 	logFile << "-------------------" << endl
 		<< "Engine WebWIG Alpha, Player: " << player << " Cartridge: " << cartridgeName << endl
 		<< "-------------------" << endl;

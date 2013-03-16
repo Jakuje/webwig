@@ -379,7 +379,7 @@ static Uint32 addTimerEvent(Uint32 interval, void *param){
 
 	/*int *ObjId = new int;
 	ObjId = (int *) param;*/
-
+	
 	userevent.type = SDL_USEREVENT;
 	userevent.code = EVENT_TIMER;
 	userevent.data1 = param;
@@ -393,20 +393,36 @@ static Uint32 addTimerEvent(Uint32 interval, void *param){
 	return 0;
 }
 
-static int getTime(){
+static long getTime(){
 	time_t t = std::time(NULL);
 	return t;
 }
 
-static int addTimer(int remaining, int ObjId){
-	int *id = new int;
+static long addTimer(int remaining, int ObjId){
+	int *id = new int; 		// new
 	*id = ObjId;
-	timers[ObjId] = SDL_AddTimer(remaining*1000, addTimerEvent, id);
-	return getTime() + remaining * 1000;
+	//timer_ids[*id] = id;
+	// test if is defined == should never happend! Condition in Lua ...
+	if( timers[ObjId] == NULL ){
+		timers[*id] = SDL_AddTimer(remaining*1000, addTimerEvent, id);
+	} else {
+		stringstream ss;
+		ss << "Adding yet esisting timer id:" << ObjId << endl;
+		my_error(ss.str());
+	}
+	return getTime() + remaining;
 }
 
 static void removeTimer(int ObjId){
-	SDL_RemoveTimer( timers[ObjId] );
+	if( timers[ObjId] != NULL ){
+		SDL_RemoveTimer( timers[ObjId] );
+		// should remove too alocated id in addTimer
+		timers.erase(ObjId);
+	} else {
+		stringstream ss;
+		ss << "Timer to remove doesn't exists id:" << ObjId << endl;
+		my_error(ss.str());
+	}
 }
 
 static void timerTick(int *ObjId){
@@ -972,6 +988,12 @@ static void closeCartridge(int *save){
 	
 	//SDL_RemoveTimer(gpsTimer);
 	WherigoOpen->closeLog();
+	std::map<int,SDL_TimerID>::iterator it;
+	for (it=timers.begin(); it!=timers.end(); ++it){
+		removeTimer(it->first);
+	}
+	timers.clear();
+	
 	delete WherigoOpen;
 #ifndef DESKTOP
 	PDL_EnableLocationTracking(PDL_FALSE);
@@ -1052,8 +1074,9 @@ void UpdateGPS(PDL_Location *location){
 		int status;
 		
 		if( location->latitude > -1 && location->longitude > -1 ){
+			time_t t = time(NULL);
 			ss << "return cartridge._update(Wherigo.ZonePoint("
-				<< location->latitude << ", " << location->longitude << "), 0)";
+				<< location->latitude << ", " << location->longitude << "), " << t<< ")";
 			status = luaL_dostring(L, ss.str().c_str());
 			if( status == 0 ){
 				update_all = lua_toboolean(L, 1);
@@ -1195,8 +1218,15 @@ static void loop(){
 					break;
 				case EVENT_TIMER: {
 					int *ObjId = (int *)event.user.data1;
-					timerTick(ObjId);
-					delete ObjId;
+					if( timers[*ObjId] != NULL ){
+						timerTick(ObjId);
+						timers.erase(*ObjId);
+						delete ObjId; // delete
+					} else {
+						stringstream ss;
+						ss << "Timer from nowhere id:" << *ObjId << ", address:" << (void*)ObjId << endl;
+						my_error(ss.str());
+					}
 					}
 					break;
 			}
