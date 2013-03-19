@@ -43,9 +43,16 @@ enum EVENT_CODES {
 
 lua_State *L;
 
-Wherigo *WherigoOpen;
+extern Wherigo *WherigoOpen;
 
-map<int,SDL_TimerID> timers; // @todo clenup when closing cartridge
+map<int,SDL_TimerID> timers;
+map<int,int*> timers_ids;
+
+// Env variables
+string device("WebOS");
+string dir("./");
+string version("2.11");
+string slash("/");
 
 int acc_class = 0;
 
@@ -251,7 +258,7 @@ static PDL_bool setPositionJS(PDL_JSParameters *params){
 
 
 
-static void openCartridgeToJS(char *filename);
+static bool openCartridgeToJS(char *filename);
 static void OutputCartridgesToJS(int *refresh);
 
 
@@ -401,27 +408,33 @@ static long getTime(){
 static long addTimer(int remaining, int ObjId){
 	int *id = new int; 		// new
 	*id = ObjId;
+	/*stringstream ss;
+	ss << ":::NEW:::: Creating timer id:" << *id << ", address:" << (void*)id << " Remaining: " << remaining << ")";
+	my_error(ss.str());*/
 	//timer_ids[*id] = id;
 	// test if is defined == should never happend! Condition in Lua ...
 	if( timers[ObjId] == NULL ){
 		timers[*id] = SDL_AddTimer(remaining*1000, addTimerEvent, id);
+		timers_ids[*id] = id;
 	} else {
 		stringstream ss;
-		ss << "Adding yet esisting timer id:" << ObjId << endl;
+		ss << "Adding yet esisting timer id:" << ObjId;
 		my_error(ss.str());
 	}
 	return getTime() + remaining;
 }
 
-static void removeTimer(int ObjId){
+static bool removeTimer(int ObjId){
 	if( timers[ObjId] != NULL ){
-		SDL_RemoveTimer( timers[ObjId] );
-		// should remove too alocated id in addTimer
+		SDL_bool res = SDL_RemoveTimer( timers[ObjId] );
+		timers_ids.erase( ObjId );
 		timers.erase(ObjId);
+		return (bool)res;
 	} else {
 		stringstream ss;
-		ss << "Timer to remove doesn't exists id:" << ObjId << endl;
+		ss << "Timer to remove doesn't exists id:" << ObjId << " value: " << timers[ObjId];
 		my_error(ss.str());
+		return false;
 	}
 }
 
@@ -582,10 +595,6 @@ lua_State * openLua(Wherigo *w){
 	//lua_register(L, "messageBox", messageBox);
 	
 	// Env and other variables
-	string device("WebOS");
-	string dir("./");
-	string version("2.11");
-	string slash("/");
 	
 	luabridge::getGlobalNamespace(L)
 		.beginNamespace("Env")
@@ -744,14 +753,21 @@ void CommandLineTests(int argc, char **argv){
 			file = (char *) "minimal.gwc";
 		}
 		
-		openCartridgeToJS(file);
-		
-		/*int i = 11;
-		CallbackFunction("OnClick", &i);*/
+		if( ! openCartridgeToJS(file) ){
+			return;
+		}
 		
 		double lon, lat;
 		lat = 49.223878820512;
 		lon = 16.529799699783;
+		setPosition(&lat, &lon);
+		
+		
+		int i = 56;
+		//CallbackFunction("OnClick", &i);
+		CallbackFunction( "OnStartGame", &i );
+		GetInputResponse( "Begin" );
+		
 		setPosition(&lat, &lon);
 		
 		luaL_dostring(L, "debug.debug()");
@@ -966,7 +982,14 @@ static int openCartridge(char *filename){
 	status = luaL_dofile(L, bytecode.c_str());
 	report(L, status);
 	// create global Lua variable
-	lua_setglobal(L, "cartridge"); // by http://wherigobuilder.wikispaces.com/Globals
+	if( status == 0 ){
+		lua_setglobal(L, "cartridge"); // by http://wherigobuilder.wikispaces.com/Globals
+	} else {
+		MessageBox("Error loading cartridge file. See log for more details", "", "", "", "");
+		delete WherigoOpen;
+		WherigoOpen = NULL;
+		return 0;
+	}
 	
 	//stackdump_g(L);
 	
@@ -987,13 +1010,16 @@ static void closeCartridge(int *save){
 	// @todo save
 	
 	//SDL_RemoveTimer(gpsTimer);
-	WherigoOpen->closeLog();
 	std::map<int,SDL_TimerID>::iterator it;
 	for (it=timers.begin(); it!=timers.end(); ++it){
-		removeTimer(it->first);
+		removeTimer( it->first );
 	}
-	timers.clear();
+	if( !timers.empty() || !timers_ids.empty() ){
+		my_error("ERR: Timers array should be now empty ...");
+	}
+	timers.clear(); // should be empty
 	
+	WherigoOpen->closeLog();
 	delete WherigoOpen;
 #ifndef DESKTOP
 	PDL_EnableLocationTracking(PDL_FALSE);
@@ -1002,7 +1028,7 @@ static void closeCartridge(int *save){
 	exit_lua();
 }
 
-static void openCartridgeToJS(char *filename){
+static bool openCartridgeToJS(char *filename){
 	stringstream *buffer = new stringstream(stringstream::in | stringstream::out);
 	int status = 0;
 	if( openCartridge(filename) ){
@@ -1026,10 +1052,10 @@ static void openCartridgeToJS(char *filename){
 		if (err) {
 			syslog(LOG_ERR, "*** PDL_CallJS failed, %s", PDL_GetError());
 			//SDL_Delay(5);
-			return;
+			return false;
 		}
 		if( status == 1 ){
-			return;
+			return false;
 		}
 	} else 
 #endif
@@ -1049,17 +1075,24 @@ static void openCartridgeToJS(char *filename){
 	// run onStart event
 	/*status = luaL_dostring(L, "cartridge.OnStart() ");
 	report(L, status);*/
-	WherigoOpen->log("ZCartridge:OnStart");
 	lua_getfield(L, LUA_GLOBALSINDEX, "cartridge");	// [-0, +1, e]
 	lua_getfield(L, -1, "OnStart");					// [-0, +1, e]
 	lua_remove(L, -2);								// [-1, +0, -]
-	status = lua_pcall(L, 0, 0, 0);					// [-1, +(0|1), -] [-(nargs + 1), +(nresults|1), -]
-	report(L, status);								// [-(0|1), +0, -]
-	
+	// test if there is such method
+	int type = lua_type(L, -1);					
+	if( type == LUA_TFUNCTION ){
+		WherigoOpen->log("ZCartridge:OnStart START");
+		status = lua_pcall(L, 0, 0, 0);					// [-1, +(0|1), -] [-(nargs + 1), +(nresults|1), -]
+		report(L, status);								// [-(0|1), +0, -]
+		WherigoOpen->log("ZCartridge:OnStart END__");
+	} else {
+		lua_remove(L, -1);
+	}
 	
     delete buffer;
 
 	updateStateToJS();
+	return true;
 }
 
 #ifndef DESKTOP
@@ -1219,12 +1252,17 @@ static void loop(){
 				case EVENT_TIMER: {
 					int *ObjId = (int *)event.user.data1;
 					if( timers[*ObjId] != NULL ){
+						bool ok = removeTimer(*ObjId);
+						/*timers.erase(*ObjId);
+						timers_ids.erase(*ObjId);*/
 						timerTick(ObjId);
-						timers.erase(*ObjId);
+						/*stringstream ss;
+						ss << "::DELETE:: Cleaning timer (" << ok << ") id:" << *ObjId << ", address:" << (void*)ObjId;
+						my_error(ss.str());*/
 						delete ObjId; // delete
 					} else {
 						stringstream ss;
-						ss << "Timer from nowhere id:" << *ObjId << ", address:" << (void*)ObjId << endl;
+						ss << "Timer from nowhere id:" << *ObjId << ", address:" << (void*)ObjId;
 						my_error(ss.str());
 					}
 					}
