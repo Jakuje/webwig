@@ -206,6 +206,13 @@ enyo.kind({
                 "onclick": function(context){
 					context.owner.showScreenLua("detail", "138")
 					},
+                "complete": false
+            },
+            {
+                "name": "Completed",
+                "commands": [],
+                "id": "13",
+                "complete": true
             }
         ],
         "gps": 3
@@ -221,6 +228,13 @@ enyo.kind({
 			this._resultsCallbacks.push(callback);
 			this.callPluginMethodDeferred(enyo.nop, "closeCartridge", save);
 		}
+		this.owner.$.gMain.updateUI({
+			"locations": [],
+			"youSee": [],
+			"inventory": [],
+			"tasks": [],
+			"gps": 3
+		});
 	},
 	callback: function(event, id){
 		if ( window.PalmSystem) {

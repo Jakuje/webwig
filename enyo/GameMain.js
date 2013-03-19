@@ -56,10 +56,8 @@ enyo.kind({
 	detail_screen: "",
 	showScreenLua: function(screen, item){
 		// go home
-		if( this.$.pane.getViewName() != "gMain" && (screen == "main" || screen == "detail" ) ) {
-			while( this.$.pane.getViewName() != "gMain" ){
-				this.goBack()
-			}
+		while( this.$.pane.getViewName() != "gMain" ){
+			this.goBack()
 		}
 		if( screen != this.MAINSCREEN ){
 			if( screen == this.DETAILSCREEN ){
