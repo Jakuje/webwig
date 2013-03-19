@@ -24,8 +24,10 @@ enyo.kind({
 		{kind: "HFlexBox", name: "distanceBox", showing: false, components: [
 			{name: "distance", flex: 1},
 			{kind: "Button", onclick: "moveTo"},
-			{name: "bearing", flex: 1},
-			{content: "MT", kind: "Button", flex: 1, onclick: "showMappingTool"},
+			{name: "bearing"},
+			{name: "bearingIcon", kind: "Image", src: "images/arrow.png"},
+			{kind: "Spacer"},
+			{content: "MT", kind: "Button", onclick: "showMappingTool"},
 		]},
 		{
 			name: "mappingTool",
@@ -56,6 +58,7 @@ enyo.kind({
 				this.$.distance.setContent(Math.round(data.distance/1000) + " km");
 			}
 			this.$.bearing.setContent(Math.round(data.bearing) + "°");
+			this.$.bearingIcon.applyStyle("-webkit-transform", "rotate(" + data.bearing + "deg)");
 			this.$.distanceBox.show();
 		} else {
 			this.$.distanceBox.hide();

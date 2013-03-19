@@ -16,6 +16,7 @@ enyo.kind({
 					{name: "itemTitle"},
 					{kind: "Spacer"},
 					{name: "itemDistance", showing: "false"},
+					{name: "itemBearing", kind: "Image", src: "images/arrow.png", showing: "false"},
 				]}
 			]},
 			{kind: "Item", name: "empty", layoutKind: "HFlexLayout", components: [
@@ -78,6 +79,13 @@ enyo.kind({
 			if( this.data[inIndex].icon ){
 				this.$.itemIcon.setSrc(this.data[inIndex].icon);
 				this.$.itemIcon.show();
+			} else if( this.screen == "tasks" ) {
+				if( this.data[inIndex].complete ){
+					this.$.itemIcon.setSrc('images/task_complete.png');
+				} else {
+					this.$.itemIcon.setSrc('images/task.png');
+				}
+				this.$.itemIcon.show();
 			} else {
 				this.$.itemIcon.hide();
 			}
@@ -88,10 +96,13 @@ enyo.kind({
 				} else {
 					this.$.itemDistance.setContent( ( d < 2000 ? (Math.round(d) + " m") : (Math.round(d/1000) + " km") ) );
 				}
-				this.$.itemDistance.show()
+				this.$.itemDistance.show();
+				this.$.itemBearing.applyStyle("-webkit-transform", "rotate(" + this.data[inIndex].bearing + "deg)");
+				this.$.itemBearing.show();
 			} else {
 				this.$.itemDistance.setContent("");
 				this.$.itemDistance.hide();
+				this.$.itemBearing.hide();
 			}
 			return true;
 		}
