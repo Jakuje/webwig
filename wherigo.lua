@@ -161,10 +161,11 @@ function Wherigo._intersect(point, segment)
 	return 0
 	end
 
-function Wherigo.IsPointInZone(point, zone)
+function Wherigo.IsPointInZoneOld(point, zone)
 	local num = 0
 	local points = zone.Points
 	-- Workaround for missing OriginalPoint (Whack a Lackey)
+	local OriginalPoint;
 	if not zone.OriginalPoint then
 		local lat = 0
 		local lon = 0
@@ -172,20 +173,58 @@ function Wherigo.IsPointInZone(point, zone)
 			lat = lat + v.latitude
 			lon = lon + v.longitude
 			end
-		zone.OriginalPoint = Wherigo.ZonePoint( lat/(#points), lon /(#points) )
+		OriginalPoint = Wherigo.ZonePoint( lat/(#points), lon /(#points) )
+	else
+		OriginalPoint = zone.OriginalPoint
 		end
 
 	num = num + Wherigo._intersect(point, {points[ #points ], points[1]} )
-	num = num + Wherigo._intersect(zone.OriginalPoint, {points[ #points ], points[1]} )
+	num = num + Wherigo._intersect(OriginalPoint, {points[ #points ], points[1]} )
 	--print(num, points[1])
 	for k, pnt in pairs(points) do
 		if k > 1 then
 			num = num + Wherigo._intersect(point, {points[k-1], points[k]} )
-			num = num + Wherigo._intersect(zone.OriginalPoint, {points[k-1], points[k]} )
+			num = num + Wherigo._intersect(OriginalPoint, {points[k-1], points[k]} )
 			--print(num, pnt)
 			end
 		end
 	return (num % 2) == 0
+	end
+	
+function Wherigo.IsPointInZone(point, zone)
+	-- from http://www.visibone.com/inpoly/
+	-- easier way, without care of OriginalPoint
+	local xold, yold, x1, y1, x2, y2
+	local inside = false
+	local points = zone.Points
+	local xold = points[#points].longitude
+	local yold = points[#points].latitude
+	--print(point, zone)
+	for k,p in pairs(points) do
+		xnew = p.longitude
+		ynew = p.latitude
+		--print(xnew, xold, (xnew - xold)%360 < 180)
+		if (xnew - xold)%360 < 180 then
+		--if xnew > xold then
+			x1=xold
+			x2=xnew
+			y1=yold
+			y2=ynew
+		else
+			x1=xnew
+			x2=xold
+			y1=ynew
+			y2=yold
+			end
+		if (x1 < point.longitude) and (point.longitude <= x2)
+			and (point.latitude-y1)*(x2-x1)
+				< (y2-y1)*(point.longitude-x1) then
+				inside = not inside
+			end
+		xold = xnew
+		yold = ynew
+		end
+	return inside
 	end
 	
 function Wherigo.TranslatePoint(point, distance, bearing)
@@ -199,7 +238,7 @@ function Wherigo.TranslatePoint(point, distance, bearing)
 	local lat1 = math.rad (point.latitude)
 	local lat2 = math.asin (math.sin (lat1) * math.cos (d) + math.cos (lat1) * math.sin (d) * math.cos(b))
 	local dlon = math.atan2 (math.sin(b) * math.sin (d) * math.cos (lat1), math.cos (d) - math.sin (lat1) * math.sin (lat2))
-	return ZonePoint (math.deg (lat2), point.longitude + math.deg (dlon), point.altitude)
+	return Wherigo.ZonePoint (math.deg (lat2), point.longitude + math.deg (dlon), point.altitude)
 	end
 
 function Wherigo.VectorToPoint(p1, p2)
@@ -236,7 +275,7 @@ function Wherigo.Command(text)
 		Wherigo.LogMessage("Wherigo.Command: SaveClose");
 		WIGInternal.Save()
 		WIGInternal.Close() -- with prompt ... todo
-		exit;
+		exit(1)
 	elseif text == 'DriveTo' then
 		Wherigo.LogMessage("Wherigo.Command: DriveTo");
 		WIGInternal.DriveTo()
@@ -284,7 +323,7 @@ function Wherigo.GetInput(input)
 function Wherigo._GetInputResponse( response )
 	if # Wherigo._GICallbacks > 0 then
 		local input = table.remove(Wherigo._GICallbacks)
-		Wherigo.LogMessage("ZInput:GetInput: " .. input.Name .. " -> " .. response)
+		Wherigo.LogMessage("ZInput:GetInput: " .. input.Name .. ": OnGetInput [" .. response .. "]")
 		input.OnGetInput(input, response)
 	else
 		error("Recieved GetInput response to no request")
@@ -305,18 +344,19 @@ function Wherigo.ShowScreen(screen, item)
 
 --[[ A direction from one point to another ]]
 Wherigo.Bearing = {}
+Wherigo.Bearing_metatable = {
+	__tostring = function( s )
+		return "Bearing (" .. s.value .. "°)"
+		end,
+	__call = function (s)
+		return s.value
+		end,
+}
 function Wherigo.Bearing.new(value)
 	local self = {}
 	self.value = value % 360
 	
-	setmetatable(self, {
-		__tostring = function( s )
-			return "Bearing (" .. s.value .. "°)"
-			end,
-		__call = function (s)
-			return s.value
-			end,
-		})
+	setmetatable(self, Wherigo.Bearing_metatable)
 
 	return self;
 	end
@@ -328,6 +368,18 @@ setmetatable(Wherigo.Bearing, {
 
 --[[ A distance between two points ]]
 Wherigo.Distance = {}
+Wherigo.Distance_metatable = {
+	__tostring = function( s )
+		return "Distance (" .. s.value .. " meters)"
+		end,
+	__call = function (s, units)
+		return s.GetValue(units)
+		end,
+	__eq = function( op1, op2 )
+		error("Comparing")
+		return true
+		end
+}
 function Wherigo.Distance.new(value, units)
 	units = units or 'meters'
 	
@@ -367,18 +419,7 @@ function Wherigo.Distance.new(value, units)
 		
 		end
 	
-	setmetatable(self, {
-		__tostring = function( s )
-			return "Distance (" .. s.value .. " meters)"
-			end,
-		__call = function (s, units)
-			return s.GetValue(units)
-			end,
-		__eq = function( op1, op2 )
-			error("Comparing")
-			return true
-			end
-		})
+	setmetatable(self, Wherigo.Distance_metatable)
 	
 	return self
 	end
@@ -389,6 +430,11 @@ setmetatable(Wherigo.Distance, {
 	})
 
 Wherigo.ZCommand = {}
+Wherigo.ZCommand_metatable = {
+	__tostring = function(s)
+		return "Command (" .. s.Text .. ")"
+		end
+}
 function Wherigo.ZCommand.new(table)
 	table = table or {}
 	local self = {
@@ -413,11 +459,7 @@ function Wherigo.ZCommand.new(table)
 			self.Enabled = table.Enabled
 			end
 		end
-	setmetatable(self, {
-		__tostring = function(s)
-			return "Command (" .. s.Text .. ")"
-			end
-	})
+	setmetatable(self, Wherigo.ZCommand_metatable)
 	return self;
 	end
 setmetatable(Wherigo.ZCommand, {
@@ -427,24 +469,91 @@ setmetatable(Wherigo.ZCommand, {
 	})
 
 Wherigo.ZObject = {} 
+Wherigo.ZObject_metatable = {
+	__index = function(t, key)
+		if key == 'Active' then
+			return t._active
+		elseif key == 'CorrectState' and t._classname == Wherigo.CLASS_ZTASK then
+			return t._correct
+			end
+		end,
+	__newindex = function(t, key, value)
+		if key == 'Active' then
+			if value ~= t._active then
+				t._active = value
+				Wherigo.LogMessage("ZObject <" .. t.Name .. ">.Active = " .. Wherigo._bool2str(value))
+				if table.OnSetActive then
+					Wherigo.LogMessage("ZObject <" .. t.Name .. ">: START OnSetActive")
+					t.OnSetActive(t)
+					Wherigo.LogMessage("ZObject <" .. t.Name .. ">: END__ OnSetActive")
+					end
+				end
+			return
+		elseif t._classname == Wherigo.CLASS_ZTASK then
+			if key == 'CorrectState' then
+				if value ~= t._correct then
+					t._correct = value
+					Wherigo.LogMessage("ZTask <" .. t.Name .. ">.CorrectState = " .. Wherigo._bool2str(value))
+					if t.OnSetCorrectState then
+						Wherigo.LogMessage("ZTask <" .. t.Name .. ">: START OnSetCorrectState")
+						t.OnSetCorrectState(t)
+						Wherigo.LogMessage("ZTask <" .. t.Name .. ">: END__ OnSetCorrectState")
+						end
+					end
+				return
+			elseif key == 'Complete' then
+				if value ~= t._complete then
+					t._complete = value
+					Wherigo.LogMessage("ZTask <" .. t.Name .. ">.Complete = " .. Wherigo._bool2str(value))
+					if t.OnSetComplete then
+						Wherigo.LogMessage("ZTask <" .. t.Name .. ">: START OnSetComplete")
+						t.OnSetComplete(t)
+						Wherigo.LogMessage("ZTask <" .. t.Name .. ">: END__ OnSetComplete")
+						end
+					end
+				return
+				end
+			end
+		rawset(t, key, value)
+		end
+}
 function Wherigo.ZObject.new(cartridge, container )
 	local self = {}
 	if type(cartridge) == 'table' and not cartridge._classname then
 		self = cartridge
 		-- table args
-		if self.Active == nil then
-			self.Active = true
+		if self.Active ~= nil then
+			self._active = self.Active
+			self.Active = nil
+		else
+			self._active = true
+			end
+		if self.Complete ~= nil  then
+			self._complete = self.Complete
+			self.Complete = nil
+		else
+			self._complete = false
+			end
+		if self.CorrectState ~= nil  then
+			self._correct = self.CorrectState
+			self.CorrectState = nil
+		else
+			self._correct = false
 			end
 	else
 		self = {
 			Container = container or nil,
 			Cartridge = cartridge or nil,
 			Commands = {},
-			Active = true,
+			_active = true,
 		}
 		end
 	self.CurrentBearing = Wherigo.Bearing(0)
 	self.CurrentDistance = Wherigo.Distance(0)
+	self.Name = self.Name or "(NoName)"
+	if self.Visible == nil then
+		self.Visible = true
+		end
 		--[[Description = "NoDescription",
 		Icon = nil,
 		Id = nil,
@@ -471,7 +580,11 @@ function Wherigo.ZObject.new(cartridge, container )
 			end
 		end
 	function self:MoveTo(owner)
-		Wherigo.LogMessage("Move " .. self.Name .. " to " .. owner.Name)
+		if owner ~= nil then
+			Wherigo.LogMessage("Move " .. self.Name .. " to " .. owner.Name)
+		else
+			Wherigo.LogMessage("Move " .. self.Name .. " to (nowhere)")
+			end
 		self.Container = owner
 		end
 	
@@ -508,6 +621,8 @@ function Wherigo.ZObject.new(cartridge, container )
 		return self.ObjectLocation
 		end
 	
+	setmetatable(self, Wherigo.ZObject_metatable)
+	
 	-- initialization
 	if self.Cartridge == nil then
 		-- todo
@@ -528,6 +643,11 @@ setmetatable(Wherigo.ZObject, {
 })
 
 Wherigo.ZonePoint = {} 
+Wherigo.ZonePoint_metatable = {
+	__tostring = function(s)
+		return "Zonepoint (" .. s.latitude .. ", " .. s.longitude .. ")"
+		end
+}
 function Wherigo.ZonePoint.new(lat, lon, alt)
 	local self = {}
 	self.latitude = lat
@@ -535,11 +655,7 @@ function Wherigo.ZonePoint.new(lat, lon, alt)
 	self.altitude = alt
 	-- onchange update map --
 	
-	setmetatable(self, {
-		__tostring = function( s )
-			return "Zonepoint (" .. s.latitude .. ", " .. s.longitude .. ")"
-			end,
-	})
+	setmetatable(self, Wherigo.ZonePoint_metatable)
 	return self
 	end
 setmetatable(Wherigo.ZonePoint, {
@@ -556,9 +672,21 @@ Wherigo.Zone = {
 		Inside
 		}
 	}
+Wherigo.Zone_metatable = {
+	__tostring = function(s)
+		if s.OriginalPoint == Wherigo.INVALID_ZONEPOINT then
+			return "Zone " .. s.Name
+		else
+			return "Zone " .. s.Name .. " <" ..
+				 rawget(getmetatable(s.OriginalPoint) or {}, "__tostring")(s.OriginalPoint)  .. ">"
+			end
+		end
+}
+for k,v in pairs(Wherigo.ZObject_metatable) do Wherigo.Zone_metatable[k] = v end
 function Wherigo.Zone.new(cartridge)
 	local self = Wherigo.ZObject.new(cartridge)
 	self._classname = Wherigo.CLASS_ZONE
+	table.insert(self.Cartridge.AllZones, self)
 	self._state = Wherigo.Zone.NotInRange
 	self._inside = false
 	--[[
@@ -575,16 +703,7 @@ function Wherigo.Zone.new(cartridge)
 		events OnDistant, OnEnter, OnNotInRange, OnExit, OnProximity, OnSetActive
 	]]
 	
-	setmetatable(self, {
-		__tostring = function(s)
-			if s.OriginalPoint == Wherigo.INVALID_ZONEPOINT then
-				return "Zone " .. s.Name
-			else
-				return "Zone " .. s.Name .. " <" ..
-					 rawget(getmetatable(s.OriginalPoint) or {}, "__tostring")(s.OriginalPoint)  .. ">"
-				end
-			end
-	}) 
+	setmetatable(self, Wherigo.Zone_metatable) 
 	return self
 	end
 setmetatable(Wherigo.Zone, {
@@ -601,6 +720,10 @@ function Wherigo.ZCartridge.new(  )
 	self._classname = Wherigo.CLASS_ZCARTRIDGE
 	self._mediacount = -1
 	self.AllZObjects = {}
+	self.AllZCharacters = {}
+	self.AllZItems = {}
+	self.AllZones = {}
+	self.AllZTimers = {}
 	--[[self.Name = 'Old name'
 	self.Icon = Wherigo.ZMedia(self)
 	self.Icon.Id = Env._IconId
@@ -616,16 +739,31 @@ function Wherigo.ZCartridge.new(  )
 	self.OnStart = nil
 	self.OnSync = nil]]
 	
-	Wherigo.Player.Cartridge = self
+	--Wherigo.Player.Cartridge = self
 	
 	self._mediacount = 1
 	Wherigo.Player.Cartridge = self
 	
 	function self:RequestSync()
+		Wherigo.LogMessage("ZCartridge:RequestSync")
 		if self.OnSync then
-			self.Onsync(self)
+			Wherigo.LogMessage("ZCartridge: START onSync")
+			self.OnSync(self)
+			Wherigo.LogMessage("ZCartridge: END__ onSync")
 			end
 		WIGInternal.save();
+		end
+	
+	function self:GetAllOfType(t)
+		if t == "Zone" then
+			return self.AllZones
+		elseif t == "ZItem" then
+			return self.AllZItems
+		elseif t == "Timer" then
+			return self.AllZTimers
+		elseif t == "ZCharacter" then
+			return self.AllZCharacters
+			end
 		end
 	
 	function self._setup_media()
@@ -669,62 +807,82 @@ function Wherigo.ZCartridge.new(  )
 						v._inside = inside
 						if inside then
 							if v._state == 'NotInRange' and v.OnDistant then
-								Wherigo.LogMessage("Zone <" .. v.Name .. ">: Distant")
-								v.OnDistant(v) end
+								Wherigo.LogMessage("Zone <" .. v.Name .. ">: START onDistant")
+								v.OnDistant(v)
+								Wherigo.LogMessage("Zone <" .. v.Name .. ">: END__ onDistant")
+								end
 							if v._state ~= 'Proximity' and v.OnProximity then
-								Wherigo.LogMessage("Zone <" .. v.Name .. ">: Proximity")
-								v.OnProximity(v) end
+								Wherigo.LogMessage("Zone <" .. v.Name .. ">: START onProximity")
+								v.OnProximity(v)
+								Wherigo.LogMessage("Zone <" .. v.Name .. ">: END__ onProximity")
+								end
 							if v.OnEnter then
-								Wherigo.LogMessage("Zone <" .. v.Name .. ">: Enter")
-								v.OnEnter(v) end
+								Wherigo.LogMessage("Zone <" .. v.Name .. ">: START onEnter")
+								v.OnEnter(v)
+								Wherigo.LogMessage("Zone <" .. v.Name .. ">: END__ onEnter")
+								end
 						else
 							if v.OnExit then
-								Wherigo.LogMessage("Zone <" .. v.Name .. ">: Exit")
-								v.OnExit(v) end
+								Wherigo.LogMessage("Zone <" .. v.Name .. ">: START onExit")
+								v.OnExit(v)
+								Wherigo.LogMessage("Zone <" .. v.Name .. ">: END__ onExit")
+								end
 							end
 						end
 					if inside then
+						--Wherigo.LogMessage("Zone <" .. v.Name .. ">: Inside")
 						v.State = 'Inside'
 						v._state = v.State
 					else
 						-- how far?
 						v.CurrentDistance, v.CurrentBearing = Wherigo.VectorToZone (Wherigo.Player.ObjectLocation, v)
-						print(v.Name, v.CurrentDistance, v.CurrentBearing )
+						--[[Wherigo.LogMessage(v.Name .. ": d:" .. tostring(v.CurrentDistance()) .. ", p:" ..
+							tostring(v.ProximityRange()) .. ", d:" .. tostring(v.DistanceRange() ))]]
 						if v.CurrentDistance() < v.ProximityRange() then
 							if v._state == 'NotInRange' and v.OnDistant then
-								Wherigo.LogMessage("Zone <" .. v.Name .. ">: Distant")
+								Wherigo.LogMessage("Zone <" .. v.Name .. ">: START onDistant")
 								v.OnDistant (v)
+								Wherigo.LogMessage("Zone <" .. v.Name .. ">: END__ onDistant")
 								update_all = true
 								end
+							--Wherigo.LogMessage("Zone <" .. v.Name .. ">: Distant")
 							v.State = 'Proximity'
 						elseif v.DistanceRange() < 0 or v.CurrentDistance() < v.DistanceRange() then
 							if v._state == 'Inside' and v.OnProximity then
-								Wherigo.LogMessage("Zone <" .. v.Name .. ">: Proximity")
+								Wherigo.LogMessage("Zone <" .. v.Name .. ">: START onProximity")
 								v.OnProximity(v)
+								Wherigo.LogMessage("Zone <" .. v.Name .. ">: END__ onProximity")
 								update_all = true
 								end
+							--Wherigo.LogMessage("Zone <" .. v.Name .. ">: Proximity")
 							v.State = 'Distant'
 						else
 							if v._state == 'Inside' and v.OnProximity then
-								Wherigo.LogMessage("Zone <" .. v.Name .. ">: Proximity")
+								Wherigo.LogMessage("Zone <" .. v.Name .. ">: START onProximity")
 								v.OnProximity(v)
+								Wherigo.LogMessage("Zone <" .. v.Name .. ">: END__ onProximity")
 								update_all = true
 								end
 							if (v._state == 'Proximity' or v._state == 'Inside') and v.OnDistant then
-								Wherigo.LogMessage("Zone <" .. v.Name .. ">: Distant")
+								Wherigo.LogMessage("Zone <" .. v.Name .. ">: START onDistant")
 								v.OnDistant(v)
+								Wherigo.LogMessage("Zone <" .. v.Name .. ">: END__ onDistant")
 								update_all = true
 								end
+							--Wherigo.LogMessage("Zone <" .. v.Name .. ">: NotInRange")
 							v.State = 'NotInRange'
 							end
 						if v._state ~= v.State then
-							Wherigo.LogMessage("Zone <" .. v.Name .. ">: " .. v.State)
+							--Wherigo.LogMessage("Zone <" .. v.Name .. ">: Other state: ")
+							--Wherigo.LogMessage("Zone <" .. v.Name .. ">: " .. v.State)
 							local s = v._state
 							v._state = v.State
 							local attr = 'On' .. v.State
 							local event = rawget(v, attr)
 							if event then
+								Wherigo.LogMessage("Zone <" .. v.Name .. ">: START on" .. v.State)
 								event(v)
+								Wherigo.LogMessage("Zone <" .. v.Name .. ">: END__ on" .. v.State)
 								update_all = true
 								end
 							end
@@ -744,8 +902,14 @@ setmetatable(Wherigo.ZCartridge, {
 	}) 
 
 Wherigo.ZMedia = {}
+Wherigo.ZMedia_metatable = {
+	__tostring  = function(s)
+		return "<ZMedia Id=" .. s._id .. ">"
+		end
+}
+for k,v in pairs(Wherigo.ZObject_metatable) do Wherigo.ZMedia_metatable[k] = v end
 function Wherigo.ZMedia.new( cartridge )
-	self = Wherigo.ZObject(cartridge)
+	self = Wherigo.ZObject.new(cartridge)
 	self._classname = Wherigo.CLASS_ZMEDIA
 	--[[
 	self.AltText = ''
@@ -754,15 +918,11 @@ function Wherigo.ZMedia.new( cartridge )
 	self.Name = ''
 	self.Resources = {Type='jpg', Filname='', Directives = {}}
 	]]
-	self._id = cartridge._mediacount
-	if cartridge._mediacount > 0 then
-		cartridge._mediacount = cartridge._mediacount + 1;
+	self._id = self.Cartridge._mediacount
+	if self.Cartridge._mediacount > 0 then
+		self.Cartridge._mediacount = self.Cartridge._mediacount + 1;
 		end
-	setmetatable(self, {
-		__tostring  = function(s)
-			return "<ZMedia Id=" .. s._id .. ">"
-			end
-	}) 
+	setmetatable(self, Wherigo.ZMedia_metatable) 
 
 	return self
 	end
@@ -773,16 +933,19 @@ setmetatable(Wherigo.ZMedia, {
 	}) 
 
 Wherigo.ZItem = {}
+Wherigo.ZItem_metatable = {
+	__tostring = function( s )
+		return "ZItem (" .. s.Name .. ")"
+		end,
+}
+for k,v in pairs(Wherigo.ZObject_metatable) do Wherigo.ZItem_metatable[k] = v end
 function Wherigo.ZItem.new( cartridge, container )
-	local self = Wherigo.ZObject(cartridge, container)
+	local self = Wherigo.ZObject.new(cartridge, container)
 	self._classname = Wherigo.CLASS_ZITEM
+	table.insert(self.Cartridge.AllZItems, self)
 	self._target = nil
 	
-	setmetatable(self, {
-		__tostring = function( s )
-			return "ZItem (" .. s.Name .. ")"
-			end,
-	})
+	setmetatable(self, Wherigo.ZItem_metatable)
 	
 	return self
 	end
@@ -793,19 +956,21 @@ setmetatable(Wherigo.ZItem, {
 	})
 
 Wherigo.ZTask = {}
+Wherigo.ZTask_metatable = {
+	__tostring = function( s )
+		return "ZTask (" .. s.Name .. ")"
+		end,
+}
+for k,v in pairs(Wherigo.ZObject_metatable) do Wherigo.ZTask_metatable[k] = v end
 function Wherigo.ZTask.new( cartridge, container )
-	local self = Wherigo.ZObject( cartridge, container )
+	local self = Wherigo.ZObject.new( cartridge, container )
 	self._classname = Wherigo.CLASS_ZTASK
 	--[[self.Name = 'NoName'
 	self.Description = ''
 	self.Complete = false
 	self.Correct = false]]--
 	
-	setmetatable(self, {
-		__tostring = function( s )
-			return "ZTask (" .. s.Name .. ")"
-			end,
-	})
+	setmetatable(self, Wherigo.ZTask_metatable)
 	-- events OnClick, SetCorrectState, OnSetComplete, OnSetActive
 	return self
 	end
@@ -816,8 +981,14 @@ setmetatable(Wherigo.ZTask, {
 	}) 
 
 Wherigo.ZTimer = {}
+Wherigo.ZTimer_metatable = {
+	__tostring = function( s )
+		return "ZTimer (" .. s.Name .. ")"
+		end,
+}
+for k,v in pairs(Wherigo.ZObject_metatable) do Wherigo.ZTimer_metatable[k] = v end
 function Wherigo.ZTimer.new(cartridge)
-	self = Wherigo.ZObject(cartridge)
+	self = Wherigo.ZObject.new(cartridge)
 	self.Type = self.Type or 'Countdown' -- Countdown or Interval
 	self.Duration = self.Duration or -1
 	self.Remaining = self.Remaining or -1
@@ -830,12 +1001,14 @@ function Wherigo.ZTimer.new(cartridge)
 	
 	function self:Start()
 		if self._target ~= nil then
-			print('Not starting timer: already running.')
+			Wherigo.LogMessage("ZTimer <" .. self.Name .. " (" .. self.ObjIndex .. ")>: Not starting. Already running")
 			return
 			end
-		Wherigo.LogMessage("ZTimer <" .. self.Name .. ">: Start")
+		Wherigo.LogMessage("ZTimer <" .. self.Name .. " (" .. self.ObjIndex .. ")>: Start")
 		if self.OnStart then
+			Wherigo.LogMessage("ZTimer <" .. self.Name .. ">: START onStart")
 			self.OnStart(self)
+			Wherigo.LogMessage("ZTimer <" .. self.Name .. ">: END__ onStart")
 			end
 		if self.Remaining < 0 then
 			self.Remaining = self.Duration
@@ -845,42 +1018,43 @@ function Wherigo.ZTimer.new(cartridge)
 		end
 	function self:Stop()
 		if self._target == nil then
-			print('Not stopping timer: not running.')
+			Wherigo.LogMessage("ZTimer <" .. self.Name .. " (" .. self.ObjIndex .. ")>: Not stopping. Not running")
 			return
 			end
-		Wherigo.LogMessage("ZTimer <" .. self.Name .. ">: Stop")
+		Wherigo.LogMessage("ZTimer <" .. self.Name .. " (" .. self.ObjIndex .. ")>: Stop")
 		-- native timer
 		WIGInternal.removeTimer(self.ObjIndex)
 		self._target = nil
 		if self.onStop then
+			Wherigo.LogMessage("ZTimer <" .. self.Name .. ">: START onStop")
 			self.onStop(self)
+			Wherigo.LogMessage("ZTimer <" .. self.Name .. ">: END__ onStop")
 			end
 		
 		end
 	function self:Tick()
-		Wherigo.LogMessage("ZTimer <" .. self.Name .. ">: Tick")
+		Wherigo.LogMessage("ZTimer <" .. self.Name .. " (" .. self.ObjIndex .. ")>: Tick")
 		if self.Type == 'Interval' then
 			self._target = self._target + self.Duration
 			now = WIGInternal.getTime()
 			if self._target < now then
 				self._target = now
 				end
-			WIGInternal.addTimer(self._target - now, self.ObjIndex)
+			self.Remaining = self._target - now
+			WIGInternal.addTimer(self.Remaining, self.ObjIndex)
 		else
 			-- native timer
 			self._target = nil
 			self.Remaining = -1
 			end
 		if self.OnTick then
+			Wherigo.LogMessage("ZTimer <" .. self.Name .. ">: START onTick")
 			self.OnTick(self)
+			Wherigo.LogMessage("ZTimer <" .. self.Name .. ">: END__ onTick")
 			end
 		end
 
-	setmetatable(self, {
-		__tostring = function( s )
-			return "ZTimer (" .. s.Name .. ")"
-			end,
-	})
+	setmetatable(self, Wherigo.ZTimer_metatable)
 	
 	return self
 	end
@@ -896,18 +1070,20 @@ function Wherigo.ZTimer._Tick(id)
 	end
 
 Wherigo.ZInput = {}
+Wherigo.ZInput_metatable = {
+	__tostring = function( s )
+		return "ZInput (" .. s.Name .. ")"
+		end,
+}
+for k,v in pairs(Wherigo.ZObject_metatable) do Wherigo.ZInput_metatable[k] = v end
 function Wherigo.ZInput.new( cartridge )
-	local self = Wherigo.ZObject( cartridge )
+	local self = Wherigo.ZObject.new( cartridge )
 	self._classname = Wherigo.CLASS_ZINPUT
 	--[[
 	OnGetInput event
 	]]
 	
-	setmetatable(self, {
-		__tostring = function( s )
-			return "ZInput (" .. s.Name .. ")"
-			end,
-	})
+	setmetatable(self, Wherigo.ZInput_metatable)
 	
 	return self
 	end
@@ -918,20 +1094,25 @@ setmetatable(Wherigo.ZInput, {
 	})
 
 Wherigo.ZCharacter = {}
+Wherigo.ZCharacter_metatable = {
+	__tostring = function( s )
+		return "ZCharacter (" .. s.Name .. ")"
+		end,
+}
+for k,v in pairs(Wherigo.ZObject_metatable) do Wherigo.ZCharacter_metatable[k] = v end
 function Wherigo.ZCharacter.new( cartridge, container )
 	self = Wherigo.ZObject.new(cartridge, container)
 	self._classname = Wherigo.CLASS_ZCHARACTER
+	if Wherigo.ZCartridge._store ~= nil then
+		table.insert(self.Cartridge.AllZCharacters, self)
+		end
 	--[[self.Name = "Unnamed"
 	self.InsideZones = {}
 	self.Inventory = {}
 	self.ObjectLocation = Wherigo.INVALID_ZONEPOINT]]
 	self.PositionAccuracy = Wherigo.Distance(5)
 	
-	setmetatable(self, {
-		__tostring = function( s )
-			return "ZCharacter (" .. s.Name .. ")"
-			end,
-	})
+	setmetatable(self, Wherigo.ZCharacter_metatable)
 	
 	return self
 	end
@@ -942,11 +1123,13 @@ setmetatable(Wherigo.ZCharacter, {
 	}) 
 
 --WIGInternal = {}
-	-- nabalit vnitrni funkce v C++
 
 Wherigo.Player = Wherigo.ZCharacter.new()
 Wherigo.Player.Name = Env._Player
 Wherigo.Player.CompletionCode = Env._CompletionCode
+function Wherigo.Player:RefreshLocation()
+	-- request refresh location ... useless?
+	end
 -- some starting_marker with starting location ??
 
 
@@ -956,17 +1139,24 @@ for k,v in pairs(Wherigo.Player.Inventory) do print(k,v) end
 for k,v in pairs(Env.__propset) do print(k,v) end
 for k,v in pairs(_G) do print(k,v) end
 for k,v in pairs(zonePaloucek) do print(k,v) end
+
+for k,v in pairs(cartridge.AllZObjects) do print(k,v, v.Active, v.Visible) end
 ]]
 
 -- After runing script, setup media ?
 
 Wherigo._callback = function(event, id)
 	local t = cartridge.AllZObjects[id]
-	Wherigo.LogMessage("ZCommand <" .. t.Name .. ">: " .. event)
 	--[[if event == "OnClick" and t.OnClick then
 		t.OnClick(t)
 	else]]
-	t[event](t)
+	if t[event] then
+		Wherigo.LogMessage("ZCommand <" .. t.Name .. ">: " .. event .. " START")
+		t[event](t)
+		Wherigo.LogMessage("ZCommand <" .. t.Name .. ">: " .. event .. " END__")
+	else
+		Wherigo.LogMessage("ZCommand <" .. t.Name .. ">: " .. event .. " [no script]")
+		end
 		--end
 	end
 
@@ -997,6 +1187,14 @@ Wherigo._bool2str = function( b )
 	if b then return "true"
 	else return "false" end
 	end
+	
+Wherigo._toJSON = function(str)
+	if str ~= nil then
+		return WIGInternal.escapeJsonString(str)
+	else
+		return ""
+		end
+	end
 
 Wherigo._getUI = function()
 	--[[for k,v in pairs(cartridge.AllZObjects) do
@@ -1019,8 +1217,8 @@ Wherigo._getLocations = function()
 		if v._classname == Wherigo.CLASS_ZONE and (v.Active and v.Visible) then
 			if not first then
 				locations = locations .. "," end
-			locations = locations .. "{\"name\": \"" .. WIGInternal.escapeJsonString(v.Name) .. "\""
-				.. ", \"description\": \"" .. WIGInternal.escapeJsonString(v.Description) .. "\""
+			locations = locations .. "{\"name\": \"" .. Wherigo._toJSON(v.Name) .. "\""
+				.. ", \"description\": \"" .. Wherigo._toJSON(v.Description) .. "\""
 			if v.OriginalPoint then
 				locations = locations .. ", \"lat\": " .. v.OriginalPoint.latitude .. ", \"lon\": " .. v.OriginalPoint.longitude
 				end
@@ -1045,8 +1243,8 @@ Wherigo._getInventory = function()
 		if ((v.Active and v.Visible) or DEBUG) and v.Container == Wherigo.Player then
 			if not first then
 				inventory = inventory .. "," end
-			inventory = inventory .. "{\"name\": \"" .. WIGInternal.escapeJsonString(v.Name)
-				.. "\", \"description\": \"" .. WIGInternal.escapeJsonString(v.Description) .. "\""
+			inventory = inventory .. "{\"name\": \"" .. Wherigo._toJSON(v.Name)
+				.. "\", \"description\": \"" .. Wherigo._toJSON(v.Description) .. "\""
 				.. Wherigo._getMediaField("media", v.Media)
 				.. Wherigo._getMediaField("icon", v.Icon)
 				.. Wherigo._addCommands(v)
@@ -1069,8 +1267,8 @@ Wherigo._getYouSee = function()
 		if v._is_visible() and v.Container ~= Wherigo.Player then
 			if not first then
 				yousee = yousee .. "," end
-			yousee = yousee .. "{\"name\": \"" .. WIGInternal.escapeJsonString(v.Name)
-				.. "\", \"description\": \"" .. WIGInternal.escapeJsonString(v.Description) .. "\""
+			yousee = yousee .. "{\"name\": \"" .. Wherigo._toJSON(v.Name)
+				.. "\", \"description\": \"" .. Wherigo._toJSON(v.Description) .. "\""
 				.. Wherigo._getMediaField("media", v.Media)
 				.. Wherigo._getMediaField("icon", v.Icon)
 				.. Wherigo._addCommands(v)
@@ -1093,8 +1291,8 @@ Wherigo._getTasks = function()
 		if v._classname == Wherigo.CLASS_ZTASK and v.Active and v.Visible then
 			if not first then
 				tasks = tasks .. "," end
-			tasks = tasks .. "{\"name\": \"" .. WIGInternal.escapeJsonString(v.Name) .. "\""
-				.. ", \"description\": \"" .. WIGInternal.escapeJsonString(v.Description) .. "\""
+			tasks = tasks .. "{\"name\": \"" .. Wherigo._toJSON(v.Name) .. "\""
+				.. ", \"description\": \"" .. Wherigo._toJSON(v.Description) .. "\""
 				.. Wherigo._getMediaField("media", v.Media)
 				.. Wherigo._getMediaField("icon", v.Icon)
 				.. Wherigo._addCommands(v)
