@@ -11,10 +11,15 @@
 #include <syslog.h>
 #include <execinfo.h>
 
+Wherigo *WherigoOpen;
+
 void my_error(string message){
 	//fprintf(stderr, "%s", message);
 	cerr << message << endl;
 	syslog(LOG_WARNING, message.c_str());
+	if(WherigoOpen != NULL){
+		WherigoOpen->log(message);
+	}
 }
 
 void print_backtrace(void){
@@ -308,7 +313,11 @@ void Wherigo::log(string message){
 	char ts[15]; // 14 + \0
 	strftime(ts, 15, "%Y%m%d%H%M%S", ltm);
 	ts[14] = '\0';
-	logFile << ts << "|" << "gps ... |" << message << endl;
+	if( logFile.is_open() ){
+		logFile << ts << "|" << "gps ... |" << message << endl;
+	} else {
+		cerr << ts << "|" << "gps ... |" << message << endl;
+	}
 }
 
 void Wherigo::closeLog(){
