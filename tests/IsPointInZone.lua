@@ -1,11 +1,15 @@
+c = Wherigo.ZCartridge()
+
 ZonePoint = Wherigo.ZonePoint
 -- IsPointInZone
+-- test simple zone from Certova rokle
+
 
 insidePoint = Wherigo.ZonePoint(49.22735, 16.622517, 0)
 borderPoint = Wherigo.ZonePoint(49.22741, 16.62252, 0)
 outsidePoint = Wherigo.ZonePoint(49.22742, 16.62252, 0)
 
-zone = Wherigo.Zone()
+zone = Wherigo.Zone(c)
 zone.Name = "Paloucek"
 zone.Points = {
 	Wherigo.ZonePoint(49.22741, 16.62242, 0),
@@ -22,7 +26,9 @@ assert(Wherigo.IsPointInZone(borderPoint, zone) == false, "Border point wrongly 
 assert(Wherigo.IsPointInZone(outsidePoint, zone) == false, "Outside point wrongly recognised")
 
 
-zone = Wherigo.Zone()
+-- Another test ...
+
+zone = Wherigo.Zone(c)
 zone.Name = "Paloucek"
 zone.Points = {
 	ZonePoint(49.2239223286717, 16.5297473967075, 0), 
@@ -37,3 +43,82 @@ zone.OriginalPoint = ZonePoint(49.2238212267345, 16.5298211574555, 0)
 
 
 print( Wherigo.VectorToZone(insidePoint, zone) )
+assert( Wherigo.IsPointInZone(insidePoint, zone) == false, "Test 2 failed ... not in zone" )
+
+
+-- Something around zero
+
+zone = Wherigo.Zone(c)
+zone.Name = "Zero"
+zone.Points = {
+	ZonePoint(-1, 1, 0), 
+	ZonePoint(1, 1, 0), 
+	ZonePoint(1, -1, 0), 
+	ZonePoint(-1, -1, 0)
+}
+zone.OriginalPoint = ZonePoint(0, 0, 0)
+
+assert( Wherigo.IsPointInZone(ZonePoint(0,0,0), zone) == true, "Inside Is not in zone" )
+--assert( Wherigo.IsPointInZone(ZonePoint(1,0,0), zone) == true, "Border Is not in zone" )
+--assert( Wherigo.IsPointInZone(ZonePoint(1,1,0), zone) == true, "Point is not in zone " )
+assert( Wherigo.IsPointInZone(ZonePoint(2,0,0), zone) == false, "Outside Is in zone" )
+assert( Wherigo.IsPointInZone(ZonePoint(0,2,0), zone) == false, "Outside Is in zone" )
+assert( Wherigo.IsPointInZone(ZonePoint(-2,0,0), zone) == false, "Outside Is in zone" )
+
+
+-- Another shape around zero.
+
+zone = Wherigo.Zone(c)
+zone.Name = "Zero 2"
+zone.Points = {
+	ZonePoint(0, 1, 0), 
+	ZonePoint(-1, 0, 0), 
+	ZonePoint(0, -1, 0), 
+	ZonePoint(1, 0, 0)
+}
+zone.OriginalPoint = ZonePoint(0, 0, 0)
+
+assert( Wherigo.IsPointInZone(ZonePoint(0,0,0), zone) == true, "Inside Is not in zone" )
+--assert( Wherigo.IsPointInZone(ZonePoint(1,0,0), zone) == true, "Border Is not in zone" )
+assert( Wherigo.IsPointInZone(ZonePoint(1,1,0), zone) == false, "Outside Is in zone" )
+assert( Wherigo.IsPointInZone(ZonePoint(1,2,0), zone) == false, "Outside Is in zone" )
+assert( Wherigo.IsPointInZone(ZonePoint(-1,-1,0), zone) == false, "Outside Is in zone" )
+
+
+-- Test around day line
+--[[
+zone = Wherigo.Zone(c)
+zone.Name = "Day Line"
+zone.Points = {
+	ZonePoint(0, -179, 0), 
+	ZonePoint(-1, 180, 0), 
+	ZonePoint(0, 179, 0), 
+	ZonePoint(1, -180, 0)
+}
+zone.OriginalPoint = ZonePoint(0, 180, 0)
+
+assert( Wherigo.IsPointInZone(ZonePoint(0,180,0), zone) == true, "Inside Is not in zone" )
+--assert( Wherigo.IsPointInZone(ZonePoint(1,0,0), zone) == true, "Border Is not in zone" )
+assert( Wherigo.IsPointInZone(ZonePoint(1,179,0), zone) == false, "Outside Is in zone" )
+assert( Wherigo.IsPointInZone(ZonePoint(1,-179,0), zone) == false, "Outside Is in zone" ) -- f**k up with special cases ...
+assert( Wherigo.IsPointInZone(ZonePoint(-1,-179,0), zone) == false, "Outside Is in zone" )
+assert( Wherigo.IsPointInZone(ZonePoint(-1,179,0), zone) == false, "Outside Is in zone" )
+assert( Wherigo.IsPointInZone(ZonePoint(2,180,0), zone) == false, "Outside Is in zone" )
+]] 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
