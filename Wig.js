@@ -78,6 +78,7 @@ enyo.kind({
 		//this.$.pane.selectViewByName("cList");
 		//this.$.pane.selectViewByName("gMain");
 		//this.$.cList.getCartridges(0);
+		enyo.setAllowedOrientation("up");
 	},
 	
 	openMessage: null,
