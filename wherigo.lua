@@ -475,6 +475,8 @@ Wherigo.ZObject_metatable = {
 			return t._active
 		elseif key == 'CorrectState' and t._classname == Wherigo.CLASS_ZTASK then
 			return t._correct
+		elseif key == 'Complete' and t._complete == Wherigo.CLASS_ZTASK then
+			return t._complete
 			end
 		end,
 	__newindex = function(t, key, value)
