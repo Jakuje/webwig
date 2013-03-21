@@ -6,6 +6,9 @@
 /*   Description                                                              */
 /*                                                                            */
 /* ========================================================================== */
+#ifndef WHERIGO_H
+#define WHERIGO_H 1
+
 #include <cstdlib>
 #include <string>
 #include <cstring>
@@ -115,4 +118,6 @@ public:
 	void closeLog();
 
 };
+
+#endif
 
