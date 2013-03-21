@@ -215,7 +215,7 @@ enyo.kind({
                 "complete": true
             }
         ],
-        "gps": 3
+        "gps": {"acc": 1, "fix": "now"}
     }
 			
 				);
@@ -233,7 +233,7 @@ enyo.kind({
 			"youSee": [],
 			"inventory": [],
 			"tasks": [],
-			"gps": 3
+			"gps": {"acc": 1, "fix": "now"}
 		});
 	},
 	callback: function(event, id){

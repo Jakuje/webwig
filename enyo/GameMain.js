@@ -50,7 +50,7 @@ enyo.kind({
 			//console.error("Only GPS data");
 			this.data.gps = data.gps;
 		}
-		this.$.GPSState.setSrc("images/gps_"+data.gps+".png");
+		this.$.GPSState.setSrc("images/gps_"+data.gps['acc']+".png");
 	},
 	detail_item: 0,
 	detail_screen: "",
