@@ -17,10 +17,13 @@ enyo.kind({
 			{name: "list", kind: "VirtualRepeater",
 				onSetupRow: "listGetItem", onclick: "playCartridge",
 				components: [
-					{kind: "Item", layoutKind: "VFlexLayout", components: [
+					{kind: "Item", layoutKind: "VFlexLayout", tapHighlight: true, components: [
 						{name: "title", kind: "Divider", allowHtml: true},
 						{layoutKind: "HFlexLayout", components: [
-							{name: "description"},
+							{layoutKind: "VFlexLayout", components: [
+								{name: "type"},
+								{name: "author"},
+								]},
 							{kind: "Spacer"},
 							{kind: "IconButton", icon: "images/menu-icon-info.png", onclick: "showDetails"}
 						]}
@@ -75,11 +78,18 @@ enyo.kind({
 	listGetItem: function(inSender, inIndex) {
 		if (inIndex < this.metadata.length) {
 			if (this.$.list) {
-				// important to escape this, as filenames are user-generated content
-				this.$.title.setCaption(this.metadata[inIndex].name);
-				this.$.description.setContent(this.metadata[inIndex].type + " by " + this.metadata[inIndex].author);
+				var item = this.metadata[inIndex];
+				this.$.title.setCaption( item.name );
+				this.$.type.setContent( item.type );
+				if( item.author ){
+					this.$.author.setContent(" by " + item.author);
+				} else {
+					this.$.author.setContent("");
+				}
 				if( this.metadata[inIndex].icon ){
-					this.$.title.setIcon(this.metadata[inIndex].icon);
+					this.$.title.setIcon(item.icon);
+				} else {
+					this.$.title.setIcon("");
 				}
 			}
 			return true;

@@ -3,7 +3,7 @@ enyo.kind({
 	kind: enyo.HFlexBox,
 	flex: 1,
 	components: [
-		{kind: "Item", layoutKind: "VFlexLayout", pack: "center",
+		{kind: "Item", layoutKind: "VFlexLayout", pack: "center", name: "leftMarker",
 		align: "center", style: "width: 100px;", onclick: "showScreen", components: [
 			{name: "icon", kind: "Image", src: "images/you_see.png"},
 			{name: "title", content: "You See"},
@@ -11,12 +11,13 @@ enyo.kind({
 		]},
 		{kind: "Scroller", flex: 1, horizontal: false, autoHorizontal: false, components: [
 			{kind: "VirtualRepeater", name: "items", onSetupRow: "getItem", components: [
-				{kind: "Item", layoutKind: "HFlexLayout", onclick: "itemClicked", components: [
-					{name: "itemIcon", kind: "Image", style: "width: 25px;height:25px;margin-right:3px;"},
+				{kind: "Item", layoutKind: "HFlexLayout", onclick: "itemClicked", tapHighlight: true, components: [
+					{name: "itemIcon", kind: "Image", style: "width: 32px;height:32px;margin: -10px 3px -10px -5px;"},
 					{name: "itemTitle"},
 					{kind: "Spacer"},
 					{name: "itemDistance", showing: "false"},
-					{name: "itemBearing", kind: "Image", src: "images/arrow.png", showing: "false"},
+					{name: "itemBearing", kind: "Image", src: "images/arrow.png", showing: "false",
+						style: "width: 25px;height:25px;margin: -10px -10px -10px 3px;"},
 				]}
 			]},
 			{kind: "Item", name: "empty", layoutKind: "HFlexLayout", components: [
@@ -57,6 +58,9 @@ enyo.kind({
 	setup: function(data, screen){
 		if( ! screen ){
 			screen = this.name;
+		}
+		if( this.name == "detail" ){
+			this.$.leftMarker.hide();
 		}
 		this.screen = screen;
 		this.$.title.setContent( this.getTitle(this.screen) );
