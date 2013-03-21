@@ -16,7 +16,7 @@ enyo.kind({
 				{name: "gMain", className: "enyo-bg", kind: "WIGApp.GameMain"}
 			]
 		},
-		{kind: "AppMenu", components: [
+		{kind: "AppMenu", components: [ // In chromium: CTRL + `
 			{kind: "EditMenu"},
 			{caption: "Preferences", onclick: "turnLightsOff"},
 			{caption: "Refresh", onclick: "turnLightsOn"},
