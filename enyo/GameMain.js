@@ -15,7 +15,16 @@ enyo.kind({
 			{kind: "Spacer"},
 			{name: "title", kind: enyo.VFlexBox, content: "Wherigo name"},
 			{kind: "Spacer"},
-			{kind: "Image", name: "GPSState", src: "images/gps_0.png"},
+			{kind: "Image", name: "GPSAccuracy", src: "images/gps_0.png", onclick: "showDashboard"},
+		]},
+		{kind: "PageHeader", showing: false, name: "dashboard", components: [
+			{content: "Accuracy: "},
+			{name: "accuracy", content: "3 m"},
+			{kind: "Spacer"},
+			{w: "fill", name: "GPSStatus", kind: "RadioGroup", onChange: "switchGPS", components: [
+					{label: 'Off', value: 0},
+					{label: 'On', value: 1},
+				]}
 		]},
 		{name: "pane", kind: "Pane", flex: 1,
 			components: [
@@ -31,7 +40,7 @@ enyo.kind({
 	},
 	
 	setup: function(data){
-		this.$.title.setContent(data.name);
+		this.$.title.setContent( data.name.substring(0, 20) + (data.name.length > 20 ? "..." : "") );
 		this.owner.$.plugin.openCartridge(data.filename, enyo.nop);
 	},
 	
@@ -50,7 +59,22 @@ enyo.kind({
 			//console.error("Only GPS data");
 			this.data.gps = data.gps;
 		}
-		this.$.GPSState.setSrc("images/gps_"+data.gps['acc']+".png");
+		var acc = data.gps.acc;
+		var acc_class = 0;
+		if( acc < 0 || acc > 1000 ){
+			acc_class = 0;
+		} else if( acc > 100 ){
+			acc_class = 1;
+		} else  if( acc > 50 ){
+			acc_class = 2;
+		} else if( acc > 20 ){
+			acc_class = 3;
+		} else {
+			acc_class = 4;
+		}
+		this.$.GPSAccuracy.setSrc("images/gps_"+acc_class+".png");
+		this.$.accuracy.setContent(acc + " m");
+		this.$.GPSStatus.setValue(data.gps.state);
 	},
 	detail_item: 0,
 	detail_screen: "",
@@ -90,6 +114,18 @@ enyo.kind({
 			this.owner.goBack(inSender, inEvent, true);
 		} else {
 			this.$.pane.back(inEvent);
+		}
+	},
+	showDashboard: function(){
+		if( this.$.dashboard.showing ){
+			this.$.dashboard.hide();
+		} else {
+			this.$.dashboard.show();
+		}
+	},
+	switchGPS: function(inSender, inEvent){
+		if( this.data['gps']['state'] != inEvent ){
+			this.owner.$.plugin.switchGPS(inEvent);
 		}
 	}
 });

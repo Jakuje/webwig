@@ -1,4 +1,5 @@
-#include "Headers.hpp"
+#include "Engine.hpp"
+#include "WherigoLib.hpp"
 #include <syslog.h>
 
 
@@ -6,11 +7,13 @@ namespace Engine
 {
 
 /** Accuracy class for image in UI */
-int acc_class = 0;
+int gps_accuracy = 0;
+int gps_state = 0;
+
 
 
 /** Call user interface connector to show message */
-void MessageBox(const char *text, string media,
+void MessageBox(const char *text, std::string media,
 	const char *button1, const char *button2, const char *callback){
 
 #ifndef DESKTOP
@@ -161,8 +164,9 @@ void updateState(){
 		<< "{"
 			<< WherigoLib::getUI()
 			<< ", \"gps\": {"
-				<< "\"acc\": " << acc_class
-				<< ", \"fix\": \"now\""
+				<< "\"acc\": " << gps_accuracy
+				<< ", \"state\": " << gps_state
+				//<< ", \"fix\": \"" << gps_fix << "\""
 				<< "}"
 			<< "}"
 		<< "}";
@@ -432,17 +436,9 @@ void UpdateGPS(PDL_Location *location){
 		}
 		
 		// only horizontal is what I need
-		if( acc < 0 || acc > 1000 ){
-			acc_class = 0;
-		} else if( acc > 100 ){
-			acc_class = 1;
-		} else  if( acc > 50 ){
-			acc_class = 2;
-		} else if( acc > 20 ){
-			acc_class = 3;
-		} else {
-			acc_class = 4;
-		}
+		
+		gps_accuracy = (int) acc;
+		gps_state = 1;
 		
 		if( update_all ){
 			// try again or what?
@@ -631,9 +627,10 @@ void setPosition(double *lat, double * lon){
 	// disable autoupdate
 	PDL_EnableLocationTracking(PDL_FALSE);
 #endif
-	acc_class = 0;
-	double acc = 5;
-	WherigoLib::updateLocation(lat, lon, &acc, &acc);
+	gps_accuracy = 5;
+	gps_state = 0;
+	double alt = 115;
+	WherigoLib::updateLocation(lat, lon, &alt, &alt);
 	updateState();
 }
 
