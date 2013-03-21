@@ -475,7 +475,7 @@ Wherigo.ZObject_metatable = {
 			return t._active
 		elseif key == 'CorrectState' and t._classname == Wherigo.CLASS_ZTASK then
 			return t._correct
-		elseif key == 'Complete' and t._complete == Wherigo.CLASS_ZTASK then
+		elseif key == 'Complete' and t._classname == Wherigo.CLASS_ZTASK then
 			return t._complete
 			end
 		end,
@@ -782,7 +782,7 @@ function Wherigo.ZCartridge.new(  )
 			end
 		end
 	
-	function self._update(position, t)
+	function self._update(position, t, accuracy, heading)
 		for k,v in pairs(self.AllZObjects) do
 			if v._classname == Wherigo.CLASS_ZTIMER and v._target ~= nil then
 				v.Remaining = v._target - t
@@ -792,6 +792,8 @@ function Wherigo.ZCartridge.new(  )
 		if not position then
 			return false end
 		Wherigo.Player.ObjectLocation = position
+		Wherigo.Player.PositionAccuracy = Distance(accuracy)
+		Wherigo.Player._heading = heading
 		for k,v in pairs(self.AllZObjects) do
 			if v.Active then
 				if (v._classname == Wherigo.CLASS_ZITEM and v.Container ~= Wherigo.Player)
@@ -801,7 +803,7 @@ function Wherigo.ZCartridge.new(  )
 						v.CurrentDistance, v.CurrentBearing = Wherigo.VectorToPoint(Wherigo.Player.ObjectLocation, pos)
 						end
 				elseif v._classname == Wherigo.CLASS_ZONE then
-					-- something with Active and _active ???
+					--update_all = v._update() or update_all
 					local inside = Wherigo.IsPointInZone (Wherigo.Player.ObjectLocation, v)
 					print(v.Name, inside, v._inside, v.OriginalPoint, Wherigo.Player.ObjectLocation)
 					if inside ~= v._inside then
