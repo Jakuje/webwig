@@ -1154,14 +1154,15 @@ Wherigo._callback = function(event, id)
 	--[[if event == "OnClick" and t.OnClick then
 		t.OnClick(t)
 	else]]
-	if t[event] then
-		Wherigo.LogMessage("ZCommand <" .. t.Name .. ">: " .. event .. " START")
-		t[event](t)
-		Wherigo.LogMessage("ZCommand <" .. t.Name .. ">: " .. event .. " END__")
-	else
-		Wherigo.LogMessage("ZCommand <" .. t.Name .. ">: " .. event .. " [no script]")
+	if t then
+		if t[event] then
+			Wherigo.LogMessage("ZCommand <" .. t.Name .. ">: " .. event .. " START")
+			t[event](t)
+			Wherigo.LogMessage("ZCommand <" .. t.Name .. ">: " .. event .. " END__")
+		else
+			Wherigo.LogMessage("ZCommand <" .. t.Name .. ">: " .. event .. " [no script]")
+			end
 		end
-		--end
 	end
 
 Wherigo._getMediaField = function(field, t)
