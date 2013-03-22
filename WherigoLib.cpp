@@ -452,17 +452,17 @@ string getUI(){
 	}
 }
 
-bool updateLocation(double *lat, double *lon, double *alt, double *accuracy){
+bool updateLocation(double *lat, double *lon, double *alt, double *acc){
 	bool update_all = false;
 	latitude = *lat;
 	longitude = *lon;
 	altitude = *alt;
-	accuracy = *accuracy;
+	accuracy = *acc;
 	stringstream ss;
 	time_t t = time(NULL);
 	ss << "return cartridge._update(Wherigo.ZonePoint("
 		<< *lat << ", " << *lon << ", Distance(" << *alt << ")), "
-		<< t << ", " << *accuracy << ", 0)";
+		<< t << ", " << *acc << ", 0)";
 	int status = luaL_dostring(L, ss.str().c_str());
 	if( status == 0 ){
 		update_all = lua_toboolean(L, 1);

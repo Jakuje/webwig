@@ -18,9 +18,9 @@ void my_error(string message){
 	//fprintf(stderr, "%s", message);
 	cerr << message << endl;
 	syslog(LOG_WARNING, message.c_str());
-	/*if(WherigoOpen != NULL){
-		WherigoOpen->log(message);
-	}*/
+	if(WherigoLib::WherigoOpen != NULL){
+		WherigoLib::WherigoOpen->log(message);
+	}
 }
 
 void print_backtrace(void){
