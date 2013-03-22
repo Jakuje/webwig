@@ -26,7 +26,6 @@ using namespace std;
 
 #define EXIT(n) do { fprintf(stderr, "Early exit at %s:%d\n", __FILE__, __LINE__); exit(n); } while (0)
 
-#ifdef nono
 static bool runTests(char * filter){
 	glob_t matches;
 	int status;
@@ -124,14 +123,13 @@ void CommandLineTests(int argc, char **argv){
 }
 
 
-#endif
 
 int main (int argc, char **argv) {
 	
 	Engine::setup(argc, argv);
 	if (!PDL_IsPlugin()) {
 		cerr << "call from cmd" << endl;
-        //CommandLineTests(argc, argv);
+        CommandLineTests(argc, argv);
         exit(0);
     }
 
