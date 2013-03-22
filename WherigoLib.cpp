@@ -1,7 +1,8 @@
 #include <ctime>
 #include <syslog.h>
 #include <SDL.h>
-#include "Headers.hpp"
+#include "WherigoLib.hpp"
+#include "Engine.hpp"
 #include "LuaBridge.h"
 
 namespace WherigoLib {
@@ -299,7 +300,7 @@ lua_State * openLua(Wherigo *w){
 			.addVariable("CartFolder", &w->cartDir, false)
 			.addVariable("SyncFolder", &DIR, false)
 			.addVariable("PathSep", &SLASH, false)
-			.addVariable("DeviceId", &DEVICE, false)
+			.addVariable("DeviceID", &DEVICE, false)
 			.addVariable("Version", &VERSION, false)
 			.addVariable("LogFolfer", &DIR)
 			.addVariable("_CompletionCode", &w->completionCode)
