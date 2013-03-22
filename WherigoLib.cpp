@@ -16,6 +16,7 @@ std::string DEVICE = "WebOS";
 std::string DIR = "./";
 std::string VERSION = "2.11";
 std::string SLASH = "/";
+int TIME = 0;
 
 /** Lua state with running game*/
 lua_State *L;
@@ -27,6 +28,11 @@ Wherigo *WherigoOpen;
 char *show_detail;
 char *show_screen;
 
+/** Temporary stored coordinates from last GPS update */
+double latitude = 0;
+double longitude = 0;
+double altitude = 0;
+double accuracy = 5;
 
 
 /** Log message */
@@ -302,12 +308,12 @@ lua_State * openLua(Wherigo *w){
 			.addVariable("PathSep", &SLASH, false)
 			.addVariable("DeviceID", &DEVICE, false)
 			.addVariable("Version", &VERSION, false)
-			.addVariable("LogFolfer", &DIR)
-			.addVariable("_CompletionCode", &w->completionCode)
-			.addVariable("_Player", &w->player)
-			.addVariable("_IconId", &w->iconID)
-			.addVariable("_SplashId", &w->splashID)
-			//.addVariable("Downloaded", &0, false)
+			.addVariable("LogFolder", &DIR, false)
+			.addVariable("_CompletionCode", &w->completionCode, false)
+			.addVariable("_Player", &w->player, false)
+			.addVariable("_IconId", &w->iconID, false)
+			.addVariable("_SplashId", &w->splashID, false)
+			.addVariable("Downloaded", &TIME, false)
 		.endNamespace();
 		
 	luabridge::getGlobalNamespace(L)
@@ -402,12 +408,8 @@ void OnStartEvent(){
 	stringstream buffer;
 	// move to starting coordinates and call update position
 	// only for debug ... in production, it is not desired
-	cerr << "Updating position" << endl;
-	buffer << "cartridge._update( Wherigo.ZonePoint("
-		<< WherigoOpen->lat << ", " << WherigoOpen->lon << ", "
-		<< WherigoOpen->alt << "), 1000 )";
-	int status = luaL_dostring(L, buffer.str().c_str());
-	report(L, status);
+	double acc = 5;
+	updateLocation(&WherigoOpen->lat, &WherigoOpen->lon, &WherigoOpen->alt, &acc);
 	
 	
 	// run onStart event
@@ -420,7 +422,7 @@ void OnStartEvent(){
 	int type = lua_type(L, -1);					
 	if( type == LUA_TFUNCTION ){
 		WherigoOpen->log("ZCartridge:OnStart START");
-		status = lua_pcall(L, 0, 0, 0);					// [-1, +(0|1), -] [-(nargs + 1), +(nresults|1), -]
+		int status = lua_pcall(L, 0, 0, 0);					// [-1, +(0|1), -] [-(nargs + 1), +(nresults|1), -]
 		report(L, status);								// [-(0|1), +0, -]
 		WherigoOpen->log("ZCartridge:OnStart END__");
 	} else {
@@ -452,6 +454,10 @@ string getUI(){
 
 bool updateLocation(double *lat, double *lon, double *alt, double *accuracy){
 	bool update_all = false;
+	latitude = *lat;
+	longitude = *lon;
+	altitude = *alt;
+	accuracy = *accuracy;
 	stringstream ss;
 	time_t t = time(NULL);
 	ss << "return cartridge._update(Wherigo.ZonePoint("

@@ -39,6 +39,7 @@ namespace WherigoLib
 	extern std::string DIR;
 	extern std::string VERSION;
 	extern std::string SLASH;
+	extern int TIME;
 
 	/** Lua state with running game*/
 	extern lua_State *L;
@@ -50,6 +51,9 @@ namespace WherigoLib
 	extern char *show_detail;
 	extern char *show_screen;
 
+	/** Cached last position to logfile and others */
+	extern double latitude, longitude, altitude, accuracy;
+	
 	extern std::string escapeJsonString(const std::string& input);
 	
 	extern void log(std::string message);

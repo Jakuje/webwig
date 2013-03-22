@@ -8,6 +8,7 @@
 /* ========================================================================== */
 
 #include "wherigo.h"
+#include "WherigoLib.hpp"
 #include <syslog.h>
 #include <execinfo.h>
 
@@ -45,7 +46,7 @@ bool Wherigo::setup(){
 		my_error("Error opening GWC file!!");
 		return false;
 	}
-
+	
 	if( ! scanHead() ){
 		my_error("Wrong file - problem with GWC head");
 		return false;
@@ -100,10 +101,12 @@ bool Wherigo::scanHead (){
 int Wherigo::scanOffsets (){
 	files = fd.readUShort();
 	
-	idsRev = new int[files];
-	ids = new int[files];
-	types = new int[files];
-	offsets = new long[files];
+	if(  files > 0 ){
+		idsRev = new int[files];
+		ids = new int[files];
+		types = new int[files];
+		offsets = new long[files];
+	}
 	
 	for(int i = 0;i < files; i++){
 		ids[i] = fd.readUShort();
@@ -209,6 +212,7 @@ bool Wherigo::createFile(int i){
 string Wherigo::getFilePathById(int id){
 	if( id > 0 ){
 		// -1 means no file for icon/splash
+		// 0 is cartridge
 		return this->getFilePath(idsRev[id]);
 	} else {
 		return "";
@@ -220,7 +224,7 @@ string Wherigo::getFilePathById(const char *str_i){
 	int i;
 	ss >> i;
 	if( i > 0 ){
-		return getFilePath(i);
+		return getFilePath(idsRev[i]); // hope is ok
 	} else {
 		return "";
 	}
@@ -314,9 +318,11 @@ void Wherigo::log(string message){
 	strftime(ts, 15, "%Y%m%d%H%M%S", ltm);
 	ts[14] = '\0';
 	if( logFile.is_open() ){
-		logFile << ts << "|" << "gps ... |" << message << endl;
+		logFile << ts << "|" << WherigoLib::latitude << "|" << WherigoLib::longitude
+			<< "|" << WherigoLib::altitude << "|" << WherigoLib::accuracy << "|" << message << endl;
 	} else {
-		cerr << ts << "|" << "gps ... |" << message << endl;
+		cerr << ts << "|" << WherigoLib::latitude << "|" << WherigoLib::longitude
+			<< "|" << WherigoLib::altitude << "|" << WherigoLib::accuracy << "|" << message << endl;
 	}
 }
 
