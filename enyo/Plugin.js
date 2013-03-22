@@ -24,6 +24,7 @@ enyo.kind({
 		this.owner.$.plugin.addCallback("updateState",
 			enyo.bind(this, this.updateUI), true);
 		this.addCallback("showScreen", enyo.bind(this, this.showScreen), true);
+		this.addCallback("ClosePrompt", enyo.bind(this, this.closePrompt), true);
 	},
 	tmpdir: null,
 	
@@ -266,4 +267,7 @@ enyo.kind({
 			//this.callPluginMethodDeferred(enyo.nop, "switchGPS", newState);
 		}
 	},
+	closePrompt: function(){
+		this.owner.goBack(null, this);
+	}
 });

@@ -89,7 +89,7 @@ function Wherigo.Dialog(table)
 		else
 			media = ""
 			end
-		WIGInternal.MessageBox(text, media, "", "", "0")
+		WIGInternal.Dialog(text, media)
 		end
 	
 	end
@@ -273,7 +273,7 @@ function Wherigo.NoCaseEquals(f, s)
 function Wherigo.Command(text)
 	if text == 'SaveClose' then
 		Wherigo.LogMessage("Wherigo.Command: SaveClose");
-		WIGInternal.Save()
+		WIGInternal.save()
 		WIGInternal.Close() -- with prompt ... todo
 		exit(1)
 	elseif text == 'DriveTo' then
@@ -342,6 +342,13 @@ function Wherigo.ShowScreen(screen, item)
 		end
 	end
 
+function Wherigo.__tonumber(arg)
+	if type(arg) == "table" then
+		arg = arg.value
+		end
+	return arg
+	end
+
 --[[ A direction from one point to another ]]
 Wherigo.Bearing = {}
 Wherigo.Bearing_metatable = {
@@ -350,6 +357,18 @@ Wherigo.Bearing_metatable = {
 		end,
 	__call = function (s)
 		return s.value
+		end,
+	__add = function( op1, op2 )
+		return ( Wherigo.__tonumber(op1) + Wherigo.__tonumber(op2) ) % 360
+		end,
+	__sub = function( op1, op2 )
+		return ( Wherigo.__tonumber(op1) - Wherigo.__tonumber(op2) ) % 360
+		end,
+	__mul = function( op1, op2 )
+		return ( Wherigo.__tonumber(op1) * Wherigo.__tonumber(op2) ) % 360
+		end,
+	__div = function( op1, op2 )
+		return ( Wherigo.__tonumber(op1) / Wherigo.__tonumber(op2) ) % 360
 		end,
 }
 function Wherigo.Bearing.new(value)
@@ -363,7 +382,7 @@ function Wherigo.Bearing.new(value)
 setmetatable(Wherigo.Bearing, {
 	__call = function( s, value)
 		return Wherigo.Bearing.new(value)
-		end
+		end,
 	})
 
 --[[ A distance between two points ]]
@@ -376,9 +395,26 @@ Wherigo.Distance_metatable = {
 		return s.GetValue(units)
 		end,
 	__eq = function( op1, op2 )
-		error("Comparing")
-		return true
-		end
+		return ( Wherigo.__tonumber(op1) == Wherigo.__tonumber(op2) )
+		end,
+	__lt = function( op1, op2 )
+		return ( Wherigo.__tonumber(op1) < Wherigo.__tonumber(op2) )
+		end,
+	__le = function( op1, op2 )
+		return ( Wherigo.__tonumber(op1) <= Wherigo.__tonumber(op2) )
+		end,
+	__add = function( op1, op2 )
+		return ( Wherigo.__tonumber(op1) + Wherigo.__tonumber(op2) )
+		end,
+	__sub = function( op1, op2 )
+		return ( Wherigo.__tonumber(op1) - Wherigo.__tonumber(op2) )
+		end,
+	__mul = function( op1, op2 )
+		return ( Wherigo.__tonumber(op1) * Wherigo.__tonumber(op2) )
+		end,
+	__div = function( op1, op2 )
+		return ( Wherigo.__tonumber(op1) / Wherigo.__tonumber(op2) )
+		end,
 }
 function Wherigo.Distance.new(value, units)
 	units = units or 'meters'

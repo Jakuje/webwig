@@ -45,7 +45,7 @@ void Dialog(const char *text, std::string media){
     const char *params[2];
     params[0] = text;
     params[1] = media.c_str();
-    err = PDL_CallJS("Dialog", params, 5);
+    err = PDL_CallJS("Dialog", params, 2);
     if (err) {
         syslog(LOG_ERR, "*** PDL_CallJS failed, %s", PDL_GetError());
         //SDL_Delay(5);
@@ -53,6 +53,20 @@ void Dialog(const char *text, std::string media){
 #endif
 
 }
+
+void ClosePrompt(){
+
+#ifndef DESKTOP
+    PDL_Err err;
+    err = PDL_CallJS("ClosePrompt", NULL, 0);
+    if (err) {
+        syslog(LOG_ERR, "*** PDL_CallJS failed, %s", PDL_GetError());
+        //SDL_Delay(5);
+    }
+#endif
+
+}
+
 
 /** Play audio in user interface */
 void PlayAudio(string media) {

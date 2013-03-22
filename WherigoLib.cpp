@@ -215,6 +215,15 @@ void Dialog(const char *text, const char *media) {
 	return;
 }
 
+/** Ask user, if realy close cartridge */
+void close() {
+	WherigoOpen->log("Close prompt");
+	
+	Engine::ClosePrompt(text, m);
+	return;
+}
+
+
 /** Response to user click on button on MessageBox */
 void MessageBoxResponse(const char *value){
 	lua_getfield(L, LUA_GLOBALSINDEX, "Wherigo");	// [-0, +1, e]
@@ -339,6 +348,7 @@ lua_State * openLua(Wherigo *w){
 			.addFunction("ShowStatusText", Engine::ShowStatusText)
 			.addFunction("escapeJsonString", escapeJsonString)
 			.addFunction("save", saveState)
+			.addFunction("close", closePrompt)
 			.addFunction("addTimer", addTimer)
 			.addFunction("removeTimer", removeTimer)
 			.addFunction("getTime", getTime)

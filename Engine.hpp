@@ -52,6 +52,8 @@ namespace Engine
 	extern void ShowStatusText(const char *text);
 	extern void GetInput(const char *type, const char *text, const char* choices, string media);	
 	
+	extern void ClosePrompt();
+	
 	extern int openCartridge(char *filename);
 	extern void closeCartridge(int * save);
 	
