@@ -70,11 +70,13 @@ enyo.kind({
 	hidePopup: function(element, inSender, inEvent){
 		this.inherited(arguments);
 		
+		var name = (inSender ? inSender.getName() : "" );
+		
 		if( typeof this.callback == "function" ){
 			// internal usage, JS function is callback
-			this.callback( element, inSender.getName() );
+			this.callback( element, name );
 		} else if( this.callback == true ){
-			element.$.plugin.MessageBoxResponse(inSender.getName());
+			element.$.plugin.MessageBoxResponse( name );
 		}
 		
 	}
@@ -110,8 +112,10 @@ enyo.kind({
 	},
 	hidePopup: function(element, inSender, inEvent){
 		this.inherited(arguments);
+		
+		var result = (inEvent ? inEvent.rowIndex : "");
 		if( this.type == "MultipleChoice" ){
-			element.$.plugin.GetInputResponse( this.choices[inEvent.rowIndex] );
+			element.$.plugin.GetInputResponse( this.choices[ result ] );
 		} else {
 			element.$.plugin.GetInputResponse( element.$.getInput.getValue() );
 		}

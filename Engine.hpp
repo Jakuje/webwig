@@ -46,6 +46,7 @@ namespace Engine
 	
 	extern void MessageBox(const char *text, string media,
 		const char *button1, const char *button2, const char *callback);
+	extern void Dialog(const char *text, string media);
 	
 	extern void PlayAudio(string media);	
 	extern void ShowStatusText(const char *text);

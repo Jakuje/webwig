@@ -202,6 +202,19 @@ void MessageBox(const char *text, const char *media,
 	return;
 }
 
+/** Show messageBox to user */
+void Dialog(const char *text, const char *media) {
+	string m;
+	if( strcmp(media, "") != 0 ){
+		m = WherigoOpen->getFilePathById(media);
+		//cerr << " >> Media (" << media << "): " << m;
+	}
+	WherigoOpen->log( string("Dialog  Text: ").append(text) );
+	
+	Engine::Dialog(text, m);
+	return;
+}
+
 /** Response to user click on button on MessageBox */
 void MessageBoxResponse(const char *value){
 	lua_getfield(L, LUA_GLOBALSINDEX, "Wherigo");	// [-0, +1, e]
@@ -319,6 +332,7 @@ lua_State * openLua(Wherigo *w){
 	luabridge::getGlobalNamespace(L)
 		.beginNamespace("WIGInternal")
 			.addFunction("MessageBox", MessageBox)
+			.addFunction("Dialog", Dialog)
 			.addFunction("PlayAudio", PlayAudio)
 			.addFunction("ShowScreen", ShowScreenLua)
 			.addFunction("GetInput", GetInput)

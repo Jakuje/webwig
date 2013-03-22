@@ -84,9 +84,16 @@ enyo.kind({
 	openMessage: null,
 	popupQueue: [], // push(), shift()
 	popupMessage: function( o ){
-		if( this.$.errorMessage.isOpen ){
+		if( this.$.errorMessage.isOpen && this.openMessage.kindName == "WIGApp.Dialog"
+			 && o.kindName == "WIGApp.Dialog"){
 			this.popupQueue.push( o );
 			return;
+		} else if( this.$.errorMessage.isOpen ){
+			this.openMessage.hidePopup(this, null, null);
+			for( item in this.popupQueue){
+				item.hidePopup(this, null, null);
+			}
+			this.popupQueue.length = 0;
 		}
 		this.popupPaint( o );
 	},

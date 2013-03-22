@@ -16,7 +16,8 @@ enyo.kind({
 		this.addCallback("getCartridgesResult", enyo.bind(this, this._getMetaCallback), true);
 		this.addCallback("openCartridgeResult", enyo.bind(this, this.openCartridgeResult), true);
 		
-		this.addCallback("popupMessage", enyo.bind(this, this.messageBox), true);
+		this.addCallback("MessageBox", enyo.bind(this, this.messageBox), true);
+		this.addCallback("Dialog", enyo.bind(this, this.dialog), true);
 		this.addCallback("playAudio", enyo.bind(this, this.playAudio), true);
 		this.addCallback("GetInput", enyo.bind(this, this.getInput), true);
 		this.addCallback("ShowStatusText", enyo.bind(this, this.ShowStatusText), true);
@@ -37,6 +38,13 @@ enyo.kind({
 			console.error("***** WIG Enyo: Media url: " + media);
 		}*/
 		this.owner.popupMessage( new WIGApp.MessageBox(message, "Message", media, button1, button2, (callback == "1"))  );
+	},
+	dialog: function(message, media){
+		/*console.error("***** WIG Enyo: dialog:" + message);
+		if( media ){
+			console.error("***** WIG Enyo: Media url: " + media);
+		}*/
+		this.owner.popupMessage( new WIGApp.Dialog(message, "Message", media) );
 	},
 	MessageBoxResponse: function( value ){
 		console.error("***** WIG Enyo: MessageBoxResponse value: " + value);

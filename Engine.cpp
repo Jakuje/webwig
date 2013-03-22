@@ -25,7 +25,7 @@ void MessageBox(const char *text, std::string media,
     params[2] = button1;
     params[3] = button2;
     params[4] = c;
-    err = PDL_CallJS("popupMessage", params, 5);
+    err = PDL_CallJS("MessageBox", params, 5);
     if (err) {
         syslog(LOG_ERR, "*** PDL_CallJS failed, %s", PDL_GetError());
         //SDL_Delay(5);
@@ -34,6 +34,22 @@ void MessageBox(const char *text, std::string media,
 	if( callback ){
 		luaL_dostring(L, "Wherigo._MessageBoxResponse(\"ok\")");
 	}
+#endif
+
+}
+
+void Dialog(const char *text, std::string media){
+
+#ifndef DESKTOP
+    PDL_Err err;
+    const char *params[2];
+    params[0] = text;
+    params[1] = media.c_str();
+    err = PDL_CallJS("Dialog", params, 5);
+    if (err) {
+        syslog(LOG_ERR, "*** PDL_CallJS failed, %s", PDL_GetError());
+        //SDL_Delay(5);
+    }
 #endif
 
 }
