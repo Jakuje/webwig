@@ -520,6 +520,12 @@ Wherigo.ZObject_metatable = {
 			if value ~= t._active then
 				t._active = value
 				Wherigo.LogMessage("ZObject <" .. t.Name .. ">.Active = " .. Wherigo._bool2str(value))
+				if t._classname == Wherigo.CLASS_ZONE then
+					t.State = 'NotInRange'
+					t._state = 'NotInRange'
+					t.Inside = false
+					t._inside = false
+					end
 				if table.OnSetActive then
 					Wherigo.LogMessage("ZObject <" .. t.Name .. ">: START OnSetActive")
 					t.OnSetActive(t)
