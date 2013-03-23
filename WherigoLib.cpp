@@ -219,7 +219,7 @@ void Dialog(const char *text, const char *media) {
 void close() {
 	WherigoOpen->log("Close prompt");
 	
-	Engine::ClosePrompt(text, m);
+	Engine::ClosePrompt();
 	return;
 }
 
@@ -348,7 +348,7 @@ lua_State * openLua(Wherigo *w){
 			.addFunction("ShowStatusText", Engine::ShowStatusText)
 			.addFunction("escapeJsonString", escapeJsonString)
 			.addFunction("save", saveState)
-			.addFunction("close", closePrompt)
+			.addFunction("close", close)
 			.addFunction("addTimer", addTimer)
 			.addFunction("removeTimer", removeTimer)
 			.addFunction("getTime", getTime)
