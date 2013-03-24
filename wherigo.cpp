@@ -110,7 +110,10 @@ int Wherigo::scanOffsets (){
 	
 	for(int i = 0;i < files; i++){
 		ids[i] = fd.readUShort();
-		idsRev[ ids[i] ] = i; // sometimes it is not in correct order and we need to aceess some ID
+		if( ids[i] < files ){ // sometimes there is larger index and I can't handle it
+			idsRev[ ids[i] ] = i;
+			// sometimes it is not in correct order and we need to aceess some ID
+		}
 		//cerr << i << ":" << ids[i] << endl;
 		offsets[i] = fd.readLong();
 		types[i] = UNDEFINED;
@@ -178,8 +181,16 @@ bool Wherigo::createBytecode(){
  * Creates file by global ID
  */
 bool Wherigo::createFileById(int id){
-	//for(int i = 1;i < files; i++){ // 0 is cartridge
-	return this->createFile(idsRev[id]);
+	if( id < files ){
+		return this->createFile(idsRev[id]);
+	} else {
+		for(int i = 1;i < files; i++){
+			if( ids[i] == id ){
+				return this->createFile(i);
+			}
+		}
+	}
+	return false;
 }
 
 /**
@@ -210,10 +221,17 @@ bool Wherigo::createFile(int i){
 }
 
 string Wherigo::getFilePathById(int id){
-	if( id > 0 ){
+	if( id > 0 && id < files ){
 		// -1 means no file for icon/splash
 		// 0 is cartridge
 		return this->getFilePath(idsRev[id]);
+	} else if( id >= files ){
+		// file exists, but is not in idsRev array (out of bounds)
+		for(int i = 1;i < files; i++){
+			if( ids[i] == id ){
+				return this->getFilePath(i);
+			}
+		}
 	} else {
 		return "";
 	}
@@ -223,11 +241,7 @@ string Wherigo::getFilePathById(const char *str_i){
 	ss << str_i;
 	int i;
 	ss >> i;
-	if( i > 0 ){
-		return getFilePath(idsRev[i]); // hope is ok
-	} else {
-		return "";
-	}
+	return getFilePathById(i);
 }
 string Wherigo::getFilePath(int i){
 	stringstream ss;
