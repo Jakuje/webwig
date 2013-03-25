@@ -13,7 +13,10 @@
 #include <glob.h>
 #include <sys/stat.h>
 #include <SDL.h>
+
+#ifndef DESKTOP
 #include "PDL.h"
+#endif
 
 
 using namespace std;
@@ -40,6 +43,7 @@ namespace Engine
 		EVENT_GET_INPUT_RESPONSE,
 		EVENT_CALLBACK,
 		EVENT_TIMER,
+		EVENT_SYNC,
 
 		EVENT_SET_POSITION_DEBUG
 		};
@@ -47,6 +51,8 @@ namespace Engine
 	extern void MessageBox(const char *text, string media,
 		const char *button1, const char *button2, const char *callback);
 	extern void Dialog(const char *text, string media);
+	
+	extern void RequestSync();
 	
 	extern void PlayAudio(string media);	
 	extern void ShowStatusText(const char *text);

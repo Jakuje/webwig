@@ -6,6 +6,8 @@
 /*   Description                                                              */
 /*                                                                            */
 /* ========================================================================== */
+#ifndef _FILEREARED_H_
+#define _FILEREARED_H_
 #include <string>
 #include <iostream>
 #include <fstream>
@@ -46,11 +48,19 @@ class fileReader: public ifstream {
 			return pom;
 		}
 
-		string readASCIIZ(){
-			string pom;
-			std::getline( *this, pom, '\0' );
-			return pom;
+		void readASCIIZ(string *data){
+			std::getline( *this, *data, '\0' );
+		}
+		
+		void readASCII(string *data, streamsize num){
+			data->clear();
+			char *buffer = new char [num+1];
+			this->read( buffer, num );
+			buffer[num] = '\0';
+			data->append(buffer);
+			delete [] buffer;
 		}
 
 };
 
+#endif

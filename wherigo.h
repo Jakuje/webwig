@@ -109,14 +109,15 @@ public:
 	
 	bool createFiles();
 
-	string getFilePathById(int i);
-	string getFilePathById(const char *str_i);
-	string getFilePath(int i);
+	string *getFilePathById(int i);
+	string *getFilePathById(const char *str_i);
+	string *getFilePath(int i);
 
 	void openLog();
 	void log(string message);
 	void closeLog();
 
+	string getSaveFilename();
 };
 
 #endif

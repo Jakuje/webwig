@@ -27,8 +27,10 @@ namespace WherigoLib
 	static long getTime();
 	static bool removeTimer(int ObjId);
 	static void saveState();
-	static void stackdump_g(lua_State* l);
 	static void PlayAudio(const char *media);*/
+	
+	/** To test Lua stack after modification "by hand" */
+	extern void stackdump_g(lua_State* l);
 	
 	/** Running timers and their connection to game */
 	extern map<int,SDL_TimerID> timers;
@@ -70,10 +72,12 @@ namespace WherigoLib
 	
 	extern lua_State * openLua(Wherigo *w);
 	
+	extern bool sync();
 	
 	extern std::string getUI();
 	
 	extern bool updateLocation(double *lat, double *lon, double *alt, double *accuracy);
+	
 }
 
 #endif

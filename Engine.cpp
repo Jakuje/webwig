@@ -31,9 +31,9 @@ void MessageBox(const char *text, std::string media,
         //SDL_Delay(5);
     }
 #else
-	if( callback ){
+	/*if( callback ){
 		luaL_dostring(L, "Wherigo._MessageBoxResponse(\"ok\")");
-	}
+	}*/
 #endif
 
 }
@@ -67,6 +67,21 @@ void ClosePrompt(){
 
 }
 
+void RequestSync(){
+	SDL_Event event;
+	SDL_UserEvent userevent;
+
+	userevent.type = SDL_USEREVENT;
+	userevent.code = EVENT_SYNC;
+	userevent.data1 = NULL;
+	userevent.data2 = NULL;
+
+	event.type = SDL_USEREVENT;
+	event.user = userevent;
+
+	SDL_PushEvent(&event);
+	
+}
 
 /** Play audio in user interface */
 void PlayAudio(string media) {
@@ -521,11 +536,12 @@ bool OutputMetadata(stringstream *buf, const char *cartridge, bool first = true)
 	if (!first) {
 		*buf << ",\n";
 	}
-	
+	string *icon = w->getFilePathById(w->iconID);
+	string *splash = w->getFilePathById(w->splashID);
 	*buf << "{\n"
 		<< "\"filename\": \"" << WherigoLib::escapeJsonString(string(cartridge)) << "\""
-		<< ",\"icon\": \"" << w->getFilePathById(w->iconID) << "\""
-		<< ",\"splash\": \"" << w->getFilePathById(w->splashID) << "\""
+		<< ",\"icon\": \"" << *icon << "\""
+		<< ",\"splash\": \"" << *splash << "\""
 		<< ",\"type\": \"" << w->type << "\""
 		<< ",\"name\": \"" << WherigoLib::escapeJsonString(w->cartridgeName) << "\""
 		<< ",\"guid\": \"" << w->cartridgeGUID << "\""
@@ -535,6 +551,8 @@ bool OutputMetadata(stringstream *buf, const char *cartridge, bool first = true)
 		<< ",\"author\": \"" << WherigoLib::escapeJsonString(w->author) << "\""
 		<< ",\"company\": \"" << WherigoLib::escapeJsonString(w->company) << "\""
 		<< "\n}";
+	delete icon;
+	delete splash;
 	delete w;
 	return true;
 }
@@ -636,12 +654,13 @@ bool openCartridgeToJS(char *filename){
 			//SDL_Delay(5);
 			return false;
 		}
-		if( status == 1 ){
-			return false;
-		}
 	} else 
 #endif
 		cerr << buffer->str() << endl;
+
+	if( status == 1 ){
+		return false;
+	}
 	
 	WherigoLib::OnStartEvent();
 	
@@ -742,6 +761,9 @@ void loop(){
 					int *ObjId = (int *)event.user.data1;
 					WherigoLib::timerTick(ObjId);
 					}
+					break;
+				case EVENT_SYNC:
+					WherigoLib::sync();
 					break;
 			}
         }

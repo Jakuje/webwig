@@ -97,7 +97,7 @@ void CommandLineTests(int argc, char **argv){
 			return;
 		}
 		
-		double lon, lat;
+		/*double lon, lat;
 		lat = 49.223878820512;
 		lon = 16.529799699783;
 		Engine::setPosition(&lat, &lon);
@@ -108,7 +108,7 @@ void CommandLineTests(int argc, char **argv){
 		WherigoLib::CallbackFunction( "OnStartGame", &i );
 		WherigoLib::GetInputResponse( "Begin" );
 		
-		Engine::setPosition(&lat, &lon);
+		Engine::setPosition(&lat, &lon);*/
 		
 		//luaL_dostring(L, "debug.debug()");
 		
@@ -116,9 +116,12 @@ void CommandLineTests(int argc, char **argv){
 		/*int status = luaL_dostring(L, "return Wherigo._getUI()");
 		report(L, status);
 		cerr << "Lua result: " << lua_tostring(L, 1) << endl;*/
-		cerr << WherigoLib::getUI();
+		//cerr << WherigoLib::getUI();
 		//updateStateToJS();
-		
+		int *s = new int;
+		*s = 1;
+		Engine::closeCartridge(s);
+		delete s;
 	}
 }
 
@@ -127,11 +130,15 @@ void CommandLineTests(int argc, char **argv){
 int main (int argc, char **argv) {
 	
 	Engine::setup(argc, argv);
+#ifndef DESKTOP
 	if (!PDL_IsPlugin()) {
+#endif
 		cerr << "call from cmd" << endl;
         CommandLineTests(argc, argv);
         exit(0);
+#ifndef DESKTOP
     }
+#endif
 
 	// alive UI
 	while (1) {

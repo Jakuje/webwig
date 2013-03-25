@@ -679,7 +679,8 @@ function Wherigo.ZObject.new(cartridge, container )
 	
 	-- initialization
 	if self.Cartridge == nil then
-		-- todo
+		-- we don't have cartridge, so it is Player
+		-- or Cartridge
 		self.ObjIndex = -1
 		return self
 		end
@@ -776,11 +777,21 @@ function Wherigo.ZCartridge.new(  )
 	local self = Wherigo.ZObject.new( ) 
 	self._classname = Wherigo.CLASS_ZCARTRIDGE
 	self._mediacount = -1
-	self.AllZObjects = {}
+	self.AllZObjects = { self }
+	self.ObjIndex = 1
 	self.AllZCharacters = {}
 	self.AllZItems = {}
 	self.AllZones = {}
 	self.AllZTimers = {}
+	self.Company = Env._Company
+	self.Activity = Env._Activity
+	
+	self.EmptyInventoryListText = 'No items'
+	self.EmptyTaskListText = 'No new tasks'
+	self.EmptyZonesListText = 'Nowhere to go'
+	self.EmptyYouSeeListText = 'Nothing of interest'
+	self.Complete = false -- maybe one of requirements to unlock on website
+	
 	--[[self.Name = 'Old name'
 	self.Icon = Wherigo.ZMedia(self)
 	self.Icon.Id = Env._IconId

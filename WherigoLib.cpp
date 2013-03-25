@@ -2,6 +2,7 @@
 #include <syslog.h>
 #include <SDL.h>
 #include "WherigoLib.hpp"
+#include "WherigoLib.Save.hpp"
 #include "Engine.hpp"
 #include "LuaBridge.h"
 
@@ -109,9 +110,14 @@ void ShowScreenLua(const char *screen, const char *detail) {
 }
 
 /** Save Game */
-void saveState(){
+bool sync(){
 	WherigoOpen->log("ZCartridge:Sync");
-	// save ... @todo
+	return WherigoLib::Save::sync();
+}
+
+bool restore(){
+	WherigoOpen->log("ZCartridge:Restore");
+	return WherigoLib::Save::restore();
 }
 
 /** get current timestamp */
@@ -189,29 +195,33 @@ void MessageBox(const char *text, const char *media,
 	if( strcmp(button1, "") != 0 || strcmp(button2, "") != 0 ){
 		cerr << " >> Options: " << button1 << " | " << button2;
 	}*/
-	string m;
+	string *m;
 	if( strcmp(media, "") != 0 ){
 		m = WherigoOpen->getFilePathById(media);
 		//cerr << " >> Media (" << media << "): " << m;
+	} else {
+		m = new string("");
 	}
 	//cerr << endl;
 	//syslog(LOG_WARNING, "*** MessageBox with message: %s", text);
 	WherigoOpen->log( string("MessageBox  Text: ").append(text) );
 	
-	Engine::MessageBox(text, m, button1, button2, callback);
+	Engine::MessageBox(text, *m, button1, button2, callback);
+	delete m;
 	return;
 }
 
 /** Show messageBox to user */
 void Dialog(const char *text, const char *media) {
-	string m;
+	string *m;
 	if( strcmp(media, "") != 0 ){
 		m = WherigoOpen->getFilePathById(media);
 		//cerr << " >> Media (" << media << "): " << m;
 	}
 	WherigoOpen->log( string("Dialog  Text: ").append(text) );
 	
-	Engine::Dialog(text, m);
+	Engine::Dialog(text, *m);
+	delete m;
 	return;
 }
 
@@ -239,11 +249,12 @@ void MessageBoxResponse(const char *value){
 void GetInput(const char *type, const char *text, const char* choices, const char* media) {
 	//syslog(LOG_WARNING, "*** GetInput");
 	
-	string m;
+	string *m;
 	if( strcmp(media, "") != 0 ){
 		m = WherigoOpen->getFilePathById(media);
 	}
-	Engine::GetInput(type, text, choices, m);
+	Engine::GetInput(type, text, choices, *m);
+	delete m;
 }
 
 /** Response to user input */
@@ -284,7 +295,9 @@ void CallbackFunction(const char *event, int * id){
 void PlayAudio(const char *media) {
 	syslog(LOG_WARNING, "*** PlayAudio");
 
-    Engine::PlayAudio( WherigoOpen->getFilePathById(media) );
+	string *m = WherigoOpen->getFilePathById(media);
+    Engine::PlayAudio( *m );
+    delete m;
 	return;
 }
 
@@ -310,8 +323,24 @@ lua_State * openLua(Wherigo *w){
 		my_error("cannot create state: not enough memory");
 		return NULL;
 	}
-	luaL_openlibs(L);
-
+	//luaL_openlibs(L); // removed os, io and debug
+	//awkward but it is late tonight ...
+	lua_pushcfunction(L, luaopen_base);
+	lua_pushstring(L, "");
+	lua_call(L, 1, 0);
+	lua_pushcfunction(L, luaopen_package);
+	lua_pushstring(L, LUA_LOADLIBNAME);
+	lua_call(L, 1, 0);
+	lua_pushcfunction(L, luaopen_table);
+	lua_pushstring(L, "");
+	lua_call(L, 1, 0);
+	lua_pushcfunction(L, luaopen_string);
+	lua_pushstring(L, "");
+	lua_call(L, 1, 0);
+	lua_pushcfunction(L, luaopen_math);
+	lua_pushstring(L, "");
+	lua_call(L, 1, 0);
+	
 	atexit( exit_lua );
 	//my_error("*** MAIN LUA");
 
@@ -335,6 +364,8 @@ lua_State * openLua(Wherigo *w){
 			.addVariable("_Player", &w->player, false)
 			.addVariable("_IconId", &w->iconID, false)
 			.addVariable("_SplashId", &w->splashID, false)
+			.addVariable("_Company", &w->company, false)
+			.addVariable("_Activity", &w->type, false)
 			.addVariable("Downloaded", &TIME, false)
 		.endNamespace();
 		
@@ -347,7 +378,7 @@ lua_State * openLua(Wherigo *w){
 			.addFunction("GetInput", GetInput)
 			.addFunction("ShowStatusText", Engine::ShowStatusText)
 			.addFunction("escapeJsonString", escapeJsonString)
-			.addFunction("save", saveState)
+			.addFunction("RequestSync", Engine::RequestSync)
 			.addFunction("close", close)
 			.addFunction("addTimer", addTimer)
 			.addFunction("removeTimer", removeTimer)
@@ -411,7 +442,9 @@ int openCartridge(char *filename){
 
 /** Close cartridge and clean all variables */
 void closeCartridge(int *save){
-	// @todo save
+	if( *save == 1 ){
+		sync();
+	}
 	
 	std::map<int,SDL_TimerID>::iterator it;
 	for (it=timers.begin(); it!=timers.end(); ++it){
@@ -428,7 +461,7 @@ void closeCartridge(int *save){
 	exit_lua();
 }
 
-void OnStartEvent(){
+void DoCartridgeEvent(const char *event){
 	stringstream buffer;
 	// move to starting coordinates and call update position
 	// only for debug ... in production, it is not desired
@@ -440,18 +473,29 @@ void OnStartEvent(){
 	/*status = luaL_dostring(L, "cartridge.OnStart() ");
 	report(L, status);*/
 	lua_getfield(L, LUA_GLOBALSINDEX, "cartridge");	// [-0, +1, e]
-	lua_getfield(L, -1, "OnStart");					// [-0, +1, e]
+	lua_getfield(L, -1, event);					// [-0, +1, e]
 	lua_remove(L, -2);								// [-1, +0, -]
 	// test if there is such method
 	int type = lua_type(L, -1);					
 	if( type == LUA_TFUNCTION ){
-		WherigoOpen->log("ZCartridge:OnStart START");
-		int status = lua_pcall(L, 0, 0, 0);					// [-1, +(0|1), -] [-(nargs + 1), +(nresults|1), -]
-		report(L, status);								// [-(0|1), +0, -]
-		WherigoOpen->log("ZCartridge:OnStart END__");
+		WherigoOpen->log(string("ZCartridge:") + event + " START");
+		// argument self
+		lua_getfield(L, LUA_GLOBALSINDEX, "cartridge");	// [-0, +1, e]
+		int status = lua_pcall(L, 1, 0, 0);			// [-1, +(0|1), -] [-(nargs + 1), +(nresults|1), -]
+		report(L, status);							// [-(0|1), +0, -]
+		WherigoOpen->log(string("ZCartridge:") + event + " END__");
 	} else {
 		lua_remove(L, -1);
 	}
+}
+
+void OnStartEvent(){
+	if( WherigoLib::restore() ){
+		DoCartridgeEvent("OnRestore");
+		return;
+	}
+	DoCartridgeEvent("OnStart");
+
 }
 
 
@@ -490,7 +534,6 @@ bool updateLocation(double *lat, double *lon, double *alt, double *acc){
 	int status = luaL_dostring(L, ss.str().c_str());
 	if( status == 0 ){
 		update_all = lua_toboolean(L, 1);
-		stackdump_g(L);
 		lua_pop(L, 1);
 	} else {
 		report(L, status);

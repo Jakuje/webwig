@@ -17,7 +17,7 @@
 void my_error(string message){
 	//fprintf(stderr, "%s", message);
 	cerr << message << endl;
-	syslog(LOG_WARNING, message.c_str());
+	syslog(LOG_WARNING, "%s", message.c_str());
 	if(WherigoLib::WherigoOpen != NULL){
 		WherigoLib::WherigoOpen->log(message);
 	}
@@ -141,24 +141,24 @@ bool Wherigo::scanHeader (){
 	splashID = fd.readShort();
 	iconID = fd.readShort();
 	
-	type = fd.readASCIIZ();
-	player = fd.readASCIIZ();
+	fd.readASCIIZ(&type);
+	fd.readASCIIZ(&player);
 	
 	fd.readLong();
 	fd.readLong();// unknown values
 	
-	cartridgeName = fd.readASCIIZ();
-	cartridgeGUID = fd.readASCIIZ();
-	cartridgeDescription = fd.readASCIIZ();
-	startingLocationDescription = fd.readASCIIZ();
-	version = fd.readASCIIZ();
-	author = fd.readASCIIZ();
-	company = fd.readASCIIZ();
-	recomandedDevice = fd.readASCIIZ();
+	fd.readASCIIZ(&cartridgeName);
+	fd.readASCIIZ(&cartridgeGUID);
+	fd.readASCIIZ(&cartridgeDescription);
+	fd.readASCIIZ(&startingLocationDescription);
+	fd.readASCIIZ(&version);
+	fd.readASCIIZ(&author);
+	fd.readASCIIZ(&company);
+	fd.readASCIIZ(&recomandedDevice);
 	
 	fd.readLong(); // unknown
 
-	completionCode = fd.readASCIIZ();
+	fd.readASCIIZ(&completionCode);
 	
 	return true;
 }
@@ -203,16 +203,17 @@ bool Wherigo::createFile(int i){
 			return false;
 		}
 		types[i] = fd.readLong(); // use to export to Javascript
-		string path = getFilePath(i);
+		string *path = getFilePath(i);
 		//my_error(string("*** Wherigo.cpp *** Creating File: ").append(path));
 		int len = fd.readLong();
 		char *data = new char [len];
 		fd.read(data, len);
 		
-		ofstream f( path.c_str(), ios_base::out | ios_base::binary);
+		ofstream f( path->c_str(), ios_base::out | ios_base::binary);
 		f.write(data, len);
 		f.close();
 		delete [] data;
+		delete path;
 		return true;
 	} else {
 		print_backtrace();
@@ -220,7 +221,7 @@ bool Wherigo::createFile(int i){
 	}
 }
 
-string Wherigo::getFilePathById(int id){
+string *Wherigo::getFilePathById(int id){
 	if( id > 0 && id < files ){
 		// -1 means no file for icon/splash
 		// 0 is cartridge
@@ -232,46 +233,46 @@ string Wherigo::getFilePathById(int id){
 				return this->getFilePath(i);
 			}
 		}
-	} else {
-		return "";
 	}
+	return new string("");
 }
-string Wherigo::getFilePathById(const char *str_i){
+string *Wherigo::getFilePathById(const char *str_i){
 	stringstream ss;
 	ss << str_i;
 	int i;
 	ss >> i;
 	return getFilePathById(i);
 }
-string Wherigo::getFilePath(int i){
+string *Wherigo::getFilePath(int i){
 	stringstream ss;
 	ss << ids[i];
 	if( i < files && i > 0 ){
 		if( types[i] == UNDEFINED ){
 			createFile(i);
 		}
-		string path = this->getCartDir().append(ss.str());
+		string *path = new string(this->getCartDir());
+		path->append(ss.str());
 		switch (types[i]){
 			case BMP:
-				path = path.append(".bmp");
+				path->append(".bmp");
 				break;
 			case PNG:
-				path = path.append(".png");
+				path->append(".png");
 				break;
 			case JPG:
-				path = path.append(".jpg");
+				path->append(".jpg");
 				break;
 			case GIF:
-				path = path.append(".gif");
+				path->append(".gif");
 				break;
 			case WAV:
-				path = path.append(".wav");
+				path->append(".wav");
 				break;
 			case MP3:
-				path = path.append(".mp3");
+				path->append(".mp3");
 				break;
 			case FDL:
-				path = path.append(".fdl");
+				path->append(".fdl");
 				break;
 			default:
 				// log missing file extension ... and learn it ...
@@ -283,7 +284,7 @@ string Wherigo::getFilePath(int i){
 		return path;
 	} else {
 		my_error(string("Unknown file (id out of bounds)").append(ss.str()));
-		return "";
+		return new string("");
 	}
 }
 
@@ -326,6 +327,7 @@ void Wherigo::openLog(){
 }
 
 void Wherigo::log(string message){
+	cerr << message << endl;
 	time_t t = time(NULL);
 	tm *ltm = localtime(&t);
 	char ts[15]; // 14 + \0
@@ -342,4 +344,10 @@ void Wherigo::log(string message){
 
 void Wherigo::closeLog(){
 	logFile.close();
+}
+
+string Wherigo::getSaveFilename(){
+	string name = this->filename.substr(0, this->filename.length() - 1);
+	name.append("s");
+	return name;
 }
