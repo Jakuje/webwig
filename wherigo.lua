@@ -20,19 +20,24 @@ Wherigo = {
 	LOGWARNING			= 153,
 	LOGERROR			= 154,
 	
-	CLASS_ZONE			= 20,
-	CLASS_ZMEDIA		= 21,
-	CLASS_ZCARTRIDGE	= 22,
-	CLASS_ZCHARACTER	= 23,
-	CLASS_ZCOMMAND		= 24,
-	CLASS_ZINPUT		= 25,
-	CLASS_ZTASK			= 26,
-	CLASS_ZITEM			= 27,
-	CLASS_ZTIMER		= 28,
+	CLASS_ZONE			= "Zone",
+	CLASS_ZMEDIA		= "ZMedia",
+	CLASS_ZCARTRIDGE	= "ZCartridge",
+	CLASS_ZCHARACTER	= "ZCharacter",
+	CLASS_ZCOMMAND		= "ZCommand",
+	CLASS_ZINPUT		= "ZInput",
+	CLASS_ZTASK			= "ZTask",
+	CLASS_ZITEM			= "ZItem",
+	CLASS_ZTIMER		= "ZTimer",
+	CLASS_DISTANCE		= "Distance",
+	CLASS_BEARING		= "Bearing",
+	CLASS_ZENEPOINT		= "ZonePoint",
+	CLASS_ZCOMMAND		= "ZCommand",
 	
 	_MBCallbacks = {},
 	_GICallbacks = {}
 	}
+
 
 
 function Wherigo.MessageBox(t)
@@ -372,7 +377,7 @@ Wherigo.Bearing_metatable = {
 		end,
 }
 function Wherigo.Bearing.new(value)
-	local self = {}
+	local self = { _classname = Wherigo.CLASS_BEARING}
 	self.value = value % 360
 	
 	setmetatable(self, Wherigo.Bearing_metatable)
@@ -419,7 +424,7 @@ Wherigo.Distance_metatable = {
 function Wherigo.Distance.new(value, units)
 	units = units or 'meters'
 	
-	local self = {}
+	local self = { _classname = Wherigo.CLASS_DISTANCE}
 	if units == 'meters' or units == 'm' then
 		self.value = value
 	elseif units == 'kilometres' or units == 'km' then
@@ -482,6 +487,7 @@ function Wherigo.ZCommand.new(table)
 			WorksWithList = table.WorksWithList or {}, -- Zcharacter, ZItem
 		--Custom = true, -- doesn't matter
 		Enabled = true,
+		_classname = Wherigo.CLASS_ZCOMMAND,
 		};
 	if table.CmdWith ~= nil then
 		self.CmdWith = table.CmdWith
@@ -592,9 +598,8 @@ function Wherigo.ZObject.new(cartridge, container )
 			_active = true,
 		}
 		end
-	self.CurrentBearing = Wherigo.Bearing(0)
-	self.CurrentDistance = Wherigo.Distance(0)
 	self.Name = self.Name or "(NoName)"
+	self.Description = self.Description or -1
 	if self.Visible == nil then
 		self.Visible = true
 		end
@@ -626,6 +631,11 @@ function Wherigo.ZObject.new(cartridge, container )
 	function self:MoveTo(owner)
 		if owner ~= nil then
 			Wherigo.LogMessage("Move " .. self.Name .. " to " .. owner.Name)
+			if owner == Wherigo.Player then
+				--table.insert(Wherigo.Player.Inventory, self)
+			elseif self.Container == Wherigo.Player then
+				--table.remove(Wherigo.Player.Inventory, ???)
+				end
 		else
 			Wherigo.LogMessage("Move " .. self.Name .. " to (nowhere)")
 			end
@@ -693,7 +703,7 @@ Wherigo.ZonePoint_metatable = {
 		end
 }
 function Wherigo.ZonePoint.new(lat, lon, alt)
-	local self = {}
+	local self = { _classname = Wherigo.CLASS_ZONEPOINT}
 	self.latitude = lat
 	self.longitude = lon
 	self.altitude = alt
@@ -733,6 +743,9 @@ function Wherigo.Zone.new(cartridge)
 	table.insert(self.Cartridge.AllZones, self)
 	self._state = Wherigo.Zone.NotInRange
 	self._inside = false
+	self.CurrentBearing = Wherigo.Bearing(0)
+	self.CurrentDistance = Wherigo.Distance(0)
+	
 	--[[
 	self.OriginalPoint = Wherigo.INVALID_ZONEPOINT
 	
@@ -795,7 +808,7 @@ function Wherigo.ZCartridge.new(  )
 			self.OnSync(self)
 			Wherigo.LogMessage("ZCartridge: END__ onSync")
 			end
-		WIGInternal.save();
+		WIGInternal.RequestSync();
 		end
 	
 	function self:GetAllOfType(t)
@@ -836,6 +849,7 @@ function Wherigo.ZCartridge.new(  )
 		Wherigo.Player.ObjectLocation = position
 		Wherigo.Player.PositionAccuracy = Distance(accuracy)
 		Wherigo.Player._heading = heading
+		Wherigo.Player.LastLocationUpdate = t
 		for k,v in pairs(self.AllZObjects) do
 			if v.Active then
 				if (v._classname == Wherigo.CLASS_ZITEM and v.Container ~= Wherigo.Player)
@@ -1173,6 +1187,10 @@ setmetatable(Wherigo.ZCharacter, {
 Wherigo.Player = Wherigo.ZCharacter.new()
 Wherigo.Player.Name = Env._Player
 Wherigo.Player.CompletionCode = Env._CompletionCode
+Wherigo.Player.Inventory = {}
+Wherigo.Player.InsideOfZones = {}
+Wherigo.Player.CurrentDistance = nil
+Wherigo.Player.CurrentBearing = nil
 function Wherigo.Player:RefreshLocation()
 	-- request refresh location ... useless?
 	end
