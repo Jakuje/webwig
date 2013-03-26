@@ -93,7 +93,7 @@ enyo.kind({
 			} else {
 				this.$.itemIcon.hide();
 			}
-			if( this.screen == 'locations' ){
+			if( this.screen == 'locations' || (this.screen == 'yousee' && this.data[inIndex].distance) ){
 				d = this.data[inIndex].distance;
 				if( d == 0 ){
 					this.$.itemDistance.setContent("here");

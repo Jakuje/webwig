@@ -51,7 +51,7 @@ enyo.kind({
 			this.$.image.hide();
 		}
 		this.render();
-		if( this.screen == "locations" ){
+		if( this.screen == "locations" || (this.screen == "yousee" && data.distance) ){
 			if( data.distance < 2000 ){
 				this.$.distance.setContent(Math.round(data.distance) + " m");
 			} else {
