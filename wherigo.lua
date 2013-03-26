@@ -31,7 +31,7 @@ Wherigo = {
 	CLASS_ZTIMER		= "ZTimer",
 	CLASS_DISTANCE		= "Distance",
 	CLASS_BEARING		= "Bearing",
-	CLASS_ZENEPOINT		= "ZonePoint",
+	CLASS_ZONEPOINT		= "ZonePoint",
 	CLASS_ZCOMMAND		= "ZCommand",
 	
 	_MBCallbacks = {},
@@ -378,7 +378,11 @@ Wherigo.Bearing_metatable = {
 }
 function Wherigo.Bearing.new(value)
 	local self = { _classname = Wherigo.CLASS_BEARING}
-	self.value = value % 360
+	if value then
+		self.value = value % 360
+	else
+		self.value = 0
+		end
 	
 	setmetatable(self, Wherigo.Bearing_metatable)
 
@@ -515,6 +519,8 @@ Wherigo.ZObject_metatable = {
 	__index = function(t, key)
 		if key == 'Active' then
 			return t._active
+		elseif key == 'CommandsArray'then
+			return t.Commands
 		elseif key == 'CorrectState' and t._classname == Wherigo.CLASS_ZTASK then
 			return t._correct
 		elseif key == 'Complete' and t._classname == Wherigo.CLASS_ZTASK then
@@ -539,6 +545,8 @@ Wherigo.ZObject_metatable = {
 					end
 				end
 			return
+		elseif k == 'CommandsArray' then
+			t.Commands = value
 		elseif t._classname == Wherigo.CLASS_ZTASK then
 			if key == 'CorrectState' then
 				if value ~= t._correct then
@@ -594,12 +602,12 @@ function Wherigo.ZObject.new(cartridge, container )
 		self = {
 			Container = container or nil,
 			Cartridge = cartridge or nil,
-			Commands = {},
 			_active = true,
 		}
 		end
 	self.Name = self.Name or "(NoName)"
 	self.Description = self.Description or -1
+	self.Commands = self.Commands or {}
 	if self.Visible == nil then
 		self.Visible = true
 		end
@@ -646,7 +654,7 @@ function Wherigo.ZObject.new(cartridge, container )
 		if not ((self.Active and self.Visible) or DEBUG) then
 			return false
 			end
-		if self.Container == nil then
+		if not self.Container then
 			return false
 			end
 		if not self.Container.Active or self.Container._classname ~= Wherigo.CLASS_ZONE then
@@ -1349,6 +1357,13 @@ Wherigo._getYouSee = function()
 				.. Wherigo._getMediaField("icon", v.Icon)
 				.. Wherigo._addCommands(v)
 				.. ", \"id\": \"" .. k .. "\""
+			pos = v._get_pos()
+			if pos then
+				yousee = yousee .. ", \"distance\": " .. v.CurrentDistance("m")
+					.. ", \"bearing\": " .. v.CurrentBearing("m")
+					.. ", \"lat\": " .. pos.latitude
+					.. ", \"lon\": " .. pos.longitude
+				end
 			if v.OnClick then
 				yousee = yousee .. ", \"onclick\": true"
 				end
