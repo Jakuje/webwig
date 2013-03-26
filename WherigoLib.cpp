@@ -495,10 +495,10 @@ void DoCartridgeEvent(const char *event){
 }
 
 void OnStartEvent(){
-	if( WherigoLib::restore() ){
+	/*if( WherigoLib::restore() ){
 		DoCartridgeEvent("OnRestore");
 		return;
-	}
+	}*/
 	DoCartridgeEvent("OnStart");
 
 }

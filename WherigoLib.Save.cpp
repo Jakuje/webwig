@@ -1,4 +1,5 @@
 #include "WherigoLib.Save.hpp"
+#include "WherigoLib.Save.hpp"
 #include "WherigoLib.hpp"
 
 namespace WherigoLib {
@@ -421,13 +422,15 @@ bool restore(){
 	fd.readDouble(); // alt
 	
 	int num_objects = fd.readLong();
-	string objects[num_objects];
+	//string objects[num_objects];
 	
 	long len;
-	objects[0] = "ZCartridge";
+	string obj;
+	//objects[0] = "ZCartridge";
 	for(int i = 1; i < num_objects; i++){
 		len = fd.readLong();
-		fd.readASCII(&objects[i], len);
+		//fd.readASCII(&objects[i], len);
+		fd.readASCII(&obj, len);
 	}
 	
 	// read Player data
