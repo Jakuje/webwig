@@ -48,7 +48,8 @@ void serialize_table(fileWriter *sf, int index, bool functions = false){
 					name = lua_tostring(L, i);
 					// look in 
 					if( i == -2 && (name[0] == '_' || strcmp(name, "Cartridge") == 0 
-						|| strcmp(name, "Resources") == 0 || string(name).compare(0, 4, "AllZ") == 0) ){
+						|| strcmp(name, "Resources") == 0 || string(name).compare(0, 4, "AllZ") == 0
+						|| string(name).compare(0, 7, "Current") == 0) ){
 						skip = true;
 						break;
 					}
@@ -126,7 +127,7 @@ bool sync(){
 	const char *name;
 	
 	size = lua_objlen(L, -1);
-	sf.writeLong( size + 1 ); // num of zobjects + 1
+	sf.writeLong( size ); // num of zobjects + 1 ???
 	
 	// write types of AllZObjects
 	lua_pushnil(L);														// [-0, +1, -]
@@ -191,9 +192,170 @@ bool sync(){
 	return true;
 }
 
-bool read_table(fileReader *fd, int index){
-	// @todo some Pushdown automaton (zasobnikovy automat)
+
+
+bool read_object(fileReader *fd, string name, bool create_objects);
+
+bool read_table(fileReader *fd, string name){
+	int code = fd->readByte();
+	if(code != 0x05){ // start table
+		cerr << "Expected 0x05 as start of table, got " << code << endl;
+		return false;
+	}
+	bool key = true;
+	int status, len;
+	string text, key_value;
+	double number;
+	while( (code = fd->readByte()) != 0x06 ){ // end table
+		switch(code){
+			case 0x01: // boolean
+				if( key ){
+					cerr << "Boolean can't be key" << endl;
+					return false;
+				} else {
+					len = fd->readByte();
+					lua_pushboolean(L, len);							// [-0, +1, -]
+					lua_settable(L, -3);								// [-2, +0, e]
+					cerr << "      -======= " << key_value << " = " << len << " (" << (bool)len << ") =======- " << endl;
+				}
+				break;
+			case 0x02: // number
+				number = fd->readDouble();
+				if( key ){
+					lua_pushnumber(L, number);							// [-0, +1, -]
+				} else {
+					cerr << "      -======= " << key_value << " =======- " << endl;
+					lua_pushnumber(L, number);							// [-0, +1, -]
+					lua_settable(L, -3);								// [-2, +0, e]
+				}
+				break;
+			case 0x03: // string
+				len = fd->readLong();
+				fd->readASCII(&text, len);
+				if( key ) {
+					lua_pushstring(L, text.c_str());					// [-0, +1, -]
+					key_value = text; // for debug only!!!
+				} else {
+					cerr << "      -======= " << key_value << " =======- " << endl;
+					lua_pushstring(L, text.c_str());					// [-0, +1, -]
+					lua_settable(L, -3);								// [-2, +0, e]
+				}
+				break;
+			case 0x04: // function
+				if( key ){
+					cerr << "Function can't be key" << endl;
+					return false;
+				} else {
+					cerr << "      -======= " << key_value << " =======- " << endl;
+					len = fd->readLong();
+					fd->readASCII(&text, len);
+					status = 0;//luaL_loadbuffer(L, text.c_str(), len, "Sync load chunk");	// [-0, +1, -]
+					if( status == 0){
+						//lua_settable(L, -3);							// [-2, +0, e]
+						lua_pop(L, 1);
+					} else {
+						report(L, status);								// [-1, +0, e]
+						lua_pop(L, 1);									// [-1, +0, -]
+						return false;
+					}
+				}
+				break;
+			case 0x05: // start table
+				if( key ){
+					cerr << "Table can't be key" << endl;
+					return false;
+				} else {
+					cerr << "      -======= " << key_value << " (Table Start) =======- " << endl;
+					fd->unget();
+					lua_gettable(L, -2);								// [-1, +1, -]
+					if( !read_table(fd, key_value) ){
+						lua_pop(L, 1);
+						return false;
+					}
+					cerr << "      -======= " << key_value << " (Table End) =======- " << endl;
+					lua_pop(L, 1);
+				}
+				break;
+			case 0x07: // reference
+				if( key ){
+					cerr << "Reference can't be key" << endl;
+					return false;
+				} else {
+					cerr << "      -======= " << key_value << " =======- " << endl;
+					len = fd->readUShort();
+					// @todo
+					lua_pop(L, 1);
+				}
+				break;
+			case 0x08: // object
+				if( key ){
+					cerr << "Reference can't be key" << endl;
+					return false;
+				} else {
+					cerr << "      -======= " << key_value << " (Object Start) =======- " << endl;
+					stackdump_g(L);
+					lua_pushvalue(L, -1);
+					lua_gettable(L, -3);
+					stackdump_g(L);
+					// stack : 	-3 is table
+					// 			-2 is key of table (will be pop-ed)
+					//			-1 is its value
+					if( !read_object(fd, key_value, true) ){
+						lua_pop(L, 2);
+						return false;
+					}
+					cerr << "      -======= " << key_value << " (Object End) =======- " << endl;
+					//lua_pop(L, 1);
+				}
+				break;
+			case 0x06:
+			default:
+				cerr << "Unexpected input code: " << code << endl;
+				break;
+		}
+		key = !key;
+	}
+		
 	return true;
+}
+
+bool read_object(fileReader *fd, string key_name, bool create_objects = false){
+	string objname;
+	long len = fd->readLong();
+	fd->readASCII(&objname, len);
+	
+	bool set_field = false;
+	if( ! lua_istable(L, -1) ){
+		if( create_objects ){
+			lua_pop(L, 1);												// [-1, +0, -]
+			int status = luaL_dostring(L,
+				(string("return Wherigo.") + objname + ".new(cartridge)").c_str()
+				);														// [-0, +1, e]
+			report(L, status);
+			set_field = true;
+		} else {
+			cerr << "Object " << key_name << " doesn't exists and is denied to create" << endl;
+			return false;
+		}
+	}
+	lua_getfield(L, -1, "_classname");									// [-0, +1, e]
+	const char* name = lua_tostring(L, -1);
+	
+	cerr << " -============ " << objname << " ============- " << endl;
+	if( objname.compare(name) != 0 ){
+		lua_pop(L, 2);													// [-1, +0, -]
+		cerr << "Unexpected object at input. Expected " << name << ", got " << objname << endl;
+		return false;
+	}
+	lua_pop(L, 1);														// [-1, +0, -]
+	
+	bool res = read_table(fd, key_name);
+	if( set_field ){
+		lua_settable(L, -3);											// [-2, +0, e]
+	} else {
+		lua_pop(L, 2);													// [-2, +0, e]
+	}
+	return res;
 }
 
 bool restore(){
@@ -261,56 +423,45 @@ bool restore(){
 	int num_objects = fd.readLong();
 	string objects[num_objects];
 	
-	int len;
+	long len;
 	objects[0] = "ZCartridge";
-	for(int i = 1; i < (num_objects-1); i++){
+	for(int i = 1; i < num_objects; i++){
 		len = fd.readLong();
 		fd.readASCII(&objects[i], len);
-	}
-	
-	len = fd.readLong();
-	fd.readASCII(&pom, len);
-	if( pom.compare("ZCharacter") != 0 ){
-		fd.close();
-		cerr << "Unexpected object at input. Expected ZCharacter, got " << pom << endl;
-		return false;
 	}
 	
 	// read Player data
 	lua_getfield(L, LUA_GLOBALSINDEX, "Wherigo");	// [-0, +1, e]
 	lua_getfield(L, -1, "Player");					// [-0, +1, e]
 	lua_remove(L, -2);								// [-1, +0, -]
-	if( ! read_table(&fd, -1) ){
+	lua_pushvalue(L, -1);
+	if( ! read_object(&fd, "Player", false) ){
 		fd.close();
 		return false;
 	}
+	//lua_pop(L, 1); // included in read_object
 	
 	lua_getfield(L, LUA_GLOBALSINDEX, "cartridge");						// [-0, +1, e]
 	lua_getfield(L, -1, "AllZObjects");									// [-0, +1, e]
 	lua_remove(L, -2);													// [-1, +0, -]
 	
-	const char *name;
 	lua_pushnil(L);
-	for(int i = 0; i < num_objects-1; i++){
-		if( lua_next(L, -2) != 0) {										// [-1, +(2|0), e]
-			lua_pop(L, 3);
-			return false;
-		}
-		lua_getfield(L, -1, "_classname");								// [-0, +1, e]
-		name = lua_tostring(L, -1);
-		
-		len = fd.readLong();
-		fd.readASCII(&pom, len);
-		if( pom.compare(name) != 0 ){
-			lua_pop(L, 3);
+	for(int i = 0; i < num_objects; i++){
+		if( lua_next(L, -2) == 0) {										// [-1, +(2|0), e]
+			lua_pop(L, 1);
 			fd.close();
-			cerr << "Unexpected object at input. Expected " << name << ", got " << pom << endl;
+			cerr << "Expected more objects in environment ..." << endl;
 			return false;
 		}
-		lua_pop(L, 1);
-		read_table(&fd, -1);
-		lua_pop(L, 1);
+		lua_pushvalue(L, -1);
+		if( ! read_object(&fd, "", false) ){
+			fd.close();
+			lua_pop(L, 2);
+			return false;
+		}
+		//lua_pop(L, 1); // included in read_object
 	}
+	lua_pop(L, 1);
 	return true;
 }
 
