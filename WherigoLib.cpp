@@ -310,6 +310,12 @@ void exit_lua(){
 	}
 }
 
+void lua_openlib(lua_State *L, lua_CFunction f){
+	lua_pushcfunction(L, f);
+	lua_pushstring(L, "");
+	lua_call(L, 1, 0);
+}
+
 /** Open new Lua environment and init Wherigo library */
 lua_State * openLua(Wherigo *w){
 	// new Lua state
@@ -325,21 +331,11 @@ lua_State * openLua(Wherigo *w){
 	}
 	//luaL_openlibs(L); // removed os, io and debug
 	//awkward but it is late tonight ...
-	lua_pushcfunction(L, luaopen_base);
-	lua_pushstring(L, "");
-	lua_call(L, 1, 0);
-	lua_pushcfunction(L, luaopen_package);
-	lua_pushstring(L, LUA_LOADLIBNAME);
-	lua_call(L, 1, 0);
-	lua_pushcfunction(L, luaopen_table);
-	lua_pushstring(L, "");
-	lua_call(L, 1, 0);
-	lua_pushcfunction(L, luaopen_string);
-	lua_pushstring(L, "");
-	lua_call(L, 1, 0);
-	lua_pushcfunction(L, luaopen_math);
-	lua_pushstring(L, "");
-	lua_call(L, 1, 0);
+	lua_openlib(L, luaopen_base);
+	lua_openlib(L, luaopen_package);
+	lua_openlib(L, luaopen_table);
+	lua_openlib(L, luaopen_string);
+	lua_openlib(L, luaopen_math);
 	
 	atexit( exit_lua );
 	//my_error("*** MAIN LUA");
