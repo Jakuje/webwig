@@ -378,7 +378,7 @@ Wherigo.Bearing_metatable = {
 }
 function Wherigo.Bearing.new(value)
 	local self = { _classname = Wherigo.CLASS_BEARING}
-	if value then
+	if type(value) == 'number' then
 		self.value = value % 360
 	else
 		self.value = 0
