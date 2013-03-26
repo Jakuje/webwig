@@ -65,7 +65,8 @@ liblua.a: lua/lua.c
 
 $(PLUGIN): $(PLUGIN).cpp lua_common.o liblua.a lua_common.h \
  lua/lua.h lua/luaconf.h lua/lauxlib.h lua/lua.h lua/lualib.h \
- wherigo.o filereader.h WherigoLib.o Engine.o
+ wherigo.o WherigoLib.o WherigoLib.Save.o Engine.o \
+ filewriter.h filereader.h 
 	$(CPP) $(CPPFLAGS) $(LDFLAGS) -o $@ $^ $(PDL) $(LIBS)
 
 package: $(PLUGIN) appinfo.json logo.png
@@ -113,7 +114,10 @@ lua_common.o: lua_common.c lua/lua.hpp lua/lua.h lua/luaconf.h lua/lauxlib.h lua
 #main : $(PLUGIN).cpp lua_common.h lua/lua.h lua/lualib.h
 #	$(CPP) $(CPPFLAGS) -c -o $@ $^ $(LIBS)
 
-wherigo.o: wherigo.cpp wherigo.h
+wherigo.o: wherigo.cpp wherigo.h filereader.h
+	$(CPP) $(CPPFLAGS) -c -o $@ $<
+
+WherigoLib.Save.o: WherigoLib.Save.cpp WherigoLib.Save.hpp filewriter.h filereader.h
 	$(CPP) $(CPPFLAGS) -c -o $@ $<
 
 WherigoLib.o: WherigoLib.cpp WherigoLib.hpp Engine.hpp
