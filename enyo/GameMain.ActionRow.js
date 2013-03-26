@@ -47,7 +47,11 @@ enyo.kind({
 				this.owner.owner.owner.$.plugin.callback("OnClick", this.data[inEvent.rowIndex].id)
 			}
 		} else {
-			this.owner.owner.showScreen(this.screen, inEvent.rowIndex);
+			this.owner.owner.showScreen(this.screen,
+				( this.data[inEvent.rowIndex].key
+					? this.data[inEvent.rowIndex].key
+					: inEvent.rowIndex)
+				);
 		}
 	},
 	showScreen: function(){
@@ -67,13 +71,23 @@ enyo.kind({
 		this.$.icon.setSrc("images/" + this.screen + ".png");
 		
 		if( data ){
-			this.data = data;
+			if( this.name == "tasks" ){
+				this.data = [];
+				for(var i in data){
+					if( !data[i].complete ){
+						data[i].key = i;
+						this.data.push(data[i]);
+					}
+				}
+			} else {
+				this.data = data;
+			}
 			this.$.numRows.setContent(data.length);
 			this.render();
 			if( data.length == 0 ){
-				this.$.empty.show()
+				this.$.empty.show();
 			} else {
-				this.$.empty.hide()
+				this.$.empty.hide();
 			}
 		}
 	},
@@ -93,7 +107,7 @@ enyo.kind({
 			} else {
 				this.$.itemIcon.hide();
 			}
-			if( this.screen == 'locations' || (this.screen == 'yousee' && this.data[inIndex].distance) ){
+			if( this.screen == 'locations' || (this.screen == 'youSee' && this.data[inIndex].distance) ){
 				d = this.data[inIndex].distance;
 				if( d == 0 ){
 					this.$.itemDistance.setContent("here");
