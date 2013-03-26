@@ -71,7 +71,7 @@ void stackdump_g(lua_State* l)
     int top = lua_gettop(l);
  
     printf("total in stack %d\n",top);
- 
+	const char *data;
     for (i = 1; i <= top; i++)
     {  /* repeat for each level */
         int t = lua_type(l, i);
@@ -84,6 +84,16 @@ void stackdump_g(lua_State* l)
                 break;
             case LUA_TNUMBER:  /* numbers */
                 printf("number: %g\n", lua_tonumber(l, i));
+                break;
+            case LUA_TTABLE: /* tables/objects */
+				lua_getfield(l, i, "_classname");
+				if( !lua_isnoneornil(l, -1) ){
+					data = lua_tostring(l, -1);
+				} else {
+					data = NULL;
+				}
+                printf("object: %s\n", data);
+                lua_pop(l, 1);
                 break;
             default:  /* other values */
                 printf("%s\n", lua_typename(l, t));
@@ -330,7 +340,6 @@ lua_State * openLua(Wherigo *w){
 		return NULL;
 	}
 	//luaL_openlibs(L); // removed os, io and debug
-	//awkward but it is late tonight ...
 	lua_openlib(L, luaopen_base);
 	lua_openlib(L, luaopen_package);
 	lua_openlib(L, luaopen_table);
