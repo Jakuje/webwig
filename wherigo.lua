@@ -621,9 +621,9 @@ function Wherigo.ZObject.new(cartridge, container )
 		ObjectLocation = Wherigo.INVALID_ZONEPOINT,
 		Visible = true,]]--
 	
-	function self.Contains(obj)
-		if obj == Player then
-			return IsPointInZone(Player.ObjectLocation, self)
+	function self:Contains(obj)
+		if obj == Wherigo.Player then
+			return Wherigo.IsPointInZone(Wherigo.Player.ObjectLocation, self)
 			end
 		p = obj
 		while true do
@@ -1298,7 +1298,7 @@ Wherigo._getLocations = function()
 	local locations = "["
 	local first = true
 	for k,v in pairs(cartridge.AllZObjects) do
-		if v._classname == Wherigo.CLASS_ZONE and (v.Active and v.Visible) then
+		if v._classname == Wherigo.CLASS_ZONE and ((v.Active and v.Visible) or DEBUG) then
 			if not first then
 				locations = locations .. "," end
 			locations = locations .. "{\"name\": \"" .. Wherigo._toJSON(v.Name) .. "\""
