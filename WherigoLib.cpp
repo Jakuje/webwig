@@ -90,7 +90,7 @@ void stackdump_g(lua_State* l)
 				if( !lua_isnoneornil(l, -1) ){
 					data = lua_tostring(l, -1);
 				} else {
-					data = NULL;
+					data = "(table)";
 				}
                 printf("object: %s\n", data);
                 lua_pop(l, 1);
@@ -345,6 +345,8 @@ lua_State * openLua(Wherigo *w){
 	lua_openlib(L, luaopen_table);
 	lua_openlib(L, luaopen_string);
 	lua_openlib(L, luaopen_math);
+	lua_openlib(L, luaopen_os); // should disable remove() function 
+	lua_openlib(L, luaopen_debug); 
 	
 	atexit( exit_lua );
 	//my_error("*** MAIN LUA");
@@ -495,10 +497,10 @@ void DoCartridgeEvent(const char *event){
 }
 
 void OnStartEvent(){
-	/*if( WherigoLib::restore() ){
+	if( WherigoLib::restore() ){
 		DoCartridgeEvent("OnRestore");
 		return;
-	}*/
+	}
 	DoCartridgeEvent("OnStart");
 
 }
@@ -512,11 +514,11 @@ string getUI(){
 	
 	if( status == 0 ){
 		string result;
-		int type = lua_type(L, 1);					// [-0, +0, -]
+		int type = lua_type(L, -1);					// [-0, +0, -]
 		if( type == LUA_TSTRING ){
-			result = lua_tostring(L, 1);			// [-0, +0, m]
+			result = lua_tostring(L, -1);			// [-0, +0, m]
 		}
-		lua_remove(L, 1);							// [-1, +0, -]
+		lua_pop(L, 1);								// [-1, +0, -]
 		return result;
 	} else {
 		report(L, status);							// [-1, +0, -]
