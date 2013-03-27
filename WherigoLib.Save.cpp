@@ -194,15 +194,30 @@ bool sync(){
 }
 
 
-
 bool read_object(fileReader *fd, string name, bool create_objects);
 
-bool read_table(fileReader *fd, string name){
+/**
+ * Read from open GWS file table
+ * Expected stack state before call:
+ *  -3	table
+ *  -2	key of table
+ *  -1	value at key in table
+ * 
+ * After function return, last two values on stack will be removed
+ */
+bool read_table(fileReader *fd, bool set_field = false){
 	int code = fd->readByte();
 	if(code != 0x05){ // start table
 		cerr << "Expected 0x05 as start of table, got " << code << endl;
 		return false;
 	}
+	
+	if( ! set_field  && ! lua_istable(L, -1) ){
+		lua_pop(L, 1);													// [-1, +0, -]
+		lua_newtable(L);												// [-0, +1, m]
+		set_field = true;
+	}
+	
 	bool key = true;
 	int status, len;
 	string text, key_value;
@@ -268,13 +283,17 @@ bool read_table(fileReader *fd, string name){
 				} else {
 					cerr << "      -======= " << key_value << " (Table Start) =======- " << endl;
 					fd->unget();
-					lua_gettable(L, -2);								// [-1, +1, -]
-					if( !read_table(fd, key_value) ){
-						lua_pop(L, 1);
+					lua_pushvalue(L, -1);
+					lua_gettable(L, -3);								// [-1, +1, -]
+					// stack : 	-3 is table
+					// 			-2 is key of table (will be pop-ed)
+					//			-1 is its value
+					if( !read_table(fd, false) ){
+						lua_pop(L, 2);
 						return false;
 					}
 					cerr << "      -======= " << key_value << " (Table End) =======- " << endl;
-					lua_pop(L, 1);
+					//lua_pop(L, 1);
 				}
 				break;
 			case 0x07: // reference
@@ -294,10 +313,8 @@ bool read_table(fileReader *fd, string name){
 					return false;
 				} else {
 					cerr << "      -======= " << key_value << " (Object Start) =======- " << endl;
-					stackdump_g(L);
 					lua_pushvalue(L, -1);
 					lua_gettable(L, -3);
-					stackdump_g(L);
 					// stack : 	-3 is table
 					// 			-2 is key of table (will be pop-ed)
 					//			-1 is its value
@@ -316,10 +333,24 @@ bool read_table(fileReader *fd, string name){
 		}
 		key = !key;
 	}
+	if( set_field ){
+		lua_settable(L, -3);											// [-2, +0, e]
+	} else {
+		lua_pop(L, 2);													// [-2, +0, e]
+	}
 		
 	return true;
 }
 
+/**
+ * Read from open GWS file object
+ * Expected stack state before call:
+ *  -3	table
+ *  -2	key of table
+ *  -1	value at key in table
+ * 
+ * After function return, last two values on stack will be removed
+ */
 bool read_object(fileReader *fd, string key_name, bool create_objects = false){
 	string objname;
 	long len = fd->readLong();
@@ -350,12 +381,12 @@ bool read_object(fileReader *fd, string key_name, bool create_objects = false){
 	}
 	lua_pop(L, 1);														// [-1, +0, -]
 	
-	bool res = read_table(fd, key_name);
-	if( set_field ){
+	bool res = read_table(fd, set_field);
+	/*if( set_field ){
 		lua_settable(L, -3);											// [-2, +0, e]
 	} else {
 		lua_pop(L, 2);													// [-2, +0, e]
-	}
+	}*/
 	return res;
 }
 
@@ -465,6 +496,9 @@ bool restore(){
 		//lua_pop(L, 1); // included in read_object
 	}
 	lua_pop(L, 1);
+
+	stackdump_g(L); // check if is empty at the end
+
 	return true;
 }
 
