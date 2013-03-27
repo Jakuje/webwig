@@ -519,8 +519,12 @@ Wherigo.ZObject_metatable = {
 	__index = function(t, key)
 		if key == 'Active' then
 			return t._active
-		elseif key == 'CommandsArray'then
-			return t.Commands
+		elseif k == 'CommandsArray' then
+			local arr
+			for i,v in ipairs(t.Commands) do
+				table.insert(arr, v)
+				end
+			return arr -- runtime doesn't work with CommandsArray. Only export!
 		elseif key == 'CorrectState' and t._classname == Wherigo.CLASS_ZTASK then
 			return t._correct
 		elseif key == 'Complete' and t._classname == Wherigo.CLASS_ZTASK then
@@ -546,7 +550,11 @@ Wherigo.ZObject_metatable = {
 				end
 			return
 		elseif k == 'CommandsArray' then
-			t.Commands = value
+			-- restore Commands from SaveGame
+			for i,v in ipairs(value) do
+				t.Commands[v.Keyword] = v;
+				end
+			return
 		elseif t._classname == Wherigo.CLASS_ZTASK then
 			if key == 'CorrectState' then
 				if value ~= t._correct then
