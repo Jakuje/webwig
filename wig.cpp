@@ -110,7 +110,7 @@ void CommandLineTests(int argc, char **argv){
 		
 		Engine::setPosition(&lat, &lon);*/
 		
-		//luaL_dostring(L, "debug.debug()");
+		//luaL_dostring(WherigoLib::L, "debug.debug()");
 		
 		//setPosition(&lat, &lon);
 		/*int status = luaL_dostring(L, "return Wherigo._getUI()");
