@@ -1218,6 +1218,8 @@ Wherigo.Player.Inventory = {}
 Wherigo.Player.InsideOfZones = {}
 Wherigo.Player.CurrentDistance = nil
 Wherigo.Player.CurrentBearing = nil
+Wherigo.Player.ObjIndex = 0xabcd -- ID taken from Emulator to idetify references
+
 function Wherigo.Player:RefreshLocation()
 	-- request refresh location ... useless?
 	end
