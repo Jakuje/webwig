@@ -1,10 +1,11 @@
 
 -- Wherigo.Zone
+cart = Wherigo.ZCartridge()
 
 ZonePoint = Wherigo.ZonePoint
 
 
-zone = Wherigo.Zone()
+zone = Wherigo.Zone(cart)
 zone.Name = "Paloucek"
 zone.Points = {
 	ZonePoint(49.22741, 16.62242, 0),
