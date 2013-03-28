@@ -227,6 +227,8 @@ void Dialog(const char *text, const char *media) {
 	if( strcmp(media, "") != 0 ){
 		m = WherigoOpen->getFilePathById(media);
 		//cerr << " >> Media (" << media << "): " << m;
+	} else {
+		m = new string("");
 	}
 	WherigoOpen->log( string("Dialog  Text: ").append(text) );
 	
