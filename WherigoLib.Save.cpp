@@ -18,6 +18,22 @@ int writeLuaDump(lua_State *L, const void * p, size_t sz, void * ud){
 	return 0;
 }
 
+void writeBoolField(fileWriter *sf, const char* field){
+	lua_pushstring(L, field);
+	lua_gettable(L, -2);
+	if( lua_isnoneornil(L, -1) ){
+		lua_pop(L, 1);
+		return;
+	}
+	
+	sf->writeByte(0x03);
+	sf->writeLong( strlen(field) );
+	sf->writeASCII( field, strlen(field) );
+	sf->writeByte(0x01);
+	sf->writeByte( lua_toboolean(L, -1) );
+	lua_pop(L, 1);
+}
+
 /** Table must be on index of L environment */
 void serialize_table(fileWriter *sf, int index, bool functions = false){
 	int i;
@@ -25,6 +41,13 @@ void serialize_table(fileWriter *sf, int index, bool functions = false){
 	const char *name;
 	bool skip;
 	sf->writeByte(0x05); // start of table
+	
+	writeBoolField(sf, "Active");
+	writeBoolField(sf, "Complete");
+	writeBoolField(sf, "CorrectState");
+	
+	// todo maybe Visible ??? 
+	
 	lua_pushnil(L);														// [-0, +1, -]
 	while (lua_next(L, index-1) != 0) {									// [-1, +(2|0), e]
 		skip = false;
@@ -232,7 +255,7 @@ bool read_table(fileReader *fd, bool set_field = false){
 					len = fd->readByte();
 					lua_pushboolean(L, len);							// [-0, +1, -]
 					lua_settable(L, -3);								// [-2, +0, e]
-					cerr << "      -======= " << key_value << " = " << len << " (" << (bool)len << ") =======- " << endl;
+					//cerr << "      -======= " << key_value << " = " << len << " (" << (bool)len << ") =======- " << endl;
 				}
 				break;
 			case 0x02: // number
@@ -240,7 +263,7 @@ bool read_table(fileReader *fd, bool set_field = false){
 				if( key ){
 					lua_pushnumber(L, number);							// [-0, +1, -]
 				} else {
-					cerr << "      -======= " << key_value << " =======- " << endl;
+					//cerr << "      -======= " << key_value << " =======- " << endl;
 					lua_pushnumber(L, number);							// [-0, +1, -]
 					lua_settable(L, -3);								// [-2, +0, e]
 				}
@@ -252,7 +275,7 @@ bool read_table(fileReader *fd, bool set_field = false){
 					lua_pushstring(L, text.c_str());					// [-0, +1, -]
 					key_value = text; // for debug only!!!
 				} else {
-					cerr << "      -======= " << key_value << " =======- " << endl;
+					//cerr << "      -======= " << key_value << " =======- " << endl;
 					lua_pushstring(L, text.c_str());					// [-0, +1, -]
 					lua_settable(L, -3);								// [-2, +0, e]
 				}
@@ -262,7 +285,7 @@ bool read_table(fileReader *fd, bool set_field = false){
 					cerr << "Function can't be key" << endl;
 					return false;
 				} else {
-					cerr << "      -======= " << key_value << " =======- " << endl;
+					//cerr << "      -======= " << key_value << " =======- " << endl;
 					len = fd->readLong();
 					fd->readASCII(&text, len);
 					status = 0;//luaL_loadbuffer(L, text.c_str(), len, "Sync load chunk");	// [-0, +1, -]
@@ -292,7 +315,7 @@ bool read_table(fileReader *fd, bool set_field = false){
 						lua_pop(L, 2);
 						return false;
 					}
-					cerr << "      -======= " << key_value << " (Table End) =======- " << endl;
+					//cerr << "      -======= " << key_value << " (Table End) =======- " << endl;
 					//lua_pop(L, 1);
 				}
 				break;
@@ -312,7 +335,7 @@ bool read_table(fileReader *fd, bool set_field = false){
 					cerr << "Reference can't be key" << endl;
 					return false;
 				} else {
-					cerr << "      -======= " << key_value << " (Object Start) =======- " << endl;
+					//cerr << "      -======= " << key_value << " (Object Start) =======- " << endl;
 					lua_pushvalue(L, -1);
 					lua_gettable(L, -3);
 					// stack : 	-3 is table
@@ -322,7 +345,7 @@ bool read_table(fileReader *fd, bool set_field = false){
 						lua_pop(L, 2);
 						return false;
 					}
-					cerr << "      -======= " << key_value << " (Object End) =======- " << endl;
+					//cerr << "      -======= " << key_value << " (Object End) =======- " << endl;
 					//lua_pop(L, 1);
 				}
 				break;
@@ -333,6 +356,7 @@ bool read_table(fileReader *fd, bool set_field = false){
 		}
 		key = !key;
 	}
+	
 	if( set_field ){
 		lua_settable(L, -3);											// [-2, +0, e]
 	} else {
@@ -493,9 +517,11 @@ bool restore(){
 			lua_pop(L, 2);
 			return false;
 		}
+		
 		//lua_pop(L, 1); // included in read_object
 	}
-	lua_pop(L, 1);
+	// if ended ok, there is still index and AllZObjects on stack
+	lua_pop(L, 2);														// [-2, +0, -]
 
 	stackdump_g(L); // check if is empty at the end
 
