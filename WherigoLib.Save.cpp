@@ -8,21 +8,23 @@ namespace WherigoLib {
 /** GWS header */
 unsigned char GWS_SIG[] = { 0x02, 0x0a, 0x53, 0x59, 0x4e, 0x43, 0x00 };
 
+string dump_buffer;
+long dump_length = 0;
+
 using namespace std;
 
 /** Lua_Writer called by lua_dump for functions */
 int writeLuaDump(lua_State *L, const void * p, size_t sz, void * ud){
-	fileWriter *sf = (fileWriter *) ud;
-	sf->writeLong(sz);
-	sf->writeASCII( (const char *)p, sz);
+	dump_buffer.append( (const char *)p, sz);
+	dump_length += sz;
 	return 0;
 }
 
 void writeBoolField(fileWriter *sf, const char* field){
-	lua_pushstring(L, field);
-	lua_gettable(L, -2);
+	lua_pushstring(L, field);				// [-0, +1, m]
+	lua_gettable(L, -3);					// [-1, +1, e]
 	if( lua_isnoneornil(L, -1) ){
-		lua_pop(L, 1);
+		lua_pop(L, 1);						// [-1, +0, -]
 		return;
 	}
 	
@@ -31,30 +33,36 @@ void writeBoolField(fileWriter *sf, const char* field){
 	sf->writeASCII( field, strlen(field) );
 	sf->writeByte(0x01);
 	sf->writeByte( lua_toboolean(L, -1) );
-	lua_pop(L, 1);
+	lua_pop(L, 1);							// [-1, +0, -]
 }
 
-/** Table must be on index of L environment */
-void serialize_table(fileWriter *sf, int index, bool functions = false){
+/** Serialize table to file
+ * Requested stack state:
+ *	-2	Table to traverse
+ *  -1	Classname if it is known class
+ */
+void serialize_table(fileWriter *sf){
 	int i;
 	size_t size;
 	const char *name;
 	bool skip;
 	sf->writeByte(0x05); // start of table
 	
-	writeBoolField(sf, "Active");
-	writeBoolField(sf, "Complete");
-	writeBoolField(sf, "CorrectState");
+	writeBoolField(sf, "Active");										// [-0, +0, -]
+	writeBoolField(sf, "Complete");										// [-0, +0, -]
+	writeBoolField(sf, "CorrectState");									// [-0, +0, -]
 	
-	// todo maybe Visible ??? 
+	// todo maybe Visible ???
 	
+	const char *classname;
+	if( lua_isstring(L, -1) ){
+		classname = lua_tostring(L, -1);
+	} else {
+		classname = "";
+	}
 	lua_pushnil(L);														// [-0, +1, -]
-	while (lua_next(L, index-1) != 0) {									// [-1, +(2|0), e]
+	while (lua_next(L, -3) != 0) {										// [-1, +(2|0), e]
 		skip = false;
-		if( ! functions && lua_isfunction(L, -1) ){
-			lua_pop(L, 1);
-			continue; // for the start, exclude all functions; @todo include events function or exclude my functions
-		}
 		for(i = -2; i <= -1; i++){
 			if( skip ){
 				break; // key was excludes, so don't include value
@@ -70,10 +78,31 @@ void serialize_table(fileWriter *sf, int index, bool functions = false){
 					break;
 				case LUA_TSTRING:
 					name = lua_tostring(L, i);
-					// look in 
-					if( i == -2 && (name[0] == '_' || strcmp(name, "Cartridge") == 0 
-						|| strcmp(name, "Resources") == 0 || string(name).compare(0, 4, "AllZ") == 0
-						|| string(name).compare(0, 7, "Current") == 0) ){
+					// look at key if we want it save
+					if( i == -2 && (
+						name[0] == '_'
+						|| ( strcmp(classname, "ZTimer") == 0 && (
+							strcmp(name, "Start") == 0
+							|| strcmp(name, "Stop") == 0
+							|| strcmp(name, "Tick") == 0 ))
+						|| ( strcmp(classname, "ZCartridge") == 0 && (
+							strcmp(name, "RequestSync") == 0
+							|| strcmp(name, "GetAllOfType") == 0
+							|| string(name).compare(0, 4, "AllZ") == 0))
+						|| ( strcmp(classname, "ZMedia") == 0 &&
+							strcmp(name, "Resources") == 0
+							)
+						|| ( strcmp(classname, "Distance") == 0 &&
+							strcmp(name, "GetValue") == 0
+							)
+						|| ( strcmp(classname, "ZCharacter") == 0 &&
+							strcmp(name, "RefreshLocation") == 0
+							)
+							|| strcmp(name, "Cartridge") == 0 
+							|| string(name).compare(0, 7, "Current") == 0
+							|| strcmp(name, "Contains") == 0
+							|| strcmp(name, "MoveTo") == 0
+						) ){
 						skip = true;
 						break;
 					}
@@ -83,9 +112,15 @@ void serialize_table(fileWriter *sf, int index, bool functions = false){
 					sf->writeASCII(name, size);
 					break;
 				case LUA_TFUNCTION: // i should be -1
+					if( i == -2 ){
+						cerr << "Function can't be key!!!" << endl;
+					}
 					sf->writeByte(0x04);
-					// length is written "inside" writeLuaDump
-					lua_dump(L, (lua_Writer)writeLuaDump, sf);
+					dump_length = 0;
+					dump_buffer.clear();
+					lua_dump(L, (lua_Writer)writeLuaDump, NULL);
+					sf->writeLong(dump_length);
+					sf->writeASCII(dump_buffer.c_str(), dump_length);
 					break;
 				case LUA_TTABLE: // i should be -1 => table as ke is useless
 					lua_getfield(L, i, "ObjIndex");						// [-0, +1, e]
@@ -96,6 +131,7 @@ void serialize_table(fileWriter *sf, int index, bool functions = false){
 						break;
 					}
 					lua_pop(L, 1);										// [-1, +0, e]
+					
 					lua_getfield(L, i, "_classname");					// [-0, +1, e]
 					if( ! lua_isnoneornil(L, -1) ){
 						sf->writeByte(0x08); // Object
@@ -104,8 +140,8 @@ void serialize_table(fileWriter *sf, int index, bool functions = false){
 						sf->writeLong(size);
 						sf->writeASCII(name, size);
 					}
+					serialize_table(sf);
 					lua_pop(L, 1);										// [-1, +0, e]
-					serialize_table(sf, i);
 					break;
 				default:
 					sf->writeASCIIZ("UNKNOWN", 7);
@@ -173,6 +209,7 @@ bool sync(){
 		sf.writeASCII( name, size );
 		lua_pop(L, 2);								// [-2, +0, -]
 	}
+	// do not remove cartridge. It will be traversed once again to write out details
 	
 	// dump Player object
 	sf.writeLong(10);
@@ -180,18 +217,10 @@ bool sync(){
 	lua_getfield(L, LUA_GLOBALSINDEX, "Wherigo");	// [-0, +1, e]
 	lua_getfield(L, -1, "Player");					// [-0, +1, e]
 	lua_remove(L, -2);								// [-1, +0, -]
+	lua_getfield(L, -1, "_classname");				// [-0, +1, e]
 	
-	serialize_table(&sf, -1, false);
-	lua_pop(L, 1);									// [-1, +0, -]
-	
-	// dump cartridge object
-	/*sf.writeLong(10);
-	sf.writeASCII("ZCartridge", 10);
-	lua_getfield(L, LUA_GLOBALSINDEX, "cartridge");	// [-0, +1, e]
-	
-	serialize_table(&sf, -1, false);
-	lua_pop(L, 1);									// [-1, +0, -]
-	*/
+	serialize_table(&sf);
+	lua_pop(L, 2);									// [-2, +0, -]
 	
 	// write details of AllZObjects
 	lua_pushnil(L);
@@ -202,11 +231,10 @@ bool sync(){
 		size = lua_objlen(L, -1);
 		sf.writeLong( size );
 		sf.writeASCII( name, size );
-		lua_pop(L, 1);								// [-1, +0, -]
 
-		serialize_table(&sf, -1);
+		serialize_table(&sf);
 		
-		lua_pop(L, 1);								// [-1, +0, -]
+		lua_pop(L, 2);								// [-2, +0, -]
 	}
 	lua_pop(L, 1);									// [-1, +0, -]
 	
@@ -275,7 +303,7 @@ bool read_table(fileReader *fd, bool set_field = false){
 					lua_pushstring(L, text.c_str());					// [-0, +1, -]
 					key_value = text; // for debug only!!!
 				} else {
-					//cerr << "      -======= " << key_value << " =======- " << endl;
+					//cerr << "      -======= " << key_value << " = " << text << " =======- " << endl;
 					lua_pushstring(L, text.c_str());					// [-0, +1, -]
 					lua_settable(L, -3);								// [-2, +0, e]
 				}
@@ -304,7 +332,7 @@ bool read_table(fileReader *fd, bool set_field = false){
 					cerr << "Table can't be key" << endl;
 					return false;
 				} else {
-					cerr << "      -======= " << key_value << " (Table Start) =======- " << endl;
+					//cerr << "      -======= " << key_value << " (Table Start) =======- " << endl;
 					fd->unget();
 					lua_pushvalue(L, -1);
 					lua_gettable(L, -3);								// [-1, +1, -]
@@ -324,8 +352,8 @@ bool read_table(fileReader *fd, bool set_field = false){
 					cerr << "Reference can't be key" << endl;
 					return false;
 				} else {
-					cerr << "      -======= " << key_value << " =======- " << endl;
 					len = fd->readUShort();
+					cerr << "      -======= " << key_value << " refs " << len << " =======- " << endl;
 					// @todo
 					lua_pop(L, 1);
 				}
@@ -492,8 +520,9 @@ bool restore(){
 	lua_getfield(L, LUA_GLOBALSINDEX, "Wherigo");	// [-0, +1, e]
 	lua_getfield(L, -1, "Player");					// [-0, +1, e]
 	lua_remove(L, -2);								// [-1, +0, -]
-	lua_pushvalue(L, -1);
+	lua_pushvalue(L, -1);							// [-0, +1, -]
 	if( ! read_object(&fd, "Player", false) ){
+		lua_pop(L, 2);
 		fd.close();
 		return false;
 	}
