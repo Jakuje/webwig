@@ -323,6 +323,7 @@ bool read_table(fileReader *fd, bool set_field = false){
 			case 0x03: // string
 				len = fd->readLong();
 				fd->readASCII(&text, len);
+				cerr << "      -======= " << text << " =======- " << endl;
 				if( key ) {
 					lua_pushstring(L, text.c_str());					// [-0, +1, -]
 					key_value = text; // for debug only!!!
@@ -345,8 +346,9 @@ bool read_table(fileReader *fd, bool set_field = false){
 						//lua_settable(L, -3);							// [-2, +0, e]
 						lua_pop(L, 1);
 					} else {
+						cerr << text << endl;
 						report(L, status);								// [-1, +0, e]
-						lua_pop(L, 1);									// [-1, +0, -]
+						lua_pop(L, 3);									// [-1, +0, -]
 						return false;
 					}
 				}
@@ -569,7 +571,6 @@ bool restore(){
 	
 	lua_getfield(L, LUA_GLOBALSINDEX, "cartridge");						// [-0, +1, e]
 	lua_getfield(L, -1, "AllZObjects");									// [-0, +1, e]
-	lua_remove(L, -2);													// [-1, +0, -]
 	
 	lua_pushnil(L);
 	for(int i = 0; i < num_objects; i++){
@@ -590,6 +591,16 @@ bool restore(){
 	}
 	// if ended ok, there is still index and AllZObjects on stack
 	lua_pop(L, 2);														// [-2, +0, -]
+	
+	
+	// renew ZVariables to global namespace
+	lua_getfield(L, -1, "ZVariables");
+	lua_remove(L, -2);
+	lua_pushnil(L);
+	while( lua_next(L, -2) != 0 ){
+		lua_setfield(L, LUA_GLOBALSINDEX, lua_tostring(L, -2) );
+	}
+	lua_pop(L, 1);
 
 	stackdump_g(L); // check if is empty at the end
 
