@@ -36,6 +36,24 @@ void writeBoolField(fileWriter *sf, const char* field){
 	lua_pop(L, 1);							// [-1, +0, -]
 }
 
+void serialize_table(fileWriter *sf);
+
+void writeTable(fileWriter *sf, const char* field){
+	lua_pushstring(L, field);				// [-0, +1, m]
+	lua_gettable(L, -3);					// [-1, +1, e]
+	if( lua_isnoneornil(L, -1) ){
+		lua_pop(L, 1);						// [-1, +0, -]
+		return;
+	}
+	sf->writeByte(0x03);
+	sf->writeLong( strlen(field) );
+	sf->writeASCII( field, strlen(field) );
+	lua_getfield(L, -1, "_classname");		// [-0, +1, e]
+	serialize_table(sf);
+	lua_pop(L, 2);							// [-1, +0, -]
+}
+	
+	
 /** Serialize table to file
  * Requested stack state:
  *	-2	Table to traverse
@@ -53,6 +71,8 @@ void serialize_table(fileWriter *sf){
 	writeBoolField(sf, "CorrectState");									// [-0, +0, -]
 	
 	// todo maybe Visible ???
+	// CommandsArray
+	writeTable(sf, "CommandsArray");									// [-0, +0, -]
 	
 	const char *classname;
 	if( lua_isstring(L, -1) ){
@@ -101,6 +121,7 @@ void serialize_table(fileWriter *sf){
 							|| strcmp(name, "Cartridge") == 0 
 							|| string(name).compare(0, 7, "Current") == 0
 							|| strcmp(name, "Contains") == 0
+							|| strcmp(name, "Commands") == 0 // ignored, because we store CommandsArray
 							|| strcmp(name, "MoveTo") == 0
 						) ){
 						skip = true;
@@ -245,6 +266,9 @@ bool sync(){
 }
 
 
+/** num objects in restore */
+int num_objects;
+
 bool read_object(fileReader *fd, string name, bool create_objects);
 
 /**
@@ -354,8 +378,23 @@ bool read_table(fileReader *fd, bool set_field = false){
 				} else {
 					len = fd->readUShort();
 					cerr << "      -======= " << key_value << " refs " << len << " =======- " << endl;
-					// @todo
-					lua_pop(L, 1);
+					if( len <= num_objects ){
+						lua_getglobal(L, "cartridge");		// +1
+						lua_getfield(L, -1, "AllZObjects");	// +1
+						lua_remove(L, -2);					// -1
+						lua_pushnumber(L, len);				// +1
+						lua_gettable(L, -2);				// +0
+						lua_remove(L, -2);					// -1
+						lua_settable(L, -3);				// -2
+					} else if (len == 0xabcd) { // player 
+						lua_getglobal(L, "Wherigo");		// +1
+						lua_getfield(L, -1, "Player");		// +1
+						lua_remove(L, -2);					// -1
+						lua_settable(L, -3);				// -2
+					} else { //unknown object ...
+						cerr << "Unknown object to reference" << endl;
+						lua_pop(L, 1);
+					}
 				}
 				break;
 			case 0x08: // object
@@ -504,7 +543,7 @@ bool restore(){
 	fd.readDouble(); // lat
 	fd.readDouble(); // alt
 	
-	int num_objects = fd.readLong();
+	num_objects = fd.readLong();
 	//string objects[num_objects];
 	
 	long len;
