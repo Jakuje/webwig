@@ -54,11 +54,13 @@ class fileReader: public ifstream {
 		
 		void readASCII(string *data, streamsize num){
 			data->clear();
-			char *buffer = new char [num+1];
-			this->read( buffer, num );
-			buffer[num] = '\0';
-			data->append(buffer);
-			delete [] buffer;
+			if( num > 0 ){
+				char *buffer = new char [num+1];
+				this->read( buffer, num );
+				buffer[num] = '\0';
+				data->append(buffer);
+				delete [] buffer;
+			}
 		}
 
 };
