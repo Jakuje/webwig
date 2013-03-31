@@ -10,13 +10,14 @@ PLAT= webos
 DESKTOP=0
 PRE=0
 PIXI=1
-DEBUG=1
+DEBUG=0
 
 
 ifeq (1,$(DEBUG))
 DEVICEOPTS=-g
 else
-DEVICEOPTS=
+DEVICEOPTS=-s
+# means to strip debug symbols
 endif
 
 CC=arm-none-linux-gnueabi-gcc
