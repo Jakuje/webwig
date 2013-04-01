@@ -264,6 +264,8 @@ void GetInput(const char *type, const char *text, const char* choices, const cha
 	string *m;
 	if( strcmp(media, "") != 0 ){
 		m = WherigoOpen->getFilePathById(media);
+	} else {
+		m = new string("");
 	}
 	Engine::GetInput(type, text, choices, *m);
 	delete m;

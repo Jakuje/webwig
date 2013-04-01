@@ -32,7 +32,6 @@ Wherigo = {
 	CLASS_DISTANCE		= "Distance",
 	CLASS_BEARING		= "Bearing",
 	CLASS_ZONEPOINT		= "ZonePoint",
-	CLASS_ZCOMMAND		= "ZCommand",
 	
 	_MBCallbacks = {},
 	_GICallbacks = {}
@@ -278,7 +277,7 @@ function Wherigo.NoCaseEquals(f, s)
 function Wherigo.Command(text)
 	if text == 'SaveClose' then
 		Wherigo.LogMessage("Wherigo.Command: SaveClose");
-		WIGInternal.save()
+		WIGInternal.RequestSync()
 		WIGInternal.Close() -- with prompt ... todo
 		exit(1)
 	elseif text == 'DriveTo' then
