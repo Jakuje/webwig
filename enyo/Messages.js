@@ -95,15 +95,15 @@ enyo.kind({
 	showPopup: function(element){
 		this.paintHeader(element);
 		
-		if( this.type == "Text" ){
+		if( this.type == "MultipleChoice" ){
+			element.$.choices.show();
+			element.$.choices.render();
+			element.$.Button1.hide();
+		} else if( this.type == "Text" || this.type == "Number" ){
 			element.$.getInput.setValue("");
 			element.$.getInput.forceFocus();
 			element.$.getInput.show();
 			element.$.Button1.show();
-		} else if( this.type == "MultipleChoice" ){
-			element.$.choices.show();
-			element.$.choices.render();
-			element.$.Button1.hide();
 		} else {
 			console.error("Unknown type of getInput")
 		}
