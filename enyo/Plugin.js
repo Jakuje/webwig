@@ -164,11 +164,10 @@ enyo.kind({
 			});
 		}
 	},
-	openCartridge: function(filename, callback){
+	openCartridge: function(filename, load_game){
 		if ( window.PalmSystem) {
 			console.error("***** WIG Enyo: openCartridge filename = " + filename);
-			//this._resultsCallbacks.push(callback);
-			this.callPluginMethodDeferred(enyo.nop, "openCartridge", filename);
+			this.callPluginMethodDeferred(enyo.nop, "openCartridge", filename, load_game);
 		} else {
 			enyo.nextTick(this, function() { this.openCartridgeResult( "{\"type\": \"ok\", \"data\": {}}");
 			});
@@ -183,8 +182,8 @@ enyo.kind({
             {
                 "name": "denik krale Artuse",
                 "description": "",
-                "media": "/media/internal/appdata/com.dta3team.app.wherigo/9680e562-caf2-455e-a095-654b67d8080e/38.jpg",
-                "icon": "/media/internal/appdata/com.dta3team.app.wherigo/9680e562-caf2-455e-a095-654b67d8080e/18.jpg",
+                "media": "images/gps_4.png",
+                "icon": "images/task.png",
                 "id": "129",
                 "commands": [
                     {
@@ -279,5 +278,8 @@ enyo.kind({
 	},
 	closePrompt: function(){
 		this.owner.goBack(null, this);
-	}
+	},
+	save: function(){
+		this.callPluginMethodDeferred(enyo.nop, "save");
+	},
 });

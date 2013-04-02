@@ -71,7 +71,7 @@ namespace Engine
 	extern void updateState();
 	
 	extern void setPosition(double *lat, double * lon);
-	extern bool openCartridgeToJS(char *filename);
+	extern bool openCartridgeToJS(char *filename, int *load_game);
 	extern void OutputCartridgesToJS(int *refresh);
 	
 	extern void setup(int argc, char **argv);

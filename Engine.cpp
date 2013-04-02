@@ -268,7 +268,7 @@ void updateState(){
  */
 PDL_bool openCartridgeJS(PDL_JSParameters *params)
 {
-    if (PDL_GetNumJSParams(params) != 1) {
+    if (PDL_GetNumJSParams(params) != 2) {
         syslog(LOG_INFO, "**** wrong number of parameters for getMetadata");
         PDL_JSException(params, "wrong number of parameters for getMetadata");
         return PDL_FALSE;
@@ -276,6 +276,8 @@ PDL_bool openCartridgeJS(PDL_JSParameters *params)
 
     /* parameters are directory, pattern */
     const char *filename = PDL_GetJSParamString(params, 0);
+    int *load_game = new int;
+    *load_game = PDL_GetJSParamInt(params, 1);
 
     /* since we don't process this in the method thread, instead post a
      * SDL event that will be received in the main thread and used to 
@@ -284,6 +286,7 @@ PDL_bool openCartridgeJS(PDL_JSParameters *params)
     event.user.type = SDL_USEREVENT;
     event.user.code = EVENT_OPEN_CARTRIDGE;
     event.user.data1 = strdup(filename);
+    event.user.data2 = load_game;
     
     syslog(LOG_WARNING, "*** sending openCartridge event");
     SDL_PushEvent(&event);
@@ -454,11 +457,29 @@ PDL_bool switchGPSJS(PDL_JSParameters *params){
     event.user.data1 = newState;
     event.user.data2 = NULL;
     
-    //syslog(LOG_WARNING, "*** sending setPosition event");
     SDL_PushEvent(&event);
     
     return PDL_TRUE;
 }
+
+PDL_bool saveJS(PDL_JSParameters *params){
+	if (PDL_GetNumJSParams(params) != 0) {
+        syslog(LOG_INFO, "**** wrong number of parameters for setPosition");
+        PDL_JSException(params, "wrong number of parameters for setPosition");
+        return PDL_FALSE;
+    }
+
+    SDL_Event event;
+    event.user.type = SDL_USEREVENT;
+    event.user.code = EVENT_SYNC;
+    event.user.data1 = NULL;
+    event.user.data2 = NULL;
+    
+    SDL_PushEvent(&event);
+    
+    return PDL_TRUE;
+}
+
 #endif
 
 void setup(int argc, char **argv)
@@ -494,6 +515,7 @@ void setup(int argc, char **argv)
     PDL_RegisterJSHandler("CallbackFunction", CallbackFunctionJS);
     PDL_RegisterJSHandler("setPosition", setPositionJS);
     PDL_RegisterJSHandler("switchGPS", switchGPSJS);
+    PDL_RegisterJSHandler("save", saveJS);
     PDL_JSRegistrationComplete();
     
     // Workaround for old webos devices:
@@ -580,6 +602,12 @@ bool OutputMetadata(stringstream *buf, const char *cartridge, bool first = true)
 	}
 	//w->createIcons();
 	
+	ifstream ifile(w->getSaveFilename().c_str());
+	string is_saved = "false";
+	if (ifile) {
+	  is_saved = "true";
+	}
+	
 	if (!first) {
 		*buf << ",\n";
 	}
@@ -597,6 +625,7 @@ bool OutputMetadata(stringstream *buf, const char *cartridge, bool first = true)
 		<< ",\"version\": \"" << w->version << "\""
 		<< ",\"author\": \"" << WherigoLib::escapeJsonString(w->author) << "\""
 		<< ",\"company\": \"" << WherigoLib::escapeJsonString(w->company) << "\""
+		<< ",\"saved\": " << is_saved << ""
 		<< "\n}";
 	delete icon;
 	delete splash;
@@ -675,7 +704,7 @@ void OutputCartridgesToJS(int *refresh)
     delete buffer;
 }
 
-bool openCartridgeToJS(char *filename){
+bool openCartridgeToJS(char *filename, int* load_game){
 	stringstream *buffer = new stringstream(stringstream::in | stringstream::out);
 	int status = 0;
 	if( openCartridge(filename) ){
@@ -709,7 +738,7 @@ bool openCartridgeToJS(char *filename){
 		return false;
 	}
 	
-	WherigoLib::OnStartEvent();
+	WherigoLib::OnStartEvent(load_game);
 	
     delete buffer;
 
@@ -759,16 +788,6 @@ void loop(){
         else if (event.type == SDL_USEREVENT) {
             //syslog(LOG_WARNING, "*** processing * event code = %d", event.user.code);
             switch( event.user.code ){
-				/*case GET_METADATA:
-					// extract our arguments
-					char *cartridge = (char *)event.user.data1;
-					
-					// call our output function
-					OutputMetadataToJS(cartridge);
-
-					// free memory since this event is processed now
-					free(cartridge);
-					break;*/
 				case PDL_GPS_UPDATE: {
 					PDL_Location *loc = (PDL_Location *)event.user.data1;
 					UpdateGPS(loc);
@@ -783,8 +802,10 @@ void loop(){
 					break;
 				case EVENT_OPEN_CARTRIDGE: {
 					char *filename = (char *)event.user.data1;
-					openCartridgeToJS(filename);
+					int *load_game = (int *)event.user.data2;
+					openCartridgeToJS(filename, load_game);
 					delete filename;
+					delete load_game;
 					}
 					break;
 				case EVENT_CLOSE_CARTRIDGE: {

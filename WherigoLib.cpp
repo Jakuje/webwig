@@ -502,8 +502,8 @@ void DoCartridgeEvent(const char *event){
 	}
 }
 
-void OnStartEvent(){
-	if( WherigoLib::restore() ){
+void OnStartEvent(int *load_game){
+	if( *load_game == 1 && WherigoLib::restore() ){
 		DoCartridgeEvent("OnRestore");
 		return;
 	}
