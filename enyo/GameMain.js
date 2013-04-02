@@ -79,9 +79,29 @@ enyo.kind({
 	detail_item: 0,
 	detail_screen: "",
 	showScreenLua: function(screen, item){
+		if( screen != this.DETAILSCREEN && screen != this.MAINSCREEN
+			&& this.detail_screen != this.DETAILSCREEN && this.detail_screen == this.MAINSCREEN){
+			// List screen => List screen - Just repaint
+				this.showScreen(screen);
+				return;
+		} else if ( screen == this.DETAILSCREEN && this.detail_item != null ){
+			for( var scr in this.data ){
+				for( var it in this.data[scr] ){
+					if( this.data[scr][it].id == item ){
+						if( scr == this.detail_screen && it == this.detail_item){
+							// Detail => Detail with same id => Just repaint
+							this.showScreen(scr, it);
+							return;
+						}
+					}
+				}
+			}
+		}
+		// everything else
+		
 		// go home
 		while( this.$.pane.getViewName() != "gMain" ){
-			this.goBack()
+			this.goBack();
 		}
 		if( screen != this.MAINSCREEN ){
 			if( screen == this.DETAILSCREEN ){
@@ -100,6 +120,7 @@ enyo.kind({
 	showScreen: function(screen, item){
 		this.detail_screen = screen;
 		if( item == undefined ){
+			this.detail_item = null;
 			this.$.gList.setup(screen, this.data);
 			this.$.pane.selectViewByName("gList");
 		} else {
