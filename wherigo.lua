@@ -282,7 +282,7 @@ function Wherigo.Command(text)
 		exit(1)
 	elseif text == 'DriveTo' then
 		Wherigo.LogMessage("Wherigo.Command: DriveTo");
-		WIGInternal.DriveTo()
+		--WIGInternal.DriveTo()
 	elseif text == 'StopSound' then
 		Wherigo.LogMessage("Wherigo.Command: StopSound");
 		WIGInternal.StopSound()
@@ -507,6 +507,9 @@ function Wherigo.ZCommand.new(table)
 	setmetatable(self, Wherigo.ZCommand_metatable)
 	return self;
 	end
+function Wherigo.ZCommand:made( object )
+	return (object._classname == Wherigo.CLASS_ZCOMMAND)
+	end
 setmetatable(Wherigo.ZCommand, {
 	__call = function(s, table)
 		return Wherigo.ZCommand.new(table)
@@ -706,6 +709,9 @@ function Wherigo.ZObject.new(cartridge, container )
 		end
 	return self
 	end
+function Wherigo.ZObject:made( object )
+	return true
+	end
 setmetatable(Wherigo.ZObject, {
 	__call = function(s, cartridge, container)
 		return Wherigo.ZObject.new(cartridge, container)
@@ -727,6 +733,9 @@ function Wherigo.ZonePoint.new(lat, lon, alt)
 	
 	setmetatable(self, Wherigo.ZonePoint_metatable)
 	return self
+	end
+function Wherigo.ZonePoint:made( object )
+	return (object._classname == Wherigo.CLASS_ZONEPOINT)
 	end
 setmetatable(Wherigo.ZonePoint, {
 	__call = function( s, lat, lon, alt)
@@ -778,6 +787,9 @@ function Wherigo.Zone.new(cartridge)
 	
 	setmetatable(self, Wherigo.Zone_metatable) 
 	return self
+	end
+function Wherigo.Zone:made( object )
+	return (object._classname == Wherigo.CLASS_ZONE)
 	end
 setmetatable(Wherigo.Zone, {
 	__call = function(s, cartridge)
@@ -981,6 +993,9 @@ function Wherigo.ZCartridge.new(  )
 	
 	return self
 	end
+function Wherigo.ZCartridge:made( object )
+	return (object._classname == Wherigo.CLASS_ZCARTRIDGE)
+	end
 setmetatable(Wherigo.ZCartridge, {
 	__call = function(s)
 		return Wherigo.ZCartridge.new()
@@ -1012,6 +1027,9 @@ function Wherigo.ZMedia.new( cartridge )
 
 	return self
 	end
+function Wherigo.ZMedia:made( object )
+	return (object._classname == Wherigo.CLASS_ZMEDIA)
+	end
 setmetatable(Wherigo.ZMedia, {
 	__call = function(s, cartridge)
 		return Wherigo.ZMedia.new(cartridge)
@@ -1034,6 +1052,9 @@ function Wherigo.ZItem.new( cartridge, container )
 	setmetatable(self, Wherigo.ZItem_metatable)
 	
 	return self
+	end
+function Wherigo.ZItem:made( object )
+	return (object._classname == Wherigo.CLASS_ZITEM)
 	end
 setmetatable(Wherigo.ZItem, {
 	__call = function(s, cartridge, container)
@@ -1059,6 +1080,9 @@ function Wherigo.ZTask.new( cartridge, container )
 	setmetatable(self, Wherigo.ZTask_metatable)
 	-- events OnClick, SetCorrectState, OnSetComplete, OnSetActive
 	return self
+	end
+function Wherigo.ZTask:made( object )
+	return (object._classname == Wherigo.CLASS_ZTASK)
 	end
 setmetatable(Wherigo.ZTask, {
 	__call = function(s, cartridge, container)
@@ -1144,6 +1168,9 @@ function Wherigo.ZTimer.new(cartridge)
 	
 	return self
 	end
+function Wherigo.ZTimer:made( object )
+	return (object._classname == Wherigo.CLASS_ZTIMER)
+	end
 setmetatable(Wherigo.ZTimer, {
 	__call = function(s, cartridge)
 		return Wherigo.ZTimer.new(cartridge)
@@ -1173,6 +1200,9 @@ function Wherigo.ZInput.new( cartridge )
 	
 	return self
 	end
+function Wherigo.ZInput:made( object )
+	return (object._classname == Wherigo.CLASS_ZINPUT)
+	end
 setmetatable(Wherigo.ZInput, {
 	__call = function(s, cartridge)
 		return Wherigo.ZInput.new(cartridge)
@@ -1201,6 +1231,9 @@ function Wherigo.ZCharacter.new( cartridge, container )
 	setmetatable(self, Wherigo.ZCharacter_metatable)
 	
 	return self
+	end
+function Wherigo.ZCharacter:made( object )
+	return (object._classname == Wherigo.CLASS_ZCHARACTER)
 	end
 setmetatable(Wherigo.ZCharacter, {
 	__call = function(s, cartridge, container)
