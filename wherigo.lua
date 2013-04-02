@@ -357,7 +357,7 @@ function Wherigo.__tonumber(arg)
 Wherigo.Bearing = {}
 Wherigo.Bearing_metatable = {
 	__tostring = function( s )
-		return "Bearing (" .. s.value .. "°)"
+		return "a Bearing instance"
 		end,
 	__call = function (s)
 		return s.value
@@ -397,7 +397,7 @@ setmetatable(Wherigo.Bearing, {
 Wherigo.Distance = {}
 Wherigo.Distance_metatable = {
 	__tostring = function( s )
-		return "Distance (" .. s.value .. " meters)"
+		return "a Distance instance"
 		end,
 	__call = function (s, units)
 		return s.GetValue(units)
@@ -476,7 +476,7 @@ setmetatable(Wherigo.Distance, {
 Wherigo.ZCommand = {}
 Wherigo.ZCommand_metatable = {
 	__tostring = function(s)
-		return "Command (" .. s.Text .. ")"
+		return "a ZCommand instance"
 		end
 }
 function Wherigo.ZCommand.new(table)
@@ -721,7 +721,7 @@ setmetatable(Wherigo.ZObject, {
 Wherigo.ZonePoint = {} 
 Wherigo.ZonePoint_metatable = {
 	__tostring = function(s)
-		return "Zonepoint (" .. s.latitude .. ", " .. s.longitude .. ")"
+		return "a ZonePoint instance"
 		end
 }
 function Wherigo.ZonePoint.new(lat, lon, alt)
@@ -753,12 +753,7 @@ Wherigo.Zone = {
 	}
 Wherigo.Zone_metatable = {
 	__tostring = function(s)
-		if s.OriginalPoint == Wherigo.INVALID_ZONEPOINT then
-			return "Zone " .. s.Name
-		else
-			return "Zone " .. s.Name .. " <" ..
-				 rawget(getmetatable(s.OriginalPoint) or {}, "__tostring")(s.OriginalPoint)  .. ">"
-			end
+		return "a Zone instance"
 		end
 }
 for k,v in pairs(Wherigo.ZObject_metatable) do Wherigo.Zone_metatable[k] = v end
@@ -1005,7 +1000,7 @@ setmetatable(Wherigo.ZCartridge, {
 Wherigo.ZMedia = {}
 Wherigo.ZMedia_metatable = {
 	__tostring  = function(s)
-		return "<ZMedia Id=" .. s._id .. ">"
+		return "a ZMedia instance"
 		end
 }
 for k,v in pairs(Wherigo.ZObject_metatable) do Wherigo.ZMedia_metatable[k] = v end
@@ -1039,7 +1034,7 @@ setmetatable(Wherigo.ZMedia, {
 Wherigo.ZItem = {}
 Wherigo.ZItem_metatable = {
 	__tostring = function( s )
-		return "ZItem (" .. s.Name .. ")"
+		return "a ZItem instance"
 		end,
 }
 for k,v in pairs(Wherigo.ZObject_metatable) do Wherigo.ZItem_metatable[k] = v end
@@ -1065,7 +1060,7 @@ setmetatable(Wherigo.ZItem, {
 Wherigo.ZTask = {}
 Wherigo.ZTask_metatable = {
 	__tostring = function( s )
-		return "ZTask (" .. s.Name .. ")"
+		return "a ZTask instance"
 		end,
 }
 for k,v in pairs(Wherigo.ZObject_metatable) do Wherigo.ZTask_metatable[k] = v end
@@ -1093,7 +1088,7 @@ setmetatable(Wherigo.ZTask, {
 Wherigo.ZTimer = {}
 Wherigo.ZTimer_metatable = {
 	__tostring = function( s )
-		return "ZTimer (" .. s.Name .. ")"
+		return "a ZTimer instance"
 		end,
 }
 for k,v in pairs(Wherigo.ZObject_metatable) do Wherigo.ZTimer_metatable[k] = v end
@@ -1185,7 +1180,7 @@ function Wherigo.ZTimer._Tick(id)
 Wherigo.ZInput = {}
 Wherigo.ZInput_metatable = {
 	__tostring = function( s )
-		return "ZInput (" .. s.Name .. ")"
+		return "a ZInput instance"
 		end,
 }
 for k,v in pairs(Wherigo.ZObject_metatable) do Wherigo.ZInput_metatable[k] = v end
@@ -1212,7 +1207,7 @@ setmetatable(Wherigo.ZInput, {
 Wherigo.ZCharacter = {}
 Wherigo.ZCharacter_metatable = {
 	__tostring = function( s )
-		return "ZCharacter (" .. s.Name .. ")"
+		return "a ZCharacter instance"
 		end,
 }
 for k,v in pairs(Wherigo.ZObject_metatable) do Wherigo.ZCharacter_metatable[k] = v end
@@ -1353,7 +1348,10 @@ Wherigo._getLocations = function()
 			else
 				locations = locations .. ", \"distance\": " .. v.CurrentDistance("m") .. ", \"bearing\": " .. v.CurrentBearing("m")
 				end
-			locations = locations .. Wherigo._addCommands(v)
+			locations = locations
+				.. Wherigo._getMediaField("media", v.Media)
+				.. Wherigo._getMediaField("icon", v.Icon)
+				.. Wherigo._addCommands(v)
 				.. ", \"id\": \"" .. k .. "\""
 				.. "}"
 			first = false
