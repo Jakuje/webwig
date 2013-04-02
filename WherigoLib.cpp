@@ -441,7 +441,7 @@ int openCartridge(char *filename){
 	if( status == 0 ){
 		lua_setglobal(L, "cartridge"); // by http://wherigobuilder.wikispaces.com/Globals
 	} else {
-		MessageBox("Error loading cartridge file. See log for more details", "", "", "", "");
+		Dialog("Error loading cartridge file. See log for more details", "");
 		delete WherigoOpen;
 		WherigoOpen = NULL;
 		return 0;
