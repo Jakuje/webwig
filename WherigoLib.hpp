@@ -65,7 +65,7 @@ namespace WherigoLib
 	extern void CallbackFunction(const char *event, int * id);
 	extern void timerTick(int *ObjId);
 	
-	extern void OnStartEvent();
+	extern void OnStartEvent(int *load_game);
 		
 	extern int openCartridge(char *filename);
 	extern void closeCartridge(int * save);
