@@ -38,15 +38,11 @@ enyo.kind({
 
 
    	openError: function() {
-		this.owner.popupMessage( new WIGApp.MessageBox("Zprava chybova", "Message", "images/tasks.png", "Dobre", "Spatne", true) );
+		this.owner.popupMessage( new WIGApp.MessageBox("Zprava chybova", "Message", "images/tasks.png", "Dobre", "Spatne", false) );
 		//this.owner.popupMessage( new WIGApp.Dialog("Je prave zobrazena prvni zprava a tato by mela zustat v zasobniku", "Error", "images/tasks.png") );
-		this.owner.popupMessage( new WIGApp.Dialog("JAK HRAT:<BR><BR>V nabidce Tasks (Ukoly) najdete konkretni ukoly. Pro jejich splneni staci priblizit se k hledanemu objektu. Na poradi techto objektu pritom nezalezi.<BR><BR>Vzdy vyckejte na potvrzeni nalezu. Nekdy se muze stat, ze budete muset hledat spravne misto, aby byl nalez zaznamenan a potvrzen.<BR><BR>Pozorne ctete pruvodni texty. Reknou vam, jak postupovat dal. Kazdy dialog hned potvrdte tlacitkem.<BR><BR>Kdybyste si nevedeli rady, prozkoumejte polozky v jednotlivych nabidkach.<BR><BR>Hra se automaticky po splneni kazdeho ukolu uklada.", "Message") );
-		this.owner.popupMessage( new WIGApp.GetInput("Vyberte:", "Select", "images/you_see.png", "MultipleChoice", ";one;two;three;saf;fasfvsav;vas;vfavfad;"));
-		this.owner.popupMessage( new WIGApp.GetInput("Zadejte text:", "Input", "images/inventory.png", "Text", ""));
-		
-		this.owner.popupMessage( new WIGApp.Dialog("1 JAK HRAT:<BR><BR>V nabidce Tasks (Ukoly) najdete konkretni ukoly. Pro jejich splneni staci priblizit se k hledanemu objektu. Na poradi techto objektu pritom nezalezi.<BR><BR>Vzdy vyckejte na potvrzeni nalezu. Nekdy se muze stat, ze budete muset hledat spravne misto, aby byl nalez zaznamenan a potvrzen.<BR><BR>Pozorne ctete pruvodni texty. Reknou vam, jak postupovat dal. Kazdy dialog hned potvrdte tlacitkem.<BR><BR>Kdybyste si nevedeli rady, prozkoumejte polozky v jednotlivych nabidkach.<BR><BR>Hra se automaticky po splneni kazdeho ukolu uklada.", "Message") );
-		this.owner.popupMessage( new WIGApp.Dialog("2 JAK HRAT:<BR><BR>V nabidce Tasks (Ukoly) najdete konkretni ukoly. Pro jejich splneni staci priblizit se k hledanemu objektu. Na poradi techto objektu pritom nezalezi.<BR><BR>Vzdy vyckejte na potvrzeni nalezu. Nekdy se muze stat, ze budete muset hledat spravne misto, aby byl nalez zaznamenan a potvrzen.<BR><BR>Pozorne ctete pruvodni texty. Reknou vam, jak postupovat dal. Kazdy dialog hned potvrdte tlacitkem.<BR><BR>Kdybyste si nevedeli rady, prozkoumejte polozky v jednotlivych nabidkach.<BR><BR>Hra se automaticky po splneni kazdeho ukolu uklada.", "Message") );
-		this.owner.popupMessage( new WIGApp.Dialog("3 JAK HRAT:<BR><BR>V nabidce Tasks (Ukoly) najdete konkretni ukoly. Pro jejich splneni staci priblizit se k hledanemu objektu. Na poradi techto objektu pritom nezalezi.<BR><BR>Vzdy vyckejte na potvrzeni nalezu. Nekdy se muze stat, ze budete muset hledat spravne misto, aby byl nalez zaznamenan a potvrzen.<BR><BR>Pozorne ctete pruvodni texty. Reknou vam, jak postupovat dal. Kazdy dialog hned potvrdte tlacitkem.<BR><BR>Kdybyste si nevedeli rady, prozkoumejte polozky v jednotlivych nabidkach.<BR><BR>Hra se automaticky po splneni kazdeho ukolu uklada.", "Message") );
+		//this.owner.popupMessage( new WIGApp.Dialog("JAK HRAT:<BR><BR>V nabidce Tasks (Ukoly) najdete konkretni ukoly. Pro jejich splneni staci priblizit se k hledanemu objektu. Na poradi techto objektu pritom nezalezi.<BR><BR>Vzdy vyckejte na potvrzeni nalezu. Nekdy se muze stat, ze budete muset hledat spravne misto, aby byl nalez zaznamenan a potvrzen.<BR><BR>Pozorne ctete pruvodni texty. Reknou vam, jak postupovat dal. Kazdy dialog hned potvrdte tlacitkem.<BR><BR>Kdybyste si nevedeli rady, prozkoumejte polozky v jednotlivych nabidkach.<BR><BR>Hra se automaticky po splneni kazdeho ukolu uklada.", "Message") );
+		//this.owner.popupMessage( new WIGApp.GetInput("Vyberte:", "Select", "images/you_see.png", "MultipleChoice", ";one;two;three;saf;fasfvsav;vas;vfavfad;"));
+		//this.owner.popupMessage( new WIGApp.GetInput("Zadejte text:", "Input", "images/inventory.png", "Text", ""));
 	},
 
 	create: function() {
@@ -82,7 +78,7 @@ enyo.kind({
 		if (inIndex < this.metadata.length) {
 			if (this.$.list) {
 				var item = this.metadata[inIndex];
-				this.$.title.setCaption( item.name );
+				this.$.title.setCaption( item.name + (item.saved ? " [S]" : ""));
 				this.$.type.setContent( item.type );
 				if( item.author ){
 					this.$.author.setContent(" by " + item.author);
