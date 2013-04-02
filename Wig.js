@@ -7,6 +7,12 @@ enyo.kind({
 	components: [
 		{kind: "WIGApp.Plugin", name: "plugin"},
 		{kind: "enyo.Sound", src: "", name: "sound"},
+		{
+            name : "SysSound",
+            kind : "PalmService",
+            service : "palm://com.palm.audio/systemsounds",
+            method : "playFeedback",
+        },
 		{name: "pane", kind: "Pane", flex: 1, onSelectView: "viewSelected",
 			components: [
 				{name: "cList", className: "enyo-bg", kind: "WIGApp.CartList",
@@ -19,8 +25,9 @@ enyo.kind({
 		{kind: "AppMenu", components: [ // In chromium: CTRL + `
 			{kind: "EditMenu"},
 			{caption: "Preferences", onclick: "turnLightsOff"},
-			{caption: "Refresh", onclick: "turnLightsOn"},
+			{caption: "Refresh", name: "menuRefresh", onclick: "doRefresh", kind: "AppMenuItem"},
 			{caption: "Move to Zverokruh", onclick: "tempPostUpdateUI"},
+			{caption: "Save game", name: "menuSave", onclick: "doSave", showing: false, kind: "enyo.AppMenuItem"}
 			/*{kind: "HelpMenu", target: "http://jakuje.dta3.com"}*/
 		]},
 		{ kind: enyo.ApplicationEvents, onBack: "goBack" },
@@ -31,12 +38,15 @@ enyo.kind({
 		   layoutKind: "VFlexLayout",
 		   lazy: false,
 		   components: [
-				{kind: "BasicScroller", autoVertical: true, style: "height: auto;", flex: 1, 
-					components: [{
-							name: "media",
-							kind: "Image",
-							showing: "false"
-						},
+				{kind: "BasicScroller", autoVertical: true, style: "height: auto;",
+					components: [
+						{ layoutKind: "VFlexLayout", align: "center", components: [
+							{
+								name: "media",
+								kind: "Image",
+								showing: "false"
+							},
+						]},
 						{
 							name: "errorText",
 							content: "Chyba toho a toho.",
@@ -124,14 +134,24 @@ enyo.kind({
 	
 	gameStarted: function(inSender, inMetadata){
 		//this.$.pane.selectViewByName("gMain");
-		this.$.gMain.setup(inMetadata);
+		if( inMetadata.saved ){
+			this.popupMessage( new WIGApp.MessageBox("There is saved game in working direcotry. Do you want to continue?", "Prompt", "", "Yes", "No",
+				function(context, button){
+					context.$.gMain.setup(inMetadata, ( button == "Button1" ? 1 : 0) );
+				}
+			));
+		} else {
+			this.$.gMain.setup(inMetadata, 0 );
+		}
 	},
 	
 	viewSelected: function(inSender, inView) {
-		if (inView == this.$.cList) {
-			// ??
-		} else if (inView == this.$.cDetail) {
-			// ??
+		if (inView == this.$.gMain) {
+			this.$.menuRefresh.hide();
+			this.$.menuSave.show();
+		} else {
+			this.$.menuRefresh.show();
+			this.$.menuSave.hide();
 		}
 	},
 	
@@ -155,7 +175,7 @@ enyo.kind({
 					// if OK then close cartridge (cleanup and close game pane)
 					function( context, button ){
 						if( button == "Button1" ){
-							context.$.plugin.closeCartridge(1);
+							context.$.plugin.closeCartridge(0);
 							context.$.pane.back();
 						}
 						}) );
@@ -175,4 +195,10 @@ enyo.kind({
 		//this.$.plugin.setPosition(49.227367,16.62254);
 		//this.$.plugin.setPosition(49.227095,16.625119);
 	},
+	doSave: function(){
+		this.$.plugin.save();
+	},
+	doRefresh: function(){
+		this.$.cList.refreshClicked();
+	}
 });
