@@ -19,6 +19,8 @@ enyo.kind({
 		this.addCallback("MessageBox", enyo.bind(this, this.messageBox), true);
 		this.addCallback("Dialog", enyo.bind(this, this.dialog), true);
 		this.addCallback("playAudio", enyo.bind(this, this.playAudio), true);
+		this.addCallback("stopSound", enyo.bind(this, this.stopSound), true);
+		this.addCallback("Alert", enyo.bind(this, this.Alert), true);
 		this.addCallback("GetInput", enyo.bind(this, this.getInput), true);
 		this.addCallback("ShowStatusText", enyo.bind(this, this.ShowStatusText), true);
 		this.owner.$.plugin.addCallback("updateState",
@@ -32,6 +34,14 @@ enyo.kind({
 		console.error("***** WIG Enyo: playAudio: " + media);
 		this.owner.$.sound.setSrc(media);
 		this.owner.$.sound.play();
+	},
+	stopSound: function(){
+		console.error("***** WIG Enyo: stopSound");
+		this.owner.$.sound.audio.pause();
+	},
+	Alert: function(){
+		console.error("***** WIG Enyo: Alert");
+		this.owner.$.SysSound.call({"name": "tones_3beeps_otasp_done"});
 	},
 	messageBox: function(message, media, button1, button2, callback){
 		/*console.error("***** WIG Enyo: messageBox:" + message + "b:" + button1 + ", " + button2 + " m:" + media + " c:" + callback);

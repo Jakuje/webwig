@@ -55,6 +55,8 @@ namespace Engine
 	extern void RequestSync();
 	
 	extern void PlayAudio(string media);	
+	extern void stopSound();
+	extern void Alert();
 	extern void ShowStatusText(const char *text);
 	extern void GetInput(const char *type, const char *text, const char* choices, string media);	
 	

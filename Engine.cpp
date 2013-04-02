@@ -94,7 +94,28 @@ void PlayAudio(string media) {
         //SDL_Delay(5);
     }
 #endif
-	return;
+}
+
+void stopSound(){
+#ifndef DESKTOP
+    PDL_Err err;
+    err = PDL_CallJS("stopSound", NULL, 0);
+    if (err) {
+        syslog(LOG_ERR, "*** PDL_CallJS failed, %s", PDL_GetError());
+        //SDL_Delay(5);
+    }
+#endif
+}
+
+void Alert(){
+#ifndef DESKTOP
+    PDL_Err err;
+    err = PDL_CallJS("Alert", NULL, 0);
+    if (err) {
+        syslog(LOG_ERR, "*** PDL_CallJS failed, %s", PDL_GetError());
+        //SDL_Delay(5);
+    }
+#endif
 }
 
 /** Show status text (deprecated) */

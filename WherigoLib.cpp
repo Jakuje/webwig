@@ -395,6 +395,8 @@ lua_State * openLua(Wherigo *w){
 			.addFunction("removeTimer", removeTimer)
 			.addFunction("getTime", getTime)
 			.addFunction("LogMessage", log)
+			.addFunction("StopSound", Engine::stopSound)
+			.addFunction("Alert", Engine::Alert)
 		.endNamespace();
 			
 	// library in Lua
