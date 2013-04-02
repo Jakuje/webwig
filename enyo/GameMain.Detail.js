@@ -10,7 +10,9 @@ enyo.kind({
 		]},
 		{kind: "Scroller", flex: 1, components: [
 			{kind: "Item", components: [
-				{name: "image", kind: "Image"},
+				{ layoutKind: "VFlexLayout", align: "center", components: [
+					{name: "image", kind: "Image"},
+				]},
 				{name: "description", allowHtml: true}
 				]
 			},
@@ -22,7 +24,7 @@ enyo.kind({
 			]
 		},
 		{kind: "HFlexBox", name: "distanceBox", showing: false, components: [
-			{ name: "bearingBackground", style: "background-image: url('images/compass_bg.png');", components: [
+			{ name: "bearingBackground", style: "background: transparent url('images/compass_bg.png') center center no-repeat;", components: [
 				{name: "bearingArrow", kind: "Image", src: "images/compass_arrow.png"},
 				]},
 			{ kind: "VFlexBox", components: [
