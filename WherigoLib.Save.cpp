@@ -596,9 +596,11 @@ bool restore(){
 	// renew ZVariables to global namespace
 	lua_getfield(L, -1, "ZVariables");
 	lua_remove(L, -2);
-	lua_pushnil(L);
-	while( lua_next(L, -2) != 0 ){
-		lua_setfield(L, LUA_GLOBALSINDEX, lua_tostring(L, -2) );
+	if( ! lua_isnoneornil(L, -1) ){
+		lua_pushnil(L);
+		while( lua_next(L, -2) != 0 ){
+			lua_setfield(L, LUA_GLOBALSINDEX, lua_tostring(L, -2) );
+		}
 	}
 	lua_pop(L, 1);
 
