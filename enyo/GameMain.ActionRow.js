@@ -115,7 +115,7 @@ enyo.kind({
 					this.$.itemDistance.setContent( ( d < 2000 ? (Math.round(d) + " m") : (Math.round(d/1000) + " km") ) );
 				}
 				this.$.itemDistance.show();
-				this.$.itemBearing.applyStyle("-webkit-transform", "rotate(" + this.data[inIndex].bearing + "deg)");
+				this.$.itemBearing.applyStyle("-webkit-transform", "rotate(" + (this.data[inIndex].bearing - this.owner.owner.data.gps.heading) + "deg)");
 				this.$.itemBearing.show();
 			} else {
 				this.$.itemDistance.setContent("");
