@@ -76,7 +76,6 @@ void CommandLineTests(int argc, char **argv){
 	int *refresh = new int;
 	*refresh = 1;
 	Engine::OutputCartridgesToJS(refresh);
-	delete refresh;
 	
 	char *file;
 	if( argc > 1 && strcmp(argv[1], "test") == 0){
@@ -93,7 +92,7 @@ void CommandLineTests(int argc, char **argv){
 			file = (char *) "minimal.gwc";
 		}
 		
-		if( ! Engine::openCartridgeToJS(file) ){
+		if( ! Engine::openCartridgeToJS(file, refresh) ){
 			return;
 		}
 		
@@ -123,6 +122,8 @@ void CommandLineTests(int argc, char **argv){
 		Engine::closeCartridge(s);
 		delete s;
 	}
+	delete refresh;
+	
 }
 
 
