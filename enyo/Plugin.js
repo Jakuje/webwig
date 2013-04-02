@@ -234,7 +234,7 @@ enyo.kind({
                 "complete": true
             }
         ],
-        "gps": {"acc": 38, "state": 1, }
+        "gps": {"acc": 38, "state": 1, "heading": 90}
     }
 			
 				);
@@ -252,7 +252,7 @@ enyo.kind({
 			"youSee": [],
 			"inventory": [],
 			"tasks": [],
-			"gps": {"acc": 0, "state": 0, }
+			"gps": {"acc": 0, "state": 0, "heading": 90 }
 		});
 	},
 	callback: function(event, id){
@@ -274,7 +274,7 @@ enyo.kind({
 	switchGPS: function(newState){
 		if ( window.PalmSystem) {
 			console.error("***** WIG Enyo: callback switchGPS = " + newState);
-			//this.callPluginMethodDeferred(enyo.nop, "switchGPS", newState);
+			this.callPluginMethodDeferred(enyo.nop, "switchGPS", newState);
 		}
 	},
 	closePrompt: function(){

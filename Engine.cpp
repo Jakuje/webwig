@@ -7,8 +7,9 @@ namespace Engine
 {
 
 /** Accuracy class for image in UI */
-int gps_accuracy = 0;
+int gps_accuracy = -1;
 int gps_state = 0;
+double gps_heading = 0;
 
 
 
@@ -233,6 +234,7 @@ void updateState(){
 				<< "\"acc\": " << gps_accuracy
 				<< ", \"state\": " << gps_state
 				//<< ", \"fix\": \"" << gps_fix << "\""
+				<< ", \"heading\": " << gps_heading
 				<< "}"
 			<< "}"
 		<< "}";
@@ -435,6 +437,28 @@ PDL_bool setPositionJS(PDL_JSParameters *params){
     
     return PDL_TRUE;
 }
+
+PDL_bool switchGPSJS(PDL_JSParameters *params){
+	if (PDL_GetNumJSParams(params) != 1) {
+        syslog(LOG_INFO, "**** wrong number of parameters for setPosition");
+        PDL_JSException(params, "wrong number of parameters for setPosition");
+        return PDL_FALSE;
+    }
+
+    int *newState = new int;
+    *newState = PDL_GetJSParamInt(params, 0);
+    
+    SDL_Event event;
+    event.user.type = SDL_USEREVENT;
+    event.user.code = EVENT_SWITCH_GPS;
+    event.user.data1 = newState;
+    event.user.data2 = NULL;
+    
+    //syslog(LOG_WARNING, "*** sending setPosition event");
+    SDL_PushEvent(&event);
+    
+    return PDL_TRUE;
+}
 #endif
 
 void setup(int argc, char **argv)
@@ -469,6 +493,7 @@ void setup(int argc, char **argv)
     PDL_RegisterJSHandler("GetInputResponse", GetInputResponseJS);
     PDL_RegisterJSHandler("CallbackFunction", CallbackFunctionJS);
     PDL_RegisterJSHandler("setPosition", setPositionJS);
+    PDL_RegisterJSHandler("switchGPS", switchGPSJS);
     PDL_JSRegistrationComplete();
     
     // Workaround for old webos devices:
@@ -505,6 +530,7 @@ void UpdateGPS(PDL_Location *location){
 		
 		gps_accuracy = (int) acc;
 		gps_state = 1;
+		gps_heading = location->heading;
 		
 		if( update_all ){
 			// try again or what?
@@ -697,12 +723,30 @@ void setPosition(double *lat, double * lon){
 	// disable autoupdate
 	PDL_EnableLocationTracking(PDL_FALSE);
 #endif
-	gps_accuracy = 5;
+	gps_accuracy = -1;
 	gps_state = 0;
+	gps_heading = 0;
 	double alt = 115;
 	WherigoLib::updateLocation(lat, lon, &alt, &alt);
 	updateState();
 }
+
+void switchGPS(int *newState){
+	
+#ifndef DESKTOP
+	if( *newState == 1 ){
+		PDL_EnableLocationTracking(PDL_TRUE);
+	} else {
+		PDL_EnableLocationTracking(PDL_FALSE);
+	}
+#endif
+	gps_accuracy = -1;
+	gps_state = *newState;
+	gps_heading = 90;
+	double alt = 115;
+	updateState();
+}
+
 
 
 void loop(){
@@ -776,6 +820,12 @@ void loop(){
 					setPosition(lat, lon);
 					delete lat;
 					delete lon;
+					}
+					break;
+				case EVENT_SWITCH_GPS: {
+					int *newState = (int *)event.user.data1;
+					switchGPS(newState);
+					delete newState;
 					}
 					break;
 				case EVENT_TIMER: {
