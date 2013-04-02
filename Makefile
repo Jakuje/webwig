@@ -1,7 +1,7 @@
 DESKTOP=0
 PRE=0
 PIXI=1
-DEBUG=0
+DEBUG=1
 
 ifeq (1,$(DEBUG))
 DEVICEOPTS=-g
@@ -15,8 +15,9 @@ INC="-I%PalmPDK%\include" "-I%PalmPDK%\include\SDL"
 LDFLAGS="-L%PalmPDK%\device\lib" $(PDL) $(LIBS) -Wl,--allow-shlib-undefined
 RMDIR = -rd /S /Q
 RM = -del
-COPY = copy
+COPY = xcopy
 PACKAGE = package
+RECURSIVE = /S
 
 PLUGIN=wig
 LIB="lua\liblua.a"
@@ -29,8 +30,9 @@ PACKAGE =
 LDFLAGS=$(LIBS) -Wl,--allow-shlib-undefined
 RMDIR = rm -rf
 RM = rm -f
-COPY = cp -r 
+COPY = cp
 LIB="lua/liblua.a"
+RECURSIVE = -r
 else ifeq (1,$(PRE))
 DEVICEOPTS += -mcpu=cortex-a8 -mfpu=neon -mfloat-abi=softfp
 else ifeq (1,$(PIXI))
@@ -82,7 +84,7 @@ package: $(PLUGIN) appinfo.json logo.png
 	$(COPY) index.html STAGING
 	$(COPY) logo.png STAGING
 	mkdir STAGING\images
-	$(COPY) images STAGING\images
+	$(COPY) images STAGING\images $(RECURSIVE)
 	mkdir STAGING\enyo
 	$(COPY) enyo STAGING\enyo
 	mkdir STAGING\tests
@@ -92,8 +94,8 @@ package: $(PLUGIN) appinfo.json logo.png
 	palm-package STAGING
 
 install:
-	echo "Installing version 1.0.3 !!!"
-	palm-install com.dta3team.app.wherigo_1.0.3_all.ipk
+	echo "Installing version 1.0.4 !!!"
+	palm-install com.dta3team.app.wherigo_1.0.4_all.ipk
 
 run:
 	palm-run STAGING
@@ -102,7 +104,6 @@ clean:
 	$(RMDIR) STAGING
 	$(RM) $(PLUGIN)
 	make -C lua clean
-	$(RM) liblua.a
 	$(RM) *.o
 	$(RM) $(LIB)
 

@@ -4,7 +4,7 @@
 	"main": "index.html",
     "icon": "logo.png",
 	"id": "com.dta3team.app.wherigo",
-	"version": "1.0.3",
+	"version": "1.0.4",
 	"vendor": "Dta3 team",
 	"uiRevision": 2,
 	"plug-ins": true
