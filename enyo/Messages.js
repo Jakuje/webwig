@@ -19,6 +19,7 @@ enyo.kind({
 		}
 		
 		element.$.Button1.setCaption("OK");
+		element.$.Button1.show();
 		
 		element.$.Button2.hide();
 		
