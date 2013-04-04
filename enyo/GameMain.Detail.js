@@ -44,9 +44,16 @@ enyo.kind({
 		this.screen = screen;
 		var render = false;
 		//console.error( (data.id != this.data.id) + " " + (data.media != this.data.media) + " " + (data.name != this.data.name) + " " + !arrays_equal(data.commands, this.data.commands) );
-		if( data.id != this.data.id || data.media != this.data.media || data.name != this.data.name || !arrays_equal(data.commands, this.data.commands) ){
-			render = true;
+		if( data.id != this.data.id || data.media != this.data.media || data.name != this.data.name ){
+			 //|| !arrays_equal(data.commands, this.data.commands)
+			 render = true;
 		}
+		for(var i in data.commands ){
+			if( !this.data.commands[i] || this.data.commands[i].id != data.commands[i].id
+				|| this.data.commands[i].text != data.commands[i].text ){
+					render = true;
+			}
+		 }
 		this.data = data;
 		this.$.title.setContent( this.owner.$.gList.$.detail.getTitle(screen) + ": " + data.name );
 		this.$.description.setContent( data.description );
@@ -111,10 +118,10 @@ enyo.kind({
 		});*/
 	},
 	onKeypress: function(inSender, inEvent){
-		if( inEvent.keyCode == 115 ){ // W
-			this.owner.owner.$.plugin.movePosition(+0.0001, 0);
-		} else if(inEvent.keyCode == 119 ){ // S
+		if( inEvent.keyCode == 115 ){ // S
 			this.owner.owner.$.plugin.movePosition(-0.0001, 0);
+		} else if(inEvent.keyCode == 119 ){ // W
+			this.owner.owner.$.plugin.movePosition(+0.0001, 0);
 		} else if(inEvent.keyCode == 97 ){ // A
 			this.owner.owner.$.plugin.movePosition(0, -0.0001);
 		} else if(inEvent.keyCode == 100 ){ // D
