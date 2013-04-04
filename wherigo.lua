@@ -196,6 +196,18 @@ function Wherigo.IsPointInZoneOld(point, zone)
 	end
 	
 function Wherigo.IsPointInZone(point, zone)
+	-- fisrt go through Bounging Box
+	if( zone._xmin == nil) then zone._calculateBoundingBox() end
+	print(zone._xmin, point.longitude, zone._xmax)
+	print(zone._ymin, point.latitude, zone._ymax)
+	if  point.longitude < zone._xmin or
+		point.longitude > zone._xmax or
+		point.latitude < zone._ymin or
+		point.latitude > zone._ymax then
+		return false
+		end
+	
+	
 	-- from http://www.visibone.com/inpoly/
 	-- easier way, without care of OriginalPoint
 	local xold, yold, x1, y1, x2, y2
@@ -477,7 +489,20 @@ Wherigo.ZCommand = {}
 Wherigo.ZCommand_metatable = {
 	__tostring = function(s)
 		return "a ZCommand instance"
-		end
+		end,
+	__index = function(t, key)
+		if key == 'Enabled' then
+			return t._enabled
+			end
+		end,
+	__newindex = function(t, key, value)
+		if key == 'Enabled' then
+			if value ~= t._enabled then
+				t._enabled = value
+				Wherigo.LogMessage("ZCommand <" .. t.Text .. ">.Enabled = " .. Wherigo._bool2str(value))
+				end
+			end
+		end,
 }
 function Wherigo.ZCommand.new(table)
 	table = table or {}
@@ -489,7 +514,7 @@ function Wherigo.ZCommand.new(table)
 			WorksWithAll = false,
 			WorksWithList = table.WorksWithList or {}, -- Zcharacter, ZItem
 		--Custom = true, -- doesn't matter
-		Enabled = true,
+		_enabled = true,
 		_classname = Wherigo.CLASS_ZCOMMAND,
 		};
 	if table.CmdWith ~= nil then
@@ -501,7 +526,7 @@ function Wherigo.ZCommand.new(table)
 			self.WorksWithAll = table.WorksWithAll
 			end
 		if table.Enabled ~= nil then
-			self.Enabled = table.Enabled
+			self._enabled = table.Enabled
 			end
 		end
 	setmetatable(self, Wherigo.ZCommand_metatable)
@@ -537,17 +562,23 @@ Wherigo.ZObject_metatable = {
 		if key == 'Active' then
 			if value ~= t._active then
 				t._active = value
-				Wherigo.LogMessage("ZObject <" .. t.Name .. ">.Active = " .. Wherigo._bool2str(value))
+				Wherigo.LogMessage(t._classname .. " <" .. t.Name .. ">.Active = " .. Wherigo._bool2str(value))
 				if t._classname == Wherigo.CLASS_ZONE then
-					t.State = 'NotInRange'
-					t._state = 'NotInRange'
-					t.Inside = false
-					t._inside = false
+					if value then -- activating zone
+						t.State = 'NotInRange'
+						t._state = t.State
+						t.Inside = false
+						t._inside = t.Inside
+						t._calculateBoundingBox()
+						Wherigo.Zone._update( t )
+					else
+						Wherigo.Player._removeFromZone(t)
+						end
 					end
 				if table.OnSetActive then
-					Wherigo.LogMessage("ZObject <" .. t.Name .. ">: START OnSetActive")
+					Wherigo.LogMessage(t._classname .. " <" .. t.Name .. ">: START OnSetActive")
 					t.OnSetActive(t)
-					Wherigo.LogMessage("ZObject <" .. t.Name .. ">: END__ OnSetActive")
+					Wherigo.LogMessage(t._classname .. " <" .. t.Name .. ">: END__ OnSetActive")
 					end
 				end
 			return
@@ -650,9 +681,13 @@ function Wherigo.ZObject.new(cartridge, container )
 		if owner ~= nil then
 			Wherigo.LogMessage("Move " .. self.Name .. " to " .. owner.Name)
 			if owner == Wherigo.Player then
-				--table.insert(Wherigo.Player.Inventory, self)
+				table.insert(Wherigo.Player.Inventory, self)
 			elseif self.Container == Wherigo.Player then
-				--table.remove(Wherigo.Player.Inventory, ???)
+				for k,v in pairs(Wherigo.Player.Inventory) do
+					if v == self then
+						table.remove(Wherigo.Player.Inventory, k)
+						end
+					end
 				end
 		else
 			Wherigo.LogMessage("Move " .. self.Name .. " to (nowhere)")
@@ -780,11 +815,127 @@ function Wherigo.Zone.new(cartridge)
 		events OnDistant, OnEnter, OnNotInRange, OnExit, OnProximity, OnSetActive
 	]]
 	
+	function self._calculateBoundingBox()
+		self._xmin = self.Points[1].longitude
+		self._xmax = self.Points[1].longitude
+		self._ymin = self.Points[1].latitude
+		self._ymax = self.Points[1].latitude
+		for k,v in pairs(self.Points) do
+			print(v.longitude, v.latitude)
+			if v.longitude < self._xmin then
+				self._xmin = v.longitude
+			elseif v.longitude > self._xmax then
+				self._xmax = v.longitude
+				end
+			if v.latitude < self._ymin then
+				self._ymin = v.longitude
+			elseif v.latitude > self._ymax then
+				self._ymax = v.latitude
+				end
+			end
+		print("----------------------------")
+		print(self._xmin, self._xmax)
+		print(self._ymin, self._ymax)
+		end
+	
 	setmetatable(self, Wherigo.Zone_metatable) 
 	return self
 	end
 function Wherigo.Zone:made( object )
 	return (object._classname == Wherigo.CLASS_ZONE)
+	end
+function Wherigo.Zone._update( v )
+	local inside = Wherigo.IsPointInZone (Wherigo.Player.ObjectLocation, v)
+	print(v.Name, inside, v._inside, v.OriginalPoint, Wherigo.Player.ObjectLocation)
+	if inside ~= v._inside then
+		update_all = true
+		v._inside = inside
+		if inside then
+			table.insert(Wherigo.Player.InsideOfZones, v)
+			if v._state == 'NotInRange' and v.OnDistant then
+				Wherigo.LogMessage("Zone <" .. v.Name .. ">: START onDistant")
+				v.OnDistant(v)
+				Wherigo.LogMessage("Zone <" .. v.Name .. ">: END__ onDistant")
+				end
+			if v._state ~= 'Proximity' and v.OnProximity then
+				Wherigo.LogMessage("Zone <" .. v.Name .. ">: START onProximity")
+				v.OnProximity(v)
+				Wherigo.LogMessage("Zone <" .. v.Name .. ">: END__ onProximity")
+				end
+			if v.OnEnter then
+				Wherigo.LogMessage("Zone <" .. v.Name .. ">: START onEnter")
+				v.OnEnter(v)
+				Wherigo.LogMessage("Zone <" .. v.Name .. ">: END__ onEnter")
+				end
+		else
+			Wherigo.Player._removeFromZone(v)
+			if v.OnExit then
+				Wherigo.LogMessage("Zone <" .. v.Name .. ">: START onExit")
+				v.OnExit(v)
+				Wherigo.LogMessage("Zone <" .. v.Name .. ">: END__ onExit")
+				end
+			end
+		end
+	if inside then
+		--Wherigo.LogMessage("Zone <" .. v.Name .. ">: Inside")
+		v.State = 'Inside'
+		v._state = v.State
+	else
+		-- if it is in table, remove
+		-- how far?
+		v.CurrentDistance, v.CurrentBearing = Wherigo.VectorToZone (Wherigo.Player.ObjectLocation, v)
+		--[[Wherigo.LogMessage(v.Name .. ": d:" .. tostring(v.CurrentDistance()) .. ", p:" ..
+			tostring(v.ProximityRange()) .. ", d:" .. tostring(v.DistanceRange() ))]]
+		if v.CurrentDistance() < v.ProximityRange() then
+			if v._state == 'NotInRange' and v.OnDistant then
+				Wherigo.LogMessage("Zone <" .. v.Name .. ">: START onDistant")
+				v.OnDistant (v)
+				Wherigo.LogMessage("Zone <" .. v.Name .. ">: END__ onDistant")
+				update_all = true
+				end
+			--Wherigo.LogMessage("Zone <" .. v.Name .. ">: Distant")
+			v.State = 'Proximity'
+		elseif v.DistanceRange() < 0 or v.CurrentDistance() < v.DistanceRange() then
+			if v._state == 'Inside' and v.OnProximity then
+				Wherigo.LogMessage("Zone <" .. v.Name .. ">: START onProximity")
+				v.OnProximity(v)
+				Wherigo.LogMessage("Zone <" .. v.Name .. ">: END__ onProximity")
+				update_all = true
+				end
+			--Wherigo.LogMessage("Zone <" .. v.Name .. ">: Proximity")
+			v.State = 'Distant'
+		else
+			if v._state == 'Inside' and v.OnProximity then
+				Wherigo.LogMessage("Zone <" .. v.Name .. ">: START onProximity")
+				v.OnProximity(v)
+				Wherigo.LogMessage("Zone <" .. v.Name .. ">: END__ onProximity")
+				update_all = true
+				end
+			if (v._state == 'Proximity' or v._state == 'Inside') and v.OnDistant then
+				Wherigo.LogMessage("Zone <" .. v.Name .. ">: START onDistant")
+				v.OnDistant(v)
+				Wherigo.LogMessage("Zone <" .. v.Name .. ">: END__ onDistant")
+				update_all = true
+				end
+			--Wherigo.LogMessage("Zone <" .. v.Name .. ">: NotInRange")
+			v.State = 'NotInRange'
+			end
+		if v._state ~= v.State then
+			--Wherigo.LogMessage("Zone <" .. v.Name .. ">: Other state: ")
+			--Wherigo.LogMessage("Zone <" .. v.Name .. ">: " .. v.State)
+			local s = v._state
+			v._state = v.State
+			local attr = 'On' .. v.State
+			local event = rawget(v, attr)
+			if event then
+				Wherigo.LogMessage("Zone <" .. v.Name .. ">: START on" .. v.State)
+				event(v)
+				Wherigo.LogMessage("Zone <" .. v.Name .. ">: END__ on" .. v.State)
+				update_all = true
+				end
+			end
+		end
+	return update_all
 	end
 setmetatable(Wherigo.Zone, {
 	__call = function(s, cartridge)
@@ -892,94 +1043,7 @@ function Wherigo.ZCartridge.new(  )
 						v.CurrentDistance, v.CurrentBearing = Wherigo.VectorToPoint(Wherigo.Player.ObjectLocation, pos)
 						end
 				elseif v._classname == Wherigo.CLASS_ZONE then
-					--update_all = v._update() or update_all
-					local inside = Wherigo.IsPointInZone (Wherigo.Player.ObjectLocation, v)
-					print(v.Name, inside, v._inside, v.OriginalPoint, Wherigo.Player.ObjectLocation)
-					if inside ~= v._inside then
-						update_all = true
-						v._inside = inside
-						if inside then
-							if v._state == 'NotInRange' and v.OnDistant then
-								Wherigo.LogMessage("Zone <" .. v.Name .. ">: START onDistant")
-								v.OnDistant(v)
-								Wherigo.LogMessage("Zone <" .. v.Name .. ">: END__ onDistant")
-								end
-							if v._state ~= 'Proximity' and v.OnProximity then
-								Wherigo.LogMessage("Zone <" .. v.Name .. ">: START onProximity")
-								v.OnProximity(v)
-								Wherigo.LogMessage("Zone <" .. v.Name .. ">: END__ onProximity")
-								end
-							if v.OnEnter then
-								Wherigo.LogMessage("Zone <" .. v.Name .. ">: START onEnter")
-								v.OnEnter(v)
-								Wherigo.LogMessage("Zone <" .. v.Name .. ">: END__ onEnter")
-								end
-						else
-							if v.OnExit then
-								Wherigo.LogMessage("Zone <" .. v.Name .. ">: START onExit")
-								v.OnExit(v)
-								Wherigo.LogMessage("Zone <" .. v.Name .. ">: END__ onExit")
-								end
-							end
-						end
-					if inside then
-						--Wherigo.LogMessage("Zone <" .. v.Name .. ">: Inside")
-						v.State = 'Inside'
-						v._state = v.State
-					else
-						-- how far?
-						v.CurrentDistance, v.CurrentBearing = Wherigo.VectorToZone (Wherigo.Player.ObjectLocation, v)
-						--[[Wherigo.LogMessage(v.Name .. ": d:" .. tostring(v.CurrentDistance()) .. ", p:" ..
-							tostring(v.ProximityRange()) .. ", d:" .. tostring(v.DistanceRange() ))]]
-						if v.CurrentDistance() < v.ProximityRange() then
-							if v._state == 'NotInRange' and v.OnDistant then
-								Wherigo.LogMessage("Zone <" .. v.Name .. ">: START onDistant")
-								v.OnDistant (v)
-								Wherigo.LogMessage("Zone <" .. v.Name .. ">: END__ onDistant")
-								update_all = true
-								end
-							--Wherigo.LogMessage("Zone <" .. v.Name .. ">: Distant")
-							v.State = 'Proximity'
-						elseif v.DistanceRange() < 0 or v.CurrentDistance() < v.DistanceRange() then
-							if v._state == 'Inside' and v.OnProximity then
-								Wherigo.LogMessage("Zone <" .. v.Name .. ">: START onProximity")
-								v.OnProximity(v)
-								Wherigo.LogMessage("Zone <" .. v.Name .. ">: END__ onProximity")
-								update_all = true
-								end
-							--Wherigo.LogMessage("Zone <" .. v.Name .. ">: Proximity")
-							v.State = 'Distant'
-						else
-							if v._state == 'Inside' and v.OnProximity then
-								Wherigo.LogMessage("Zone <" .. v.Name .. ">: START onProximity")
-								v.OnProximity(v)
-								Wherigo.LogMessage("Zone <" .. v.Name .. ">: END__ onProximity")
-								update_all = true
-								end
-							if (v._state == 'Proximity' or v._state == 'Inside') and v.OnDistant then
-								Wherigo.LogMessage("Zone <" .. v.Name .. ">: START onDistant")
-								v.OnDistant(v)
-								Wherigo.LogMessage("Zone <" .. v.Name .. ">: END__ onDistant")
-								update_all = true
-								end
-							--Wherigo.LogMessage("Zone <" .. v.Name .. ">: NotInRange")
-							v.State = 'NotInRange'
-							end
-						if v._state ~= v.State then
-							--Wherigo.LogMessage("Zone <" .. v.Name .. ">: Other state: ")
-							--Wherigo.LogMessage("Zone <" .. v.Name .. ">: " .. v.State)
-							local s = v._state
-							v._state = v.State
-							local attr = 'On' .. v.State
-							local event = rawget(v, attr)
-							if event then
-								Wherigo.LogMessage("Zone <" .. v.Name .. ">: START on" .. v.State)
-								event(v)
-								Wherigo.LogMessage("Zone <" .. v.Name .. ">: END__ on" .. v.State)
-								update_all = true
-								end
-							end
-						end
+					update_all = Wherigo.Zone._update(v) or update_all
 					end
 				end
 			end
@@ -1245,12 +1309,18 @@ Wherigo.Player.Inventory = {}
 Wherigo.Player.InsideOfZones = {}
 Wherigo.Player.CurrentDistance = nil
 Wherigo.Player.CurrentBearing = nil
-Wherigo.Player.ObjIndex = 0xabcd -- ID taken from Emulator to idetify references
+Wherigo.Player.ObjIndex = 0xabcd -- ID taken from Emulator to identify references
 
 function Wherigo.Player:RefreshLocation()
 	-- request refresh location ... useless?
 	end
--- some starting_marker with starting location ??
+function Wherigo.Player._removeFromZone(zone)
+	for i,t in pairs(Wherigo.Player.InsideOfZones) do
+		if t == zone then
+			table.remove(Wherigo.Player.InsideOfZones, i)
+			end
+		end
+	end
 
 
 --[[
@@ -1265,18 +1335,77 @@ for k,v in pairs(cartridge.AllZObjects) do print(k,v, v.Active, v.Visible) end
 
 -- After runing script, setup media ?
 
+-- onClick, Commands
 Wherigo._callback = function(event, id)
 	local t = cartridge.AllZObjects[id]
-	--[[if event == "OnClick" and t.OnClick then
-		t.OnClick(t)
-	else]]
-	if t then
-		if t[event] then
+	if event == "OnClick" then
+		if t.OnClick then
 			Wherigo.LogMessage("ZCommand <" .. t.Name .. ">: " .. event .. " START")
 			t[event](t)
 			Wherigo.LogMessage("ZCommand <" .. t.Name .. ">: " .. event .. " END__")
-		else
-			Wherigo.LogMessage("ZCommand <" .. t.Name .. ">: " .. event .. " [no script]")
+			end
+	else
+		if t then
+			local command = string.sub(event, 3)
+			local c = t.Commands[command]
+			if not c.CmdWith then
+				if t[event] then
+					Wherigo.LogMessage("ZCommand <" .. t.Name .. ">: " .. event .. " START")
+					t[event](t)
+					Wherigo.LogMessage("ZCommand <" .. t.Name .. ">: " .. event .. " END__")
+				else
+					Wherigo.LogMessage("ZCommand <" .. t.Name .. ">: " .. event .. " [no script]")
+					end
+			else
+				local list = {}
+				local choices = ""
+				if c.WorksWithAll then
+					for k,v in pairs(cartridge.AllZObjects) do
+						if (v._classname == Wherigo.CLASS_ZCHARACTER or
+							v._classname == Wherigo.CLASS_ZITEM)
+							and v._is_visible() then
+							table.insert(list, v);
+							if # list ~= 0 then
+								choices = choices .. ";"
+								end
+							choices = choices .. v.Name
+							end
+						end
+				elseif c.WorksWithList then
+					for k,v in pairs(c.WorksWithList) do
+						if v._is_visible() then
+							table.insert(list, v);
+							if # list ~= 0 then
+								choices = choices .. ";"
+								end
+							choices = choices .. v.Name
+							end
+						end
+					end
+				if # list == 0 then
+					WIGInternal.Dialog("Nothing to command with", "")
+					return
+					end
+				table.insert(Wherigo._GICallbacks, Wherigo._Internal)
+				table.insert(Wherigo._CMDWithCallbacks, t[event])
+				WIGInternal.GetInput("MultipleChoice", "Choose what to command with", choices, "");
+				end
+			end
+		end
+	end
+Wherigo._CMDWithCallbacks = {}
+Wherigo._Internal = {}
+Wherigo._Internal.OnGetInput = function(self, choice)
+	if # Wherigo._CMDWithCallbacks > 0 then
+		local event = table.remove(Wherigo._CMDWithCallbacks)
+		for k,v in pairs(cartridge.AllZObjects) do
+			if (v._classname == Wherigo.CLASS_ZCHARACTER or
+				v._classname == Wherigo.CLASS_ZITEM)
+				and v._is_visible() and v.Name == choice then
+				
+				event(nil, v);
+				return
+				end
 			end
 		end
 	end
@@ -1398,7 +1527,7 @@ Wherigo._getYouSee = function()
 				.. Wherigo._addCommands(v)
 				.. ", \"id\": \"" .. k .. "\""
 			pos = v._get_pos()
-			if pos then
+			if pos and v.CurrentDistance then
 				yousee = yousee .. ", \"distance\": " .. v.CurrentDistance("m")
 					.. ", \"bearing\": " .. v.CurrentBearing("m")
 					.. ", \"lat\": " .. pos.latitude
