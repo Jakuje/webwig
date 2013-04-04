@@ -84,7 +84,7 @@ enyo.kind({
 			}
 			this.$.numRows.setContent(data.length);
 			this.render();
-			if( data.length == 0 ){
+			if( this.data.length == 0 ){
 				this.$.empty.show();
 			} else {
 				this.$.empty.hide();
