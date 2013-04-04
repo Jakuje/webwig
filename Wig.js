@@ -1,5 +1,6 @@
 const DATA_DIR = "/media/internal/appdata/com.dta3team.app.wherigo/";
 const CONF_DIR = DATA_DIR;
+const DEBUG = true;
 
 enyo.kind({
 	name: "WIGApp",
@@ -25,12 +26,22 @@ enyo.kind({
 		{kind: "AppMenu", components: [ // In chromium: CTRL + `
 			{kind: "EditMenu"},
 			{caption: "Preferences", onclick: "turnLightsOff"},
-			{caption: "Refresh", name: "menuRefresh", onclick: "doRefresh", kind: "AppMenuItem"},
+			{caption: "Refresh", name: "menuRefresh", onclick: "doRefresh"},
 			{caption: "Move to Zverokruh", onclick: "tempPostUpdateUI"},
-			{caption: "Save game", name: "menuSave", onclick: "doSave", showing: false, kind: "enyo.AppMenuItem"}
+			{caption: "Save game", name: "menuSave", onclick: "doSave", showing: false}
 			/*{kind: "HelpMenu", target: "http://jakuje.dta3.com"}*/
 		]},
-		{ kind: enyo.ApplicationEvents, onBack: "goBack" },
+		{
+			name: "mappingTool",
+			kind: "PalmService",
+			service: "palm://com.palm.applicationManager",
+			method: "launch",
+			onFailure: "mappingToolFailed"
+		},
+		{ kind: enyo.ApplicationEvents,
+			onBack: "goBack",
+			onOpenAppMenu: "onOpenAppMenu"
+		},
 		{
 		   kind: "ModalDialog",
 		   name: "errorMessage",
@@ -38,7 +49,7 @@ enyo.kind({
 		   layoutKind: "VFlexLayout",
 		   lazy: false,
 		   components: [
-				{kind: "BasicScroller", autoVertical: true, style: "height: auto;",
+				{kind: "BasicScroller", autoVertical: true, style: "height: auto;", flex: 1,
 					components: [
 						{ layoutKind: "VFlexLayout", align: "center", components: [
 							{
@@ -145,8 +156,8 @@ enyo.kind({
 		}
 	},
 	
-	viewSelected: function(inSender, inView) {
-		if (inView == this.$.gMain) {
+	onOpenAppMenu: function(inSender, inEvent) {
+		if (this.$.pane.getViewName() == "gMain") {
 			this.$.menuRefresh.hide();
 			this.$.menuSave.show();
 		} else {
@@ -200,5 +211,8 @@ enyo.kind({
 	},
 	doRefresh: function(){
 		this.$.cList.refreshClicked();
-	}
+	},
+	mappingToolFailed: function(){
+		this.owner.owner.popupMessage( new WIGApp.Dialog("Failed to open Mapping Tool. Not installed?", "Error") );
+	},
 });
