@@ -575,10 +575,11 @@ bool restore(){
 	lua_pushnil(L);
 	for(int i = 0; i < num_objects; i++){
 		if( lua_next(L, -2) == 0) {										// [-1, +(2|0), e]
-			lua_pop(L, 1);
-			fd.close();
+			lua_pushnil(L);
+			/*fd.close();
 			cerr << "Expected more objects in environment ..." << endl;
-			return false;
+			return false;*/
+			break;// ignore more objects 
 		}
 		lua_pushvalue(L, -1);
 		if( ! read_object(&fd, "", false) ){
@@ -603,6 +604,7 @@ bool restore(){
 		}
 	}
 	lua_pop(L, 1);
+	fd.close();
 
 	stackdump_g(L); // check if is empty at the end
 
