@@ -74,10 +74,12 @@ namespace WherigoLib
 	
 	extern bool sync();
 	
+	extern void showMap(int *zone_id);
+	
 	extern std::string getUI();
 	
 	extern bool updateLocation(double *lat, double *lon, double *alt, double *accuracy);
-	
+	extern bool moveLocation(double *lat, double *lon);
 }
 
 #endif

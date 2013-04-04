@@ -1,3 +1,5 @@
+function arrays_equal(a,b) { return !(a<b || b<a); }
+
 enyo.kind({
 	name: "WIGApp.GameMain.Detail",
 	kind: enyo.VFlexBox,
@@ -31,21 +33,20 @@ enyo.kind({
 				{name: "distance"},
 				{content: "Map", kind: "Button", onclick: "showMappingTool"},
 				{kind: "Spacer"},
-				{kind: "Button", onclick: "moveTo", content: "Move To"},
+				{kind: "Button", onclick: "moveTo", content: "Move To", showing: DEBUG},
 			]},
+			{ kind: "Input", onkeypress: "onKeypress", autoCapitalize: "lowercase", showing: DEBUG}
 		]},
-		{
-			name: "mappingTool",
-			kind: "PalmService",
-			service: "palm://com.palm.applicationManager",
-			method: "launch",
-			onFailure: "mappingToolFailed"
-		}
 		],
 	screen: null,
 	data: [],
 	setup: function(screen, data){
 		this.screen = screen;
+		var render = false;
+		//console.error( (data.id != this.data.id) + " " + (data.media != this.data.media) + " " + (data.name != this.data.name) + " " + !arrays_equal(data.commands, this.data.commands) );
+		if( data.id != this.data.id || data.media != this.data.media || data.name != this.data.name || !arrays_equal(data.commands, this.data.commands) ){
+			render = true;
+		}
 		this.data = data;
 		this.$.title.setContent( this.owner.$.gList.$.detail.getTitle(screen) + ": " + data.name );
 		this.$.description.setContent( data.description );
@@ -55,19 +56,24 @@ enyo.kind({
 		} else {
 			this.$.image.hide();
 		}
-		this.render();
 		if( this.screen == "locations" || (this.screen == "youSee" && data.distance) ){
-			if( data.distance < 2000 ){
+			if( data.distance < 1500 ){
 				this.$.distance.setContent(Math.round(data.distance) + " m");
 			} else {
 				this.$.distance.setContent(Math.round(data.distance/1000) + " km");
 			}
 			this.$.bearingBackground.applyStyle("-webkit-transform", "rotate(" + -this.owner.data.gps.heading + "deg)");
 			this.$.bearingArrow.applyStyle("-webkit-transform", "rotate(" + data.bearing + "deg)");
-			this.$.distanceBox.show();
-		} else {
-			this.$.distanceBox.hide();
 		}
+		if( render ){
+			if( this.screen == "locations" || (this.screen == "youSee" && data.distance) ){
+				this.$.distanceBox.show();
+			} else {
+				this.$.distanceBox.hide();
+			}
+			this.render();
+		}
+		
 	},
 	
 	updateUI: function(data){
@@ -94,16 +100,37 @@ enyo.kind({
 		}
 	},
 	showMappingTool: function(){
-		this.$.mappingTool.call({
+		this.owner.owner.$.plugin.showMap(this.data.id);
+		/*this.$.mappingTool.call({
 			'id': 'de.metaviewsoft.maptool',
 			'params': enyo.json.stringify( [{
 				'lat': this.data.lat,
 				'lon': this.data.lon,
 				'name': this.data.name,
 				}] )
-		});
+		});*/
 	},
-	mappingToolFailed: function(){
-		this.owner.owner.popupMessage( new WIGApp.Dialog("Failed to open Mapping Tool", "Error") );
+	onKeypress: function(inSender, inEvent){
+		if( inEvent.keyCode == 115 ){ // W
+			this.owner.owner.$.plugin.movePosition(+0.0001, 0);
+		} else if(inEvent.keyCode == 119 ){ // S
+			this.owner.owner.$.plugin.movePosition(-0.0001, 0);
+		} else if(inEvent.keyCode == 97 ){ // A
+			this.owner.owner.$.plugin.movePosition(0, -0.0001);
+		} else if(inEvent.keyCode == 100 ){ // D
+			this.owner.owner.$.plugin.movePosition(0, +0.0001);
+		
+		} else if(inEvent.keyCode == 105 ){ // I
+			this.owner.owner.$.plugin.movePosition(+0.00001, 0);
+		} else if(inEvent.keyCode == 107 ){ // K
+			this.owner.owner.$.plugin.movePosition(-0.00001, 0);
+		} else if(inEvent.keyCode == 106 ){ // J
+			this.owner.owner.$.plugin.movePosition(0, -0.00001);
+		} else if(inEvent.keyCode == 108 ){ // L
+			this.owner.owner.$.plugin.movePosition(0, +0.00001);
+		} else {
+			this.owner.owner.popupMessage( new WIGApp.Dialog(inEvent.keyCode, "Message"));
+			console.error(inEvent.charCode, inEvent.keyCode);
+		}
 	}
 });

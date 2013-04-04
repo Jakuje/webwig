@@ -218,6 +218,17 @@ void ShowScreen(){
 	return;
 }
 
+void showMapResponse(string str){
+#ifndef DESKTOP
+	PDL_Err err;
+	const char *data = str.c_str();
+	err = PDL_CallJS("showMapResponse", (const char **)&data, 1);
+	if (err) {
+		syslog(LOG_ERR, "*** PDL_CallJS failed, %s", PDL_GetError());
+		//SDL_Delay(5);
+	}
+#endif
+}
 
 /** Get current configuration and send update to UI */
 void updateState(){
@@ -441,6 +452,30 @@ PDL_bool setPositionJS(PDL_JSParameters *params){
     return PDL_TRUE;
 }
 
+PDL_bool movePositionJS(PDL_JSParameters *params){
+	if (PDL_GetNumJSParams(params) != 2) {
+        syslog(LOG_INFO, "**** wrong number of parameters for setPosition");
+        PDL_JSException(params, "wrong number of parameters for setPosition");
+        return PDL_FALSE;
+    }
+
+    double *lat = new double;
+    *lat = PDL_GetJSParamDouble(params, 0);
+    double *lon = new double;
+    *lon = PDL_GetJSParamDouble(params, 1);
+    
+    SDL_Event event;
+    event.user.type = SDL_USEREVENT;
+    event.user.code = EVENT_MOVE_POSITION_DEBUG;
+    event.user.data1 = lat;
+    event.user.data2 = lon;
+    
+    //syslog(LOG_WARNING, "*** sending movePosition event");
+    SDL_PushEvent(&event);
+    
+    return PDL_TRUE;
+}
+
 PDL_bool switchGPSJS(PDL_JSParameters *params){
 	if (PDL_GetNumJSParams(params) != 1) {
         syslog(LOG_INFO, "**** wrong number of parameters for setPosition");
@@ -480,6 +515,27 @@ PDL_bool saveJS(PDL_JSParameters *params){
     return PDL_TRUE;
 }
 
+PDL_bool showMapJS(PDL_JSParameters *params){
+	if (PDL_GetNumJSParams(params) != 1) {
+        syslog(LOG_INFO, "**** wrong number of parameters for setPosition");
+        PDL_JSException(params, "wrong number of parameters for setPosition");
+        return PDL_FALSE;
+    }
+	int *zone_id = new int;
+	*zone_id = PDL_GetJSParamInt(params, 0);
+
+    SDL_Event event;
+    event.user.type = SDL_USEREVENT;
+    event.user.code = EVENT_SHOW_MAP;
+    event.user.data1 = zone_id;
+    event.user.data2 = NULL;
+    
+    syslog(LOG_WARNING, "*** sending showMap event");
+    SDL_PushEvent(&event);
+    
+    return PDL_TRUE;
+}
+
 #endif
 
 void setup(int argc, char **argv)
@@ -514,8 +570,10 @@ void setup(int argc, char **argv)
     PDL_RegisterJSHandler("GetInputResponse", GetInputResponseJS);
     PDL_RegisterJSHandler("CallbackFunction", CallbackFunctionJS);
     PDL_RegisterJSHandler("setPosition", setPositionJS);
+    PDL_RegisterJSHandler("movePosition", movePositionJS);
     PDL_RegisterJSHandler("switchGPS", switchGPSJS);
     PDL_RegisterJSHandler("save", saveJS);
+    PDL_RegisterJSHandler("showMap", showMapJS);
     PDL_JSRegistrationComplete();
     
     // Workaround for old webos devices:
@@ -760,6 +818,14 @@ void setPosition(double *lat, double * lon){
 	updateState();
 }
 
+void movePosition(double *lat, double * lon){
+	
+	gps_accuracy = -1;
+	gps_heading = 0;
+	WherigoLib::moveLocation(lat, lon);
+	updateState();
+}
+
 void switchGPS(int *newState){
 	
 #ifndef DESKTOP
@@ -834,11 +900,18 @@ void loop(){
 					delete id;
 					}
 					break;
-				
 				case EVENT_SET_POSITION_DEBUG: {
 					double *lat = (double *)event.user.data1;
 					double *lon = (double *)event.user.data2;
 					setPosition(lat, lon);
+					delete lat;
+					delete lon;
+					}
+					break;
+				case EVENT_MOVE_POSITION_DEBUG: {
+					double *lat = (double *)event.user.data1;
+					double *lon = (double *)event.user.data2;
+					movePosition(lat, lon);
 					delete lat;
 					delete lon;
 					}
@@ -856,6 +929,12 @@ void loop(){
 					break;
 				case EVENT_SYNC:
 					WherigoLib::sync();
+					break;
+				case EVENT_SHOW_MAP: {
+					int *zone_id = (int*) event.user.data1;
+					WherigoLib::showMap(zone_id);
+					delete zone_id;
+					}
 					break;
 			}
         }

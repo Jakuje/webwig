@@ -27,6 +27,7 @@ enyo.kind({
 			enyo.bind(this, this.updateUI), true);
 		this.addCallback("showScreen", enyo.bind(this, this.showScreen), true);
 		this.addCallback("ClosePrompt", enyo.bind(this, this.closePrompt), true);
+		this.addCallback("showMapResponse", enyo.bind(this, this.showMapResponse), true);
 	},
 	tmpdir: null,
 	
@@ -266,6 +267,12 @@ enyo.kind({
 			this.callPluginMethodDeferred(enyo.nop, "setPosition", lat, lon);
 		}
 	},
+	movePosition: function(lat, lon){
+		if ( window.PalmSystem) {
+			console.error("***** WIG Enyo: movePosition (debug) lat = " + lat + " lon = " + lon);
+			this.callPluginMethodDeferred(enyo.nop, "movePosition", lat, lon);
+		}
+	},
 	showScreen: function(screen, item){
 		console.error("***** WIG Enyo: showScreen: " + screen + ", item:" + item);
 		this.owner.$.gMain.showScreenLua(screen, item);
@@ -281,5 +288,21 @@ enyo.kind({
 	},
 	save: function(){
 		this.callPluginMethodDeferred(enyo.nop, "save");
+	},
+	showMap: function(zone_id){
+		this.callPluginMethodDeferred(enyo.nop, "showMap", zone_id);
+	},
+	showMapResponse: function(JSONdata){
+		result = enyo.json.parse(JSONdata);
+		console.error(JSONdata);
+		if( result ) {
+			this.owner.$.mappingTool.call({
+				'id': 'de.metaviewsoft.maptool',
+				'params': result,
+			});
+			console.error("***** WIG Enyo: showMap OK ...");
+		} else {
+			console.error("***** WIG Enyo: Unknown result of showMap");
+		}
 	},
 });

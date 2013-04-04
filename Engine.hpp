@@ -45,8 +45,10 @@ namespace Engine
 		EVENT_TIMER,
 		EVENT_SYNC,
 		EVENT_SWITCH_GPS,
+		EVENT_SHOW_MAP,
 
-		EVENT_SET_POSITION_DEBUG
+		EVENT_SET_POSITION_DEBUG,
+		EVENT_MOVE_POSITION_DEBUG
 		};
 	
 	extern void MessageBox(const char *text, string media,
@@ -73,6 +75,7 @@ namespace Engine
 	extern void setPosition(double *lat, double * lon);
 	extern bool openCartridgeToJS(char *filename, int *load_game);
 	extern void OutputCartridgesToJS(int *refresh);
+	extern void showMapResponse(string data);
 	
 	extern void setup(int argc, char **argv);
 	extern void loop();

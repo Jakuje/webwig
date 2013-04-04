@@ -533,18 +533,67 @@ string getUI(){
 	}
 }
 
-bool updateLocation(double *lat, double *lon, double *alt, double *acc){
-	bool update_all = false;
-	latitude = *lat;
-	longitude = *lon;
-	altitude = *alt;
-	accuracy = *acc;
+void showMap(int *zone_id){
 	stringstream ss;
+	bool first = true;
+	ss << "[";
+	lua_getfield(L, LUA_GLOBALSINDEX, "cartridge");	// [-0, +1, e]
+	lua_getfield(L, -1, "AllZObjects");				// [-0, +1, e]
+	lua_remove(L, -2);								// [-1, +0, -]
+	lua_pushinteger(L, *zone_id);					// [-0, +1, -]
+	lua_gettable(L, -2);							// [-1, +1, e]
+	lua_remove(L, -2);								// [-1, +0, -]
+	if( !lua_isnoneornil(L, -1) ){
+		lua_getfield(L, -1, "Points");				// [-0, +1, -]
+		lua_remove(L, -2);							// [-1, +0, -]
+		lua_pushnil(L);
+		while( lua_next(L, -2) != 0 ){
+			if( !first ){
+				ss << ", ";
+			} else {
+				first = false;
+			}
+			lua_getfield(L, -1, "latitude");		// [-0, +1, -]
+			ss << "{\"name\": \"zone\", \"lat\": " << lua_tostring(L, -1);
+			lua_pop(L, 1);							// [-1, +0, -]
+			lua_getfield(L, -1, "longitude");		// [-0, +1, -]
+			ss << ", \"lon\": " << lua_tostring(L, -1) << "}";
+			
+			lua_pop(L, 2);
+		}
+	}
+	lua_pop(L, 1);
+	ss << "]";
+	//syslog(LOG_WARNING, "*** showMap action: %s", ss.str().c_str());
+	Engine::showMapResponse(ss.str());
+}
+
+bool updateLocationInt(){
+	int status;
+	bool update_all = false;
 	time_t t = time(NULL);
-	ss << "return cartridge._update(Wherigo.ZonePoint("
+	lua_getfield(L, LUA_GLOBALSINDEX, "cartridge"); // [-0, +1, e]
+	lua_getfield(L, -1, "_update");					// [-0, +1, e]
+	lua_remove(L, -2);								// [-1, +0, -]
+	lua_getfield(L, LUA_GLOBALSINDEX, "Wherigo");	// [-0, +1, e]
+	lua_getfield(L, -1, "ZonePoint");				// [-0, +1, e]
+	lua_pushnumber(L, latitude);					// [-0, +1, -]
+	lua_pushnumber(L, longitude);					// [-0, +1, -]
+	lua_getfield(L, -4, "Distance");				// [-0, +1, e] -
+	lua_pushinteger(L, 0);							// [-0, +1, -] -
+	status = lua_pcall(L, 1, 1, 0);					// [-2, +1, e] -
+	report(L, status);
+	status = lua_pcall(L, 3, 1, 0);					// [-4, +1, e]
+	report(L, status);
+	lua_remove(L, -2);								// [-1, +0, -]
+	lua_pushinteger(L, t);							// [-0, +1, -]
+	lua_pushinteger(L, accuracy);					// [-0, +1, -]
+	lua_pushinteger(L, 0);							// [-0, +1, -]
+	status = lua_pcall(L, 4, 1, 0);				// [-5, +1, e]
+	/*ss << "return cartridge._update(Wherigo.ZonePoint("
 		<< *lat << ", " << *lon << ", Distance(" << *alt << ")), "
 		<< t << ", " << *acc << ", 0)";
-	int status = luaL_dostring(L, ss.str().c_str());
+	int status = luaL_dostring(L, ss.str().c_str());*/
 	if( status == 0 ){
 		update_all = lua_toboolean(L, 1);
 		lua_pop(L, 1);
@@ -552,7 +601,21 @@ bool updateLocation(double *lat, double *lon, double *alt, double *acc){
 		report(L, status);
 	}
 	return update_all;
+}
+
+bool updateLocation(double *lat, double *lon, double *alt, double *acc){
+	latitude = *lat;
+	longitude = *lon;
+	altitude = *alt;
+	accuracy = *acc;
+	return updateLocationInt();
 	
+}
+
+bool moveLocation(double *lat, double *lon){
+	latitude += *lat;
+	longitude += *lon;
+	return updateLocationInt();
 }
 
 }
