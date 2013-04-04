@@ -460,7 +460,9 @@ void closeCartridge(int *save){
 	}
 	
 	std::map<int,SDL_TimerID>::iterator it;
-	for (it=timers.begin(); it!=timers.end(); ++it){
+	// remove timer remove id from array, ok? So we can just read the first 
+	while( (it = timers.begin()) != timers.end() ){
+	//for (it=timers.begin(); it!=timers.end(); ++it){
 		removeTimer( it->first );
 	}
 	if( !timers.empty() || !timers_ids.empty() ){
