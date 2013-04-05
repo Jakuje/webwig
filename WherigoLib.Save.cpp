@@ -118,6 +118,7 @@ void serialize_table(fileWriter *sf){
 						|| ( strcmp(classname, "ZCharacter") == 0 &&
 							strcmp(name, "RefreshLocation") == 0
 							)
+							|| strcmp(name, "ObjIndex") == 0 
 							|| strcmp(name, "Cartridge") == 0 
 							|| string(name).compare(0, 7, "Current") == 0
 							|| strcmp(name, "Contains") == 0
@@ -201,7 +202,21 @@ bool sync(){
 	sf.writeDouble( WherigoLib::longitude );
 	sf.writeDouble( WherigoLib::altitude );
 	
+	// store ZVariables from global namespace
 	lua_getfield(L, LUA_GLOBALSINDEX, "cartridge");						// [-0, +1, e]
+	lua_getfield(L, -1, "ZVariables");									// [-0, +1, e]
+	if( ! lua_isnoneornil(L, -1) ){
+		lua_pushnil(L);													// [-0, +1, m]
+		while( lua_next(L, -2) != 0 ){									// [-1, +(2|0), e]
+			lua_pop(L, 1);												// [-1, +0, -]
+			lua_pushvalue(L, -1);										// [-0, +1, m]
+			lua_getfield(L, LUA_GLOBALSINDEX, lua_tostring(L, -1) );	// [-0, +1, e]
+			lua_settable(L, -4);										// [-2, +0, e]
+		}
+	}
+	lua_pop(L, 1);
+	
+	
 	lua_getfield(L, -1, "AllZObjects");									// [-0, +1, e]
 	lua_remove(L, -2);													// [-1, +0, -]
 	size_t size;
