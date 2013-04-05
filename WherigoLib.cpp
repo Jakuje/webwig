@@ -463,7 +463,10 @@ void closeCartridge(int *save){
 	// remove timer remove id from array, ok? So we can just read the first 
 	while( (it = timers.begin()) != timers.end() ){
 	//for (it=timers.begin(); it!=timers.end(); ++it){
-		removeTimer( it->first );
+		if( !removeTimer( it->first ) ){
+			timers.erase(it);
+			timers_ids.erase( it->first );
+		}
 	}
 	if( !timers.empty() || !timers_ids.empty() ){
 		my_error("ERR: Timers array should be now empty ...");
