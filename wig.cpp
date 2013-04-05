@@ -82,7 +82,8 @@ void CommandLineTests(int argc, char **argv){
 		if( argc == 3 ){
 			runTests(argv[2]);
 		} else {
-			runTests("*.lua");
+			char *filter = (char *)"*.lua";
+			runTests(filter);
 		}
 		return;
 	} else {
@@ -96,11 +97,11 @@ void CommandLineTests(int argc, char **argv){
 			return;
 		}
 		
-		/*double lon, lat;
-		lat = 49.223878820512;
-		lon = 16.529799699783;
+		double lon, lat;
+		lat = 48.491164;
+		lon = 9.208777;
 		Engine::setPosition(&lat, &lon);
-		
+		/*
 		
 		int i = 56;
 		//CallbackFunction("OnClick", &i);
