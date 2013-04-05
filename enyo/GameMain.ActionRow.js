@@ -21,7 +21,7 @@ enyo.kind({
 				]}
 			]},
 			{kind: "Item", name: "empty", layoutKind: "HFlexLayout", components: [
-				{content: "Nothing here", flex: 1, style: "font-style:italic;text-align:center; color:#999999;"}
+				{name: "nothingText", content: "Nothing here", flex: 1, style: "font-style:italic;text-align:center; color:#999999;"}
 			]}
 		]}
 	],
@@ -85,6 +85,7 @@ enyo.kind({
 			this.$.numRows.setContent(data.length);
 			this.render();
 			if( this.data.length == 0 ){
+				this.$.nothingText.setContent(this.owner.owner.details[this.screen + "Empty"]);
 				this.$.empty.show();
 			} else {
 				this.$.empty.hide();
@@ -95,7 +96,7 @@ enyo.kind({
 		if (inIndex < this.data.length) {
 			this.$.itemTitle.setContent(this.data[inIndex].name);
 			if( this.data[inIndex].icon ){
-				this.$.itemIcon.setSrc(this.data[inIndex].icon);
+				this.$.itemIcon.setSrc(this.owner.owner.details.cartDir + this.data[inIndex].icon);
 				this.$.itemIcon.show();
 			} else if( this.screen == "tasks" ) {
 				if( this.data[inIndex].complete ){

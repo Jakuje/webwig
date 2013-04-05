@@ -767,7 +767,8 @@ bool openCartridgeToJS(char *filename, int* load_game){
 	int status = 0;
 	if( openCartridge(filename) ){
 		*buffer << "{\"type\": \"ok\", \"data\": {\n"
-				//<< "\"tmpdir\": \"" << WherigoOpen->getTmp() << "\","
+				//<< "\"cartDir\": \"" << WherigoLib::WherigoOpen->cartDir << "\","
+				<< WherigoLib::getStaticData()
 			<< "}}";
 	} else {
 		*buffer << "{\"type\": \"error\", \"message\": \"Unable to load cartidge file\"}";
@@ -838,7 +839,7 @@ void switchGPS(int *newState){
 	gps_accuracy = -1;
 	gps_state = *newState;
 	gps_heading = 90;
-	double alt = 115;
+	//double alt = 115;
 	updateState();
 }
 

@@ -5,9 +5,9 @@
  */
 
 enyo.kind({
-  name: "WIGApp.Plugin",
-  kind: "enyo.Hybrid",
-  executable: "wig",
+	name: "WIGApp.Plugin",
+	kind: "enyo.Hybrid",
+	executable: "wig",
 
 	create: function() {
 		this.inherited(arguments);
@@ -29,7 +29,7 @@ enyo.kind({
 		this.addCallback("ClosePrompt", enyo.bind(this, this.closePrompt), true);
 		this.addCallback("showMapResponse", enyo.bind(this, this.showMapResponse), true);
 	},
-	tmpdir: null,
+	cartDir: "",
 	
 	playAudio: function(media){
 		console.error("***** WIG Enyo: playAudio: " + media);
@@ -119,7 +119,8 @@ enyo.kind({
 		console.error(JSONdata);
 		result = enyo.json.parse(JSONdata);
 		if(result.type == "ok") {
-			//this.tmpdir = result.data.tmpdir;
+			this.cartDir = result.data.cartDir;
+			this.owner.$.gMain.setup(result.data);
 			this.owner.$.pane.selectViewByName("gMain");
 		} else if( result.type == "error" ){
 			console.error("***** WIG Enyo: Open failed ...");
@@ -170,7 +171,8 @@ enyo.kind({
 			console.error("***** WIG Enyo: openCartridge filename = " + filename);
 			this.callPluginMethodDeferred(enyo.nop, "openCartridge", filename, load_game);
 		} else {
-			enyo.nextTick(this, function() { this.openCartridgeResult( "{\"type\": \"ok\", \"data\": {}}");
+			enyo.nextTick(this, function() { this.openCartridgeResult(
+				"{\"type\": \"ok\", \"data\": { \"cartDir\": \"./\", locationsEmpty\": \"Nowhere to go\", }}");
 			});
 			enyo.nextTick(this, function() { this.owner.$.gMain.updateUI(
 

@@ -623,5 +623,27 @@ bool moveLocation(double *lat, double *lon){
 	return updateLocationInt();
 }
 
+string getStaticData(){
+	stringstream b;
+	
+	
+	b << "\"cartDir\": \"" << WherigoLib::WherigoOpen->cartDir << "\",";
+	
+	lua_getfield(L, LUA_GLOBALSINDEX, "cartridge");
+	lua_getfield(L, -1, "EmptyZonesListText");
+	b << "\"locationsEmpty\": \"" << lua_tostring(L, -1) << "\",";
+	lua_pop(L, 1);
+	lua_getfield(L, -1, "EmptyYouSeeListText");
+	b << "\"youSeeEmpty\": \"" << lua_tostring(L, -1) << "\",";
+	lua_pop(L, 1);
+	lua_getfield(L, -1, "EmptyInventoryListText");
+	b << "\"inventoryEmpty\": \"" << lua_tostring(L, -1) << "\",";
+	lua_pop(L, 1);
+	lua_getfield(L, -1, "EmptyTasksListText");
+	b << "\"tasksEmpty\": \"" << lua_tostring(L, -1) << "\",";
+	lua_pop(L, 2);
+	return b.str();
+}
+
 }
 

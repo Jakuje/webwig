@@ -48,8 +48,8 @@ enyo.kind({
 			 //|| !arrays_equal(data.commands, this.data.commands)
 			 render = true;
 		}
-		for(var i in data.commands ){
-			if( !this.data.commands[i] || this.data.commands[i].id != data.commands[i].id
+		for(var i in this.data.commands ){
+			if( !data.commands[i] || this.data.commands[i].id != data.commands[i].id
 				|| this.data.commands[i].text != data.commands[i].text ){
 					render = true;
 			}
@@ -58,7 +58,7 @@ enyo.kind({
 		this.$.title.setContent( this.owner.$.gList.$.detail.getTitle(screen) + ": " + data.name );
 		this.$.description.setContent( data.description );
 		if( data.media ) {
-			this.$.image.setSrc( data.media );
+			this.$.image.setSrc( this.owner.details.cartDir + data.media );
 			this.$.image.show();
 		} else {
 			this.$.image.hide();

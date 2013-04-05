@@ -763,8 +763,11 @@ function Wherigo.ZonePoint.new(lat, lon, alt)
 	local self = { _classname = Wherigo.CLASS_ZONEPOINT}
 	self.latitude = lat
 	self.longitude = lon
-	self.altitude = alt
-	-- onchange update map --
+	if type(alt) ~= "table" then
+		self.altitude = Wherigo.Distance(alt)
+	else
+		self.altitude = alt
+		end
 	
 	setmetatable(self, Wherigo.ZonePoint_metatable)
 	return self
@@ -960,7 +963,7 @@ function Wherigo.ZCartridge.new(  )
 	self.Activity = Env._Activity
 	
 	self.EmptyInventoryListText = 'No items'
-	self.EmptyTaskListText = 'No new tasks'
+	self.EmptyTasksListText = 'No new tasks'
 	self.EmptyZonesListText = 'Nowhere to go'
 	self.EmptyYouSeeListText = 'Nothing of interest'
 	self.Complete = false -- maybe one of requirements to unlock on website
@@ -1286,6 +1289,7 @@ function Wherigo.ZCharacter.new( cartridge, container )
 	self.Inventory = {}
 	self.ObjectLocation = Wherigo.INVALID_ZONEPOINT]]
 	self.PositionAccuracy = Wherigo.Distance(5)
+	self.Gender = self.Gender or "It"
 	
 	setmetatable(self, Wherigo.ZCharacter_metatable)
 	
@@ -1412,7 +1416,7 @@ Wherigo._Internal.OnGetInput = function(self, choice)
 
 Wherigo._getMediaField = function(field, t)
 	if t then
-		return ", \"" .. field .. "\": \"" .. Env.CartFolder .. t._id .. "." .. t.Resources[1].Type .. "\""
+		return ", \"" .. field .. "\": \"" .. --[[Env.CartFolder ..]] t._id .. "." .. t.Resources[1].Type .. "\""
 	else
 		return "" end
 	end

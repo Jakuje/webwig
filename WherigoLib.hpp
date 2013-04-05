@@ -78,6 +78,8 @@ namespace WherigoLib
 	
 	extern std::string getUI();
 	
+	extern string getStaticData();
+	
 	extern bool updateLocation(double *lat, double *lon, double *alt, double *accuracy);
 	extern bool moveLocation(double *lat, double *lon);
 }

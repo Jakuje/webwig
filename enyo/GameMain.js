@@ -35,13 +35,18 @@ enyo.kind({
 		},
 	],
 	data: [],
+	details: [],
 	create: function(){
 		this.inherited(arguments);
 	},
 	
-	setup: function(data, load_game){
+	prepare: function(data, load_game){
 		this.$.title.setContent( data.name.substring(0, 20) + (data.name.length > 20 ? "..." : "") );
 		this.owner.$.plugin.openCartridge(data.filename, load_game, enyo.nop);
+	},
+	
+	setup: function(data){
+		this.details = data;
 	},
 	
 	updateUI: function(data){
