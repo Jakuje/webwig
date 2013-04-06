@@ -9,6 +9,7 @@ enyo.depends(
   "enyo/GameMain.List.js",
   "enyo/GameMain.Detail.js",
   "enyo/GameMain.HomeScreen.js",
-  "enyo/Messages.js"
+  "enyo/Messages.js",
+  "enyo/Preferences.js"
 
 );

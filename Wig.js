@@ -1,6 +1,7 @@
 const DATA_DIR = "/media/internal/appdata/com.dta3team.app.wherigo/";
 const CONF_DIR = DATA_DIR;
 const DEBUG = true;
+const PREFS_COOKIE = "appPrefs";
 
 enyo.kind({
 	name: "WIGApp",
@@ -20,12 +21,13 @@ enyo.kind({
 					onInfo: "cartSelected", onPlay: "gameStarted"},
 				{name: "cDetail", className: "enyo-bg", kind: "WIGApp.CartDetail",
 					onPlay: "gameStarted"},
-				{name: "gMain", className: "enyo-bg", kind: "WIGApp.GameMain"}
+				{name: "gMain", className: "enyo-bg", kind: "WIGApp.GameMain"},
+				{name: "Preferences", className: "enyo-bg", kind: "WIGApp.Preferences"}
 			]
 		},
 		{kind: "AppMenu", components: [ // In chromium: CTRL + `
 			{kind: "EditMenu"},
-			{caption: "Preferences", onclick: "turnLightsOff"},
+			{caption: "Preferences", onclick: "showPreferences"},
 			{caption: "Refresh", name: "menuRefresh", onclick: "doRefresh"},
 			{caption: "Move to Zverokruh", onclick: "tempPostUpdateUI"},
 			{caption: "Save game", name: "menuSave", onclick: "doSave", showing: false}
@@ -143,16 +145,21 @@ enyo.kind({
 		this.$.cDetail.setup(inMetadata);
 	},
 	
+	showPreferences: function(inSender){
+		this.$.Preferences.setup();
+		this.$.pane.selectViewByName("Preferences");
+	},
+	
 	gameStarted: function(inSender, inMetadata){
 		//this.$.pane.selectViewByName("gMain");
 		if( inMetadata.saved ){
 			this.popupMessage( new WIGApp.MessageBox("There is saved game in working direcotry. Do you want to continue?", "Prompt", "", "Yes", "No",
 				function(context, button){
-					context.$.gMain.setup(inMetadata, ( button == "Button1" ? 1 : 0) );
+					context.$.gMain.prepare(inMetadata, ( button == "Button1" ? 1 : 0) );
 				}
 			));
 		} else {
-			this.$.gMain.setup(inMetadata, 0 );
+			this.$.gMain.prepare(inMetadata, 0 );
 		}
 	},
 	
@@ -214,5 +221,24 @@ enyo.kind({
 	},
 	mappingToolFailed: function(){
 		this.owner.owner.popupMessage( new WIGApp.Dialog("Failed to open Mapping Tool. Not installed?", "Error") );
+	},
+	
+	prefs: null,
+	getPrefs: function(key){
+		if( !this.prefs ){
+			try {
+				this.prefs = enyo.json.parse( enyo.getCookie(PREFS_COOKIE) );
+			} catch(err) {
+				this.prefs = {"gps": true, "compass": 1, "units": true};
+				this.setPrefs();
+			}
+		}
+		return this.prefs[key];
+	},
+	setPrefs: function(key, value){
+		if( key ){
+			this.prefs[key] = value;
+		}
+		enyo.setCookie(PREFS_COOKIE, enyo.json.stringify(this.prefs));
 	},
 });
