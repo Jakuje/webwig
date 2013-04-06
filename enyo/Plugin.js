@@ -172,7 +172,7 @@ enyo.kind({
 			this.callPluginMethodDeferred(enyo.nop, "openCartridge", filename, load_game);
 		} else {
 			enyo.nextTick(this, function() { this.openCartridgeResult(
-				"{\"type\": \"ok\", \"data\": { \"cartDir\": \"./\", locationsEmpty\": \"Nowhere to go\", }}");
+				"{\"type\": \"ok\", \"data\": { \"cartDir\": \"./\", \"locationsEmpty\": \"Nowhere to go\" }}");
 			});
 			enyo.nextTick(this, function() { this.owner.$.gMain.updateUI(
 
@@ -280,8 +280,8 @@ enyo.kind({
 		this.owner.$.gMain.showScreenLua(screen, item);
 	},
 	switchGPS: function(newState){
+		console.error("***** WIG Enyo: callback switchGPS = " + newState);
 		if ( window.PalmSystem) {
-			console.error("***** WIG Enyo: callback switchGPS = " + newState);
 			this.callPluginMethodDeferred(enyo.nop, "switchGPS", newState);
 		}
 	},
