@@ -12,19 +12,17 @@ enyo.kind({
 	components: [
 		{kind: "PageHeader", components: [
 			{kind: "IconButton", icon: "images/menu-icon-back.png", onclick: "goBack"},
-			{kind: "Spacer"},
-			{name: "title", kind: enyo.VFlexBox, content: "Wherigo name"},
-			{kind: "Spacer"},
+			{layoutKind: "VFlexLayout", flex: 1, align: "center", components: [
+				{name: "title", content: "Wherigo name"},
+				{name: "subtitle", content: "&nbsp;", className: "enyo-item-secondary"},
+				]},
 			{kind: "Image", name: "GPSAccuracy", src: "images/gps_0.png", onclick: "showDashboard"},
 		]},
 		{kind: "PageHeader", showing: false, name: "dashboard", components: [
-			{content: "Accuracy: "},
+			{content: "Accuracy:&nbsp;"},
 			{name: "accuracy", content: "3 m"},
 			{kind: "Spacer"},
-			{w: "fill", name: "GPSStatus", kind: "RadioGroup", onChange: "switchGPS", components: [
-					{label: 'Off', value: 0},
-					{label: 'On', value: 1},
-				]}
+			{name: "GPSStatus", kind: "ToggleButton", onChange: "switchGPS"}
 		]},
 		{name: "pane", kind: "Pane", flex: 1,
 			components: [
@@ -79,7 +77,7 @@ enyo.kind({
 		}
 		this.$.GPSAccuracy.setSrc("images/gps_"+acc_class+".png");
 		this.$.accuracy.setContent(acc + " m");
-		this.$.GPSStatus.setValue(data.gps.state);
+		this.$.GPSStatus.setState(data.gps.state);
 	},
 	detail_item: 0,
 	detail_screen: "",
@@ -127,10 +125,12 @@ enyo.kind({
 		if( item == undefined ){
 			this.detail_item = null;
 			this.$.gList.setup(screen, this.data);
+			this.$.subtitle.setContent(this.$.gList.$.detail.getTitle(screen));
 			this.$.pane.selectViewByName("gList");
 		} else {
 			this.detail_item = item;
 			this.$.gDetail.setup(screen, this.data[screen][item]);
+			this.$.subtitle.setContent(this.$.gList.$.detail.getTitle(screen) + ": " + this.data[screen][item].name);
 			this.$.pane.selectViewByName("gDetail");
 		}
 	},
@@ -140,6 +140,11 @@ enyo.kind({
 			this.owner.goBack(inSender, inEvent, true);
 		} else {
 			this.$.pane.back(inEvent);
+			if( this.$.pane.getViewName() == "gList" ){
+				this.$.subtitle.setContent( this.$.gList.$.detail.getTitle(this.detail_screen) );
+			} else {
+				this.$.subtitle.setContent("&nbsp;");
+			}
 		}
 	},
 	showDashboard: function(){
@@ -151,7 +156,7 @@ enyo.kind({
 	},
 	switchGPS: function(inSender, inEvent){
 		if( this.data['gps']['state'] != inEvent ){
-			this.owner.$.plugin.switchGPS(inEvent);
+			this.owner.$.plugin.switchGPS( Number(inEvent) );
 		}
 	}
 });

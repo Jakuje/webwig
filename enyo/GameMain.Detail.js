@@ -5,11 +5,6 @@ enyo.kind({
 	kind: enyo.VFlexBox,
 	flex: 1,
 	components: [
-		{className: "enyo-row", components: [
-			{kind: "ButtonHeader", components: [
-				{name: "title", content: "Header", style: "text-align: center; width: 100%;"}
-			]}
-		]},
 		{kind: "Scroller", flex: 1, components: [
 			{kind: "Item", components: [
 				{ layoutKind: "VFlexLayout", align: "center", components: [
@@ -55,7 +50,6 @@ enyo.kind({
 			}
 		 }
 		this.data = data;
-		this.$.title.setContent( this.owner.$.gList.$.detail.getTitle(screen) + ": " + data.name );
 		this.$.description.setContent( data.description );
 		if( data.media ) {
 			this.$.image.setSrc( this.owner.details.cartDir + data.media );

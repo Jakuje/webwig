@@ -13,8 +13,7 @@ enyo.kind({
 			{kind: "VirtualRepeater", name: "items", onSetupRow: "getItem", components: [
 				{kind: "Item", layoutKind: "HFlexLayout", onclick: "itemClicked", tapHighlight: true, components: [
 					{name: "itemIcon", kind: "Image", style: "width: 32px;height:32px;margin: -10px 3px -10px -5px;"},
-					{name: "itemTitle"},
-					{kind: "Spacer"},
+					{name: "itemTitle", flex: 1},
 					{name: "itemDistance", showing: "false"},
 					{name: "itemBearing", kind: "Image", src: "images/arrow.png", showing: "false",
 						style: "width: 25px;height:25px;margin: -10px -10px -10px 3px;"},
