@@ -105,6 +105,7 @@ clean:
 	$(RM) $(PLUGIN)
 	make -C lua clean
 	$(RM) *.o
+	$(RM) liblua.a
 
 depend:
 	@$(CC) $(CFLAGS) -MM lua_common.c *.cpp
