@@ -154,14 +154,6 @@ void GetInput(const char *type, const char *text, const char* choices, string me
 /** Open cartridge */
 int openCartridge(char *filename){
 	if(WherigoLib::openCartridge(filename)){
-#ifndef DESKTOP
-		PDL_Err error = PDL_EnableLocationTracking(PDL_TRUE);
-		if( error != PDL_NOERROR ){
-			my_error("Could not init PDL Location Tracking: %s\n");
-			my_error(SDL_GetError());
-			exit(1);
-		}
-#endif
 		return 1;
 	}
 	return 0;
@@ -279,7 +271,7 @@ void updateState(){
  */
 PDL_bool openCartridgeJS(PDL_JSParameters *params)
 {
-    if (PDL_GetNumJSParams(params) != 2) {
+    if (PDL_GetNumJSParams(params) != 3) {
         syslog(LOG_INFO, "**** wrong number of parameters for getMetadata");
         PDL_JSException(params, "wrong number of parameters for getMetadata");
         return PDL_FALSE;
@@ -287,8 +279,9 @@ PDL_bool openCartridgeJS(PDL_JSParameters *params)
 
     /* parameters are directory, pattern */
     const char *filename = PDL_GetJSParamString(params, 0);
-    int *load_game = new int;
-    *load_game = PDL_GetJSParamInt(params, 1);
+    int *flags = new int;
+    *flags = PDL_GetJSParamInt(params, 1);
+    *flags = *flags | ( PDL_GetJSParamInt(params, 2) << 4);
 
     /* since we don't process this in the method thread, instead post a
      * SDL event that will be received in the main thread and used to 
@@ -297,7 +290,7 @@ PDL_bool openCartridgeJS(PDL_JSParameters *params)
     event.user.type = SDL_USEREVENT;
     event.user.code = EVENT_OPEN_CARTRIDGE;
     event.user.data1 = strdup(filename);
-    event.user.data2 = load_game;
+    event.user.data2 = flags;
     
     syslog(LOG_WARNING, "*** sending openCartridge event");
     SDL_PushEvent(&event);
@@ -869,10 +862,15 @@ void loop(){
 					break;
 				case EVENT_OPEN_CARTRIDGE: {
 					char *filename = (char *)event.user.data1;
-					int *load_game = (int *)event.user.data2;
-					openCartridgeToJS(filename, load_game);
+					int *flags = (int *)event.user.data2;
+					int load_game = (*flags & 0x01);
+					int start_gps = (*flags >> 4 & 0x01);
+					openCartridgeToJS(filename, &load_game);
+					if( start_gps ){
+						switchGPS(&start_gps);
+					}
 					delete filename;
-					delete load_game;
+					delete flags;
 					}
 					break;
 				case EVENT_CLOSE_CARTRIDGE: {

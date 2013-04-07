@@ -169,7 +169,7 @@ enyo.kind({
 	openCartridge: function(filename, load_game){
 		if ( window.PalmSystem) {
 			console.error("***** WIG Enyo: openCartridge filename = " + filename);
-			this.callPluginMethodDeferred(enyo.nop, "openCartridge", filename, load_game);
+			this.callPluginMethodDeferred(enyo.nop, "openCartridge", filename, load_game, Number(this.owner.getPrefs("gps")) );
 		} else {
 			enyo.nextTick(this, function() { this.openCartridgeResult(
 				"{\"type\": \"ok\", \"data\": { \"cartDir\": \"./\", \"locationsEmpty\": \"Nowhere to go\" }}");
@@ -178,8 +178,31 @@ enyo.kind({
 
 {
         "locations": [
-			{"name": "Paloucek", "description": "Paloucek pobliz tramvajove smycky Certova rokle. ", "distance": 65.808471927813, "bearing": 184.97249242265, "commands": []}
-			],
+			{
+				"name": "Vzdaleny bod",
+				"description": "far over the misty mountains cold. ",
+				"distance": 6578.808,
+				"bearing": 33.333333,
+				"commands": [],
+                "id": "17",
+			},
+			{
+				"name": "Paloucek",
+				"description": "Paloucek pobliz tramvajove smycky Certova rokle. ",
+				"distance": 65.808471927813,
+				"bearing": 184.97249242265,
+				"commands": [],
+                "id": "18",
+			},
+			{
+				"name": "Bod tady",
+				"description": "bla bla bla. ",
+				"distance": 0,
+				"bearing": 0,
+				"commands": [],
+                "id": "19",
+			},
+		],
         "youSee": [],
         "inventory": [
             {
