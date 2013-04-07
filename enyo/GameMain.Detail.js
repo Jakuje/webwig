@@ -34,21 +34,36 @@ enyo.kind({
 		]},
 		],
 	screen: null,
+	item: null,
 	data: [],
-	setup: function(screen, data){
+	setup: function(screen, data, item){
+		this.item = item;
 		this.screen = screen;
+		this.paint(data);
+	},
+	paint: function(data){
+		var is = false;
+		for( var it in data ){
+			if( data[it].id == this.item ){
+				data = data[it];
+				is = true;
+				break;
+			}
+		}
+		if( !is ){
+			this.owner.goBack();
+		}
+
 		var render = false;
-		//console.error( (data.id != this.data.id) + " " + (data.media != this.data.media) + " " + (data.name != this.data.name) + " " + !arrays_equal(data.commands, this.data.commands) );
 		if( data.id != this.data.id || data.media != this.data.media || data.name != this.data.name ){
-			 //|| !arrays_equal(data.commands, this.data.commands)
 			 render = true;
 		}
 		for(var i in this.data.commands ){
-			if( !data.commands[i] || this.data.commands[i].id != data.commands[i].id
+			if( typeof data.commands[i] == 'undefined' || this.data.commands[i].id != data.commands[i].id
 				|| this.data.commands[i].text != data.commands[i].text ){
 					render = true;
 			}
-		 }
+		}
 		this.data = data;
 		this.$.description.setContent( data.description );
 		if( data.media ) {
@@ -63,7 +78,11 @@ enyo.kind({
 			} else {
 				this.$.distance.setContent(Math.round(data.distance/1000) + " km");
 			}
-			this.$.bearingBackground.applyStyle("-webkit-transform", "rotate(" + -this.owner.data.gps.heading + "deg)");
+			if( this.owner.owner.getPrefs("compass") == 1 ){
+				this.$.bearingBackground.applyStyle("-webkit-transform", "rotate(" + -this.owner.data.gps.heading + "deg)");
+			} else {
+				this.$.bearingBackground.applyStyle("-webkit-transform", "rotate(0deg)");
+			}
 			this.$.bearingArrow.applyStyle("-webkit-transform", "rotate(" + data.bearing + "deg)");
 		}
 		if( render ){
@@ -74,15 +93,11 @@ enyo.kind({
 			}
 			this.render();
 		}
-		
+		this.owner.$.subtitle.setContent(data.name);
 	},
 	
 	updateUI: function(data){
-		if( ! data || this.data.id != data.id ){
-			this.owner.goBack();
-			return;
-		}
-		this.setup( this.screen, data );
+		this.paint( data );
 	},
 	
 	getCommand: function(inSender, inIndex){
@@ -96,7 +111,7 @@ enyo.kind({
 		this.owner.owner.$.plugin.callback(event, this.data.id)
 	},
 	moveTo: function(){
-		if( this.screen == "locations"){
+		if( this.screen == "locations" || this.screen == "youSee"){
 			this.owner.owner.$.plugin.setPosition(this.data.lat, this.data.lon);
 		}
 	},

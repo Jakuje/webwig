@@ -9,6 +9,7 @@ enyo.kind({
 	setup: function(screen, data){
 		this.screen = screen;
 		this.$.detail.setup( data[screen], this.screen );
+		this.owner.setSubtitle(this.$.detail.getTitle(screen) );
 	},
 	
 	updateUI: function(data){

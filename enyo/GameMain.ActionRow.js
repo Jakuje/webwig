@@ -47,9 +47,9 @@ enyo.kind({
 			}
 		} else {
 			this.owner.owner.showScreen(this.screen,
-				( this.data[inEvent.rowIndex].key
-					? this.data[inEvent.rowIndex].key
-					: inEvent.rowIndex)
+				( this.data[inEvent.rowIndex].id
+					? this.data[inEvent.rowIndex].id
+					: 0)
 				);
 		}
 	},
@@ -78,13 +78,16 @@ enyo.kind({
 						this.data.push(data[i]);
 					}
 				}
-			} else {
+			} else if( this.name == "inventory") {
 				this.data = data;
+			} else { // locations and youSee => Sort by distance
+				this.data = data.sort(function(a, b){return a.distance - b.distance;});
 			}
 			this.$.numRows.setContent(data.length);
 			this.render();
 			if( this.data.length == 0 ){
-				this.$.nothingText.setContent(this.owner.owner.details[this.screen + "Empty"]);
+				var title = this.owner.owner.details[this.screen + "Empty"];
+				this.$.nothingText.setContent( title ? title : "Nothing here");
 				this.$.empty.show();
 			} else {
 				this.$.empty.hide();
@@ -115,7 +118,11 @@ enyo.kind({
 					this.$.itemDistance.setContent( ( d < 2000 ? (Math.round(d) + " m") : (Math.round(d/1000) + " km") ) );
 				}
 				this.$.itemDistance.show();
-				this.$.itemBearing.applyStyle("-webkit-transform", "rotate(" + (this.data[inIndex].bearing - this.owner.owner.data.gps.heading) + "deg)");
+				var rotate = this.data[inIndex].bearing
+				if( this.owner.owner.owner.getPrefs("compass") == 1 ){
+					rotate -= this.owner.owner.data.gps.heading;
+				}
+				this.$.itemBearing.applyStyle("-webkit-transform", "rotate(" + rotate + "deg)");
 				this.$.itemBearing.show();
 			} else {
 				this.$.itemDistance.setContent("");
