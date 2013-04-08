@@ -203,7 +203,20 @@ enyo.kind({
                 "id": "19",
 			},
 		],
-        "youSee": [],
+        "youSee": [
+			{
+				"name": "Neco",
+				"description": "nikde",
+				"commands": [],
+                "id": "99",
+			},
+			{
+				"name": "Neco druheho",
+				"description": "nikde!!",
+				"commands": [],
+                "id": "98",
+			}
+        ],
         "inventory": [
             {
                 "name": "denik krale Artuse",
