@@ -13,8 +13,8 @@ enyo.kind({
 		]},
 		{kind: "RowGroup", caption: "GPS", components: [
 			{layoutKind: "HFlexLayout", align: "center", components: [
-				{content: "auto-enable GPS", className: "enyo-menucheckitem-caption"},
-				{name: "gps", flex: 1, pack: "end", kind: "ToggleButton", onChange: "prefsChange"}
+				{content: "auto-enable GPS", className: "enyo-menucheckitem-caption", flex: 1},
+				{name: "gps", pack: "end", kind: "ToggleButton", onChange: "prefsChange"}
 			]},
 			{kind: "HFlexBox", align: "center", components: [
 				{name: "compass", label: "Compass orientation", kind: "ListSelector",
@@ -27,8 +27,8 @@ enyo.kind({
 		]},
 		{kind: "RowGroup", caption: "Regional setings", components: [
 			{kind: "HFlexBox", align: "center", components: [
-				{content: "Units", className: "enyo-menucheckitem-caption"},
-				{name: "units", flex: 1, pack: "end", kind: "ToggleButton", onChange: "prefsChange", onLabel: "Metric", offLabel: "Imperial"}
+				{content: "Units", className: "enyo-menucheckitem-caption", flex: 1},
+				{name: "units", pack: "end", kind: "ToggleButton", onChange: "prefsChange", onLabel: "Metric", offLabel: "Imperial"}
 			]},
 		]},
 	],
