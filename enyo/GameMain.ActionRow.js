@@ -71,18 +71,24 @@ enyo.kind({
 		
 		if( data ){
 			if( this.name == "tasks" ){
+				// hide complete tasks on main screen
 				this.data = [];
 				for(var i in data){
 					if( !data[i].complete ){
-						data[i].key = i;
 						this.data.push(data[i]);
 					}
 				}
-			} else if( this.name == "inventory") {
+			} else if( screen == "inventory") {
 				this.data = data;
 			} else { // locations and youSee => Sort by distance
 				this.data = data.sort(function(a, b){return a.distance - b.distance;});
 			}
+			
+			// all tasks sort by field. WF ??
+			/*if( screen == "tasks" ){
+				this.data.sort(function(a,b){return a.sort - b.sort;});
+			}*/
+
 			this.$.numRows.setContent(data.length);
 			this.render();
 			if( this.data.length == 0 ){
