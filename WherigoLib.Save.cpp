@@ -38,6 +38,10 @@ void writeBoolField(fileWriter *sf, const char* field){
 
 void serialize_table(fileWriter *sf);
 
+/** Requested stack state:
+ *	-2	Table to traverse
+ *  -1	Classname if it is known class
+ */
 void writeTable(fileWriter *sf, const char* field){
 	lua_pushstring(L, field);				// [-0, +1, m]
 	lua_gettable(L, -3);					// [-1, +1, e]
@@ -50,7 +54,7 @@ void writeTable(fileWriter *sf, const char* field){
 	sf->writeASCII( field, strlen(field) );
 	lua_getfield(L, -1, "_classname");		// [-0, +1, e]
 	serialize_table(sf);
-	lua_pop(L, 2);							// [-1, +0, -]
+	lua_pop(L, 2);							// [-2, +0, -]
 }
 	
 	
@@ -69,10 +73,12 @@ void serialize_table(fileWriter *sf){
 	writeBoolField(sf, "Active");										// [-0, +0, -]
 	writeBoolField(sf, "Complete");										// [-0, +0, -]
 	writeBoolField(sf, "CorrectState");									// [-0, +0, -]
+	writeBoolField(sf, "Enabled");										// [-0, +0, -]
 	
 	// todo maybe Visible ???
 	// CommandsArray
 	writeTable(sf, "CommandsArray");									// [-0, +0, -]
+	writeTable(sf, "Inventory");										// [-0, +0, -]
 	
 	const char *classname;
 	if( lua_isstring(L, -1) ){
@@ -117,6 +123,9 @@ void serialize_table(fileWriter *sf){
 							)
 						|| ( strcmp(classname, "ZCharacter") == 0 &&
 							strcmp(name, "RefreshLocation") == 0
+							)
+						|| ( strcmp(classname, "Zone") == 0 &&
+							strcmp(name, "Inside") == 0
 							)
 							|| strcmp(name, "ObjIndex") == 0 
 							|| strcmp(name, "Cartridge") == 0 
@@ -193,7 +202,7 @@ bool sync(){
 	sf.writeLong( 0 ); // date of creation 8 byte ???
 	sf.writeLong( 0 );
 	sf.writeASCIIZ( WherigoOpen->player.c_str(), WherigoOpen->player.length() );
-	sf.writeASCIIZ( WherigoOpen->recomandedDevice.c_str(), WherigoOpen->recomandedDevice.length() );
+	sf.writeASCIIZ( "WebOS", 5 ); // device
 	sf.writeASCIIZ( "WebOS", 5 ); // device ID
 	sf.writeLong( 0 ); // date of save 8 byte
 	sf.writeLong( 0 );
@@ -338,7 +347,7 @@ bool read_table(fileReader *fd, bool set_field = false){
 			case 0x03: // string
 				len = fd->readLong();
 				fd->readASCII(&text, len);
-				cerr << "      -======= " << text << " =======- " << endl;
+				//cerr << "      -======= " << text << " =======- " << endl;
 				if( key ) {
 					lua_pushstring(L, text.c_str());					// [-0, +1, -]
 					key_value = text; // for debug only!!!
@@ -416,7 +425,7 @@ bool read_table(fileReader *fd, bool set_field = false){
 				break;
 			case 0x08: // object
 				if( key ){
-					cerr << "Reference can't be key" << endl;
+					cerr << "Object can't be key" << endl;
 					return false;
 				} else {
 					//cerr << "      -======= " << key_value << " (Object Start) =======- " << endl;
@@ -473,15 +482,17 @@ bool read_object(fileReader *fd, string key_name, bool create_objects = false){
 				);														// [-0, +1, e]
 			report(L, status);
 			set_field = true;
+			cerr << " -============ creating " << objname << " ============- " << endl;
 		} else {
 			cerr << "Object " << key_name << " doesn't exists and is denied to create" << endl;
 			return false;
 		}
+	} else {
+		cerr << " -============ " << objname << " ============- " << endl;
 	}
 	lua_getfield(L, -1, "_classname");									// [-0, +1, e]
 	const char* name = lua_tostring(L, -1);
 	
-	cerr << " -============ " << objname << " ============- " << endl;
 	if( objname.compare(name) != 0 ){
 		lua_pop(L, 2);													// [-1, +0, -]
 		cerr << "Unexpected object at input. Expected " << name << ", got " << objname << endl;
@@ -545,19 +556,15 @@ bool restore(){
 		return false;
 	}
 	fd.readASCIIZ( &pom );
-	if( pom.compare(WherigoOpen->recomandedDevice) != 0 ){
-		fd.close();
-		cerr << "Savegame does have different recomandedDevice" << endl;
-		return false;
-	}
+	// device name
 	fd.readASCIIZ( &pom );
 	// device doesn't matter
 	fd.readLong();
 	fd.readLong(); // date of save
 	string message;
 	fd.readASCIIZ( &message );
-	fd.readDouble(); // lon
 	fd.readDouble(); // lat
+	fd.readDouble(); // lon
 	fd.readDouble(); // alt
 	
 	num_objects = fd.readLong();
