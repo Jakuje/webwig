@@ -390,7 +390,7 @@ lua_State * openLua(Wherigo *w){
 			.addFunction("ShowStatusText", Engine::ShowStatusText)
 			.addFunction("escapeJsonString", escapeJsonString)
 			.addFunction("RequestSync", Engine::RequestSync)
-			.addFunction("close", close)
+			.addFunction("Close", close)
 			.addFunction("addTimer", addTimer)
 			.addFunction("removeTimer", removeTimer)
 			.addFunction("getTime", getTime)
