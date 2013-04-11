@@ -37,7 +37,7 @@ class fileReader: public ifstream {
 		}
 
 		long readLong(){
-			long pom;
+			long pom = 0;
 			this->read( (char*)&pom, 4 );
 			return pom;
 		}
