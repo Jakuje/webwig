@@ -127,3 +127,6 @@ WherigoLib.o: WherigoLib.cpp WherigoLib.hpp Engine.hpp
 
 Engine.o: Engine.cpp WherigoLib.hpp Engine.hpp
 	$(CPP) $(CPPFLAGS) -c -o $@ $<
+
+gws2xml: gws2xml.cpp filereader.h
+	g++ -g -o $@ $^
