@@ -37,8 +37,6 @@ Wherigo = {
 	_GICallbacks = {}
 	}
 
-
-
 function Wherigo.MessageBox(t)
 	local text = rawget(t, "Text")
 	local media = rawget(t, "Media")
@@ -198,8 +196,9 @@ function Wherigo.IsPointInZoneOld(point, zone)
 function Wherigo.IsPointInZone(point, zone)
 	-- fisrt go through Bounging Box
 	if( zone._xmin == nil) then zone._calculateBoundingBox() end
-	print(zone._xmin, point.longitude, zone._xmax)
-	print(zone._ymin, point.latitude, zone._ymax)
+	if( zone._xmin == nil)  then return false end -- no valid points
+	--print(zone._xmin, point.longitude, zone._xmax)
+	--print(zone._ymin, point.latitude, zone._ymax)
 	if  point.longitude < zone._xmin or
 		point.longitude > zone._xmax or
 		point.latitude < zone._ymin or
@@ -501,19 +500,23 @@ Wherigo.ZCommand_metatable = {
 				t._enabled = value
 				Wherigo.LogMessage("ZCommand <" .. t.Text .. ">.Enabled = " .. Wherigo._bool2str(value))
 				end
+			return
 			end
+		rawset(t, key, value)
 		end,
 }
 function Wherigo.ZCommand.new(table)
 	table = table or {}
+	-- ReciprocatedCmds
+	-- EmptyTargetListText
 	local self = {
 		Text = table.Text or '',
 		CmdWith = table.CmdWith or false,
 			EmptyTargetListText = table.EmptyTargetListText or 'No target visible',
 			MakeReciprocal = true,
 			WorksWithAll = false,
-			WorksWithList = table.WorksWithList or {}, -- Zcharacter, ZItem
-		--Custom = true, -- doesn't matter
+			WorksWithList = table.WorksWithList or false, -- Zcharacter, ZItem
+		Custom = true, -- doesn't matter
 		_enabled = true,
 		_classname = Wherigo.CLASS_ZCOMMAND,
 		};
@@ -546,15 +549,25 @@ Wherigo.ZObject_metatable = {
 	__index = function(t, key)
 		if key == 'Active' then
 			return t._active
-		elseif k == 'CommandsArray' then
-			local arr
-			for i,v in ipairs(t.Commands) do
+		elseif key == 'CommandsArray' then
+			local arr = {}
+			for i,v in pairs(t.Commands) do
 				table.insert(arr, v)
 				end
 			return arr -- runtime doesn't work with CommandsArray. Only export!
+		elseif key == 'ObjectLocation' then
+			return t._get_pos(false) -- do not export. Only for ... some cartridges ...
+		elseif key == 'Inventory' then
+			local arr = {}
+			for k,v in pairs(cartridge.AllZObjects) do
+				if ((v.Active and v.Visible) or DEBUG) and v.Container == Wherigo.Player then
+					table.insert(arr, v)
+					end
+				end
+			return arr -- runtime doesn't work with Inventory. For game objects and export
 		elseif key == 'CorrectState' and t._classname == Wherigo.CLASS_ZTASK then
 			return t._correct
-		elseif key == 'Complete' and t._classname == Wherigo.CLASS_ZTASK then
+		elseif key == 'Complete' and (t._classname == Wherigo.CLASS_ZTASK or t._classname == Wherigo.CLASS_ZCARTRIDGE) then
 			return t._complete
 			end
 		end,
@@ -571,6 +584,13 @@ Wherigo.ZObject_metatable = {
 						t._inside = t.Inside
 						t._calculateBoundingBox()
 						Wherigo.Zone._update( t )
+						local lat = 0
+						local lon = 0
+						for k,v in pairs(t.Points) do
+							lat = lat + v.latitude
+							lon = lon + v.longitude
+							end
+						t.OriginalPoint = Wherigo.ZonePoint( lat/(#t.Points), lon /(#t.Points) )
 					else
 						Wherigo.Player._removeFromZone(t)
 						end
@@ -582,36 +602,35 @@ Wherigo.ZObject_metatable = {
 					end
 				end
 			return
-		elseif k == 'CommandsArray' then
+		elseif key == 'CommandsArray' then
 			-- restore Commands from SaveGame
 			for i,v in ipairs(value) do
-				t.Commands[v.Keyword] = v;
+				v.Index = i
+				t.Commands[v.Keyword] = v
 				end
 			return
-		elseif t._classname == Wherigo.CLASS_ZTASK then
-			if key == 'CorrectState' then
-				if value ~= t._correct then
-					t._correct = value
-					Wherigo.LogMessage("ZTask <" .. t.Name .. ">.CorrectState = " .. Wherigo._bool2str(value))
-					if t.OnSetCorrectState then
-						Wherigo.LogMessage("ZTask <" .. t.Name .. ">: START OnSetCorrectState")
-						t.OnSetCorrectState(t)
-						Wherigo.LogMessage("ZTask <" .. t.Name .. ">: END__ OnSetCorrectState")
-						end
+		elseif key == 'Complete' and (t._classname == Wherigo.CLASS_ZTASK or t._classname == Wherigo.CLASS_ZCARTRIDGE) then
+			if value ~= t._complete then
+				t._complete = value
+				Wherigo.LogMessage(t._classname .. " <" .. t.Name .. ">.Complete = " .. Wherigo._bool2str(value))
+				if t.OnSetComplete then
+					Wherigo.LogMessage(t._classname .. " <" .. t.Name .. ">: START OnSetComplete")
+					t.OnSetComplete(t)
+					Wherigo.LogMessage(t._classname .. " <" .. t.Name .. ">: END__ OnSetComplete")
 					end
-				return
-			elseif key == 'Complete' then
-				if value ~= t._complete then
-					t._complete = value
-					Wherigo.LogMessage("ZTask <" .. t.Name .. ">.Complete = " .. Wherigo._bool2str(value))
-					if t.OnSetComplete then
-						Wherigo.LogMessage("ZTask <" .. t.Name .. ">: START OnSetComplete")
-						t.OnSetComplete(t)
-						Wherigo.LogMessage("ZTask <" .. t.Name .. ">: END__ OnSetComplete")
-						end
-					end
-				return
 				end
+			return
+		elseif t._classname == Wherigo.CLASS_ZTASK and key == 'CorrectState' then
+			if value ~= t._correct then
+				t._correct = value
+				Wherigo.LogMessage("ZTask <" .. t.Name .. ">.CorrectState = " .. Wherigo._bool2str(value))
+				if t.OnSetCorrectState then
+					Wherigo.LogMessage("ZTask <" .. t.Name .. ">: START OnSetCorrectState")
+					t.OnSetCorrectState(t)
+					Wherigo.LogMessage("ZTask <" .. t.Name .. ">: END__ OnSetCorrectState")
+					end
+				end
+			return
 			end
 		rawset(t, key, value)
 		end
@@ -639,11 +658,22 @@ function Wherigo.ZObject.new(cartridge, container )
 		else
 			self._correct = false
 			end
+		if self.Container == nil  then
+			self.Container = false
+			end
+		if self.Media == nil  then
+			self.Media = false
+			end
+		if self.Icon == nil  then
+			self.Icon = false
+			end
 	else
 		self = {
-			Container = container or nil,
+			Container = container or false,
 			Cartridge = cartridge or nil,
 			_active = true,
+			Media = false,
+			Icon = false,
 		}
 		end
 	self.Name = self.Name or "(NoName)"
@@ -680,15 +710,6 @@ function Wherigo.ZObject.new(cartridge, container )
 	function self:MoveTo(owner)
 		if owner ~= nil then
 			Wherigo.LogMessage("Move " .. self.Name .. " to " .. owner.Name)
-			if owner == Wherigo.Player then
-				table.insert(Wherigo.Player.Inventory, self)
-			elseif self.Container == Wherigo.Player then
-				for k,v in pairs(Wherigo.Player.Inventory) do
-					if v == self then
-						table.remove(Wherigo.Player.Inventory, k)
-						end
-					end
-				end
 		else
 			Wherigo.LogMessage("Move " .. self.Name .. " to (nowhere)")
 			end
@@ -715,17 +736,24 @@ function Wherigo.ZObject.new(cartridge, container )
 		return true
 		end
 	
-	function self._get_pos ()
+	function self._get_pos (exists)
+		if recurse == nil then
+			recurse = true
+			end
 		if self._classname == Wherigo.CLASS_ZONE then
 			return self.OriginalPoint end
 		if self._classname ~= Wherigo.CLASS_ZCHARACTER and self._classname ~= Wherigo.CLASS_ZITEM then
-			return nil end
-		if not self.ObjectLocation then
+			return nil end -- ignore tasks
+		if not exists or not self.ObjectLocation then
 			if self.Container then
 				return self.Container._get_pos ()
 				end
 			end
-		return self.ObjectLocation
+		if exists then
+			return self.ObjectLocation
+		else
+			return nil
+			end
 		end
 	
 	setmetatable(self, Wherigo.ZObject_metatable)
@@ -819,26 +847,25 @@ function Wherigo.Zone.new(cartridge)
 	]]
 	
 	function self._calculateBoundingBox()
-		self._xmin = self.Points[1].longitude
-		self._xmax = self.Points[1].longitude
-		self._ymin = self.Points[1].latitude
-		self._ymax = self.Points[1].latitude
-		for k,v in pairs(self.Points) do
-			print(v.longitude, v.latitude)
-			if v.longitude < self._xmin then
-				self._xmin = v.longitude
-			elseif v.longitude > self._xmax then
-				self._xmax = v.longitude
-				end
-			if v.latitude < self._ymin then
-				self._ymin = v.longitude
-			elseif v.latitude > self._ymax then
-				self._ymax = v.latitude
+		if self.Points[1] ~= Wherigo.INVALID_ZONEPOINT then
+			self._xmin = self.Points[1].longitude
+			self._xmax = self.Points[1].longitude
+			self._ymin = self.Points[1].latitude
+			self._ymax = self.Points[1].latitude
+			for k,v in pairs(self.Points) do
+				print(v.longitude, v.latitude)
+				if v.longitude < self._xmin then
+					self._xmin = v.longitude
+				elseif v.longitude > self._xmax then
+					self._xmax = v.longitude
+					end
+				if v.latitude < self._ymin then
+					self._ymin = v.longitude
+				elseif v.latitude > self._ymax then
+					self._ymax = v.latitude
+					end
 				end
 			end
-		print("----------------------------")
-		print(self._xmin, self._xmax)
-		print(self._ymin, self._ymax)
 		end
 	
 	setmetatable(self, Wherigo.Zone_metatable) 
@@ -886,6 +913,8 @@ function Wherigo.Zone._update( v )
 	else
 		-- if it is in table, remove
 		-- how far?
+		if # v.Points == 0 or v.Points[1] == Wherigo.INVALID_ZONEPOINT then
+			return update_all end
 		v.CurrentDistance, v.CurrentBearing = Wherigo.VectorToZone (Wherigo.Player.ObjectLocation, v)
 		--[[Wherigo.LogMessage(v.Name .. ": d:" .. tostring(v.CurrentDistance()) .. ", p:" ..
 			tostring(v.ProximityRange()) .. ", d:" .. tostring(v.DistanceRange() ))]]
@@ -1288,7 +1317,6 @@ function Wherigo.ZCharacter.new( cartridge, container )
 	self.InsideZones = {}
 	self.Inventory = {}
 	self.ObjectLocation = Wherigo.INVALID_ZONEPOINT]]
-	self.PositionAccuracy = Wherigo.Distance(5)
 	self.Gender = self.Gender or "It"
 	
 	setmetatable(self, Wherigo.ZCharacter_metatable)
@@ -1309,11 +1337,14 @@ setmetatable(Wherigo.ZCharacter, {
 Wherigo.Player = Wherigo.ZCharacter.new()
 Wherigo.Player.Name = Env._Player
 Wherigo.Player.CompletionCode = Env._CompletionCode
-Wherigo.Player.Inventory = {}
 Wherigo.Player.InsideOfZones = {}
 Wherigo.Player.CurrentDistance = nil
 Wherigo.Player.CurrentBearing = nil
+Wherigo.Player.PositionAccuracy = Wherigo.Distance(5)
 Wherigo.Player.ObjIndex = 0xabcd -- ID taken from Emulator to identify references
+
+-- should be for correctness, but I can't simply detect this value
+--Wherigo.INVALID_ZONEPOINT = Wherigo.ZonePoint(360,360,360)
 
 function Wherigo.Player:RefreshLocation()
 	-- request refresh location ... useless?
@@ -1333,6 +1364,7 @@ for k,v in pairs(Wherigo.Player.Inventory) do print(k,v) end
 for k,v in pairs(Env.__propset) do print(k,v) end
 for k,v in pairs(_G) do print(k,v) end
 for k,v in pairs(zonePaloucek) do print(k,v) end
+for k,v in pairs(itemDum1.Commands.Akce1) do print(k,v) end
 
 for k,v in pairs(cartridge.AllZObjects) do print(k,v, v.Active, v.Visible) end
 ]]
@@ -1344,9 +1376,9 @@ Wherigo._callback = function(event, id)
 	local t = cartridge.AllZObjects[id]
 	if event == "OnClick" then
 		if t.OnClick then
-			Wherigo.LogMessage("ZCommand <" .. t.Name .. ">: " .. event .. " START")
+			Wherigo.LogMessage(t._classname .. " <" .. t.Name .. "> ZCommand: " .. event .. " START")
 			t[event](t)
-			Wherigo.LogMessage("ZCommand <" .. t.Name .. ">: " .. event .. " END__")
+			Wherigo.LogMessage(t._classname .. " <" .. t.Name .. "> ZCommand: " .. event .. " END__")
 			end
 	else
 		if t then
@@ -1354,22 +1386,20 @@ Wherigo._callback = function(event, id)
 			local c = t.Commands[command]
 			if not c.CmdWith then
 				if t[event] then
-					Wherigo.LogMessage("ZCommand <" .. t.Name .. ">: " .. event .. " START")
+					Wherigo.LogMessage(t._classname .. " <" .. t.Name .. "> ZCommand: " .. event .. " START")
 					t[event](t)
-					Wherigo.LogMessage("ZCommand <" .. t.Name .. ">: " .. event .. " END__")
+					Wherigo.LogMessage(t._classname .. " <" .. t.Name .. "> ZCommand: " .. event .. " END__")
 				else
-					Wherigo.LogMessage("ZCommand <" .. t.Name .. ">: " .. event .. " [no script]")
+					Wherigo.LogMessage(t._classname .. " <" .. t.Name .. "> ZCommand: " .. event .. " [no script]")
 					end
 			else
-				local list = {}
+				--local list = {}
 				local choices = ""
 				if c.WorksWithAll then
 					for k,v in pairs(cartridge.AllZObjects) do
-						if (v._classname == Wherigo.CLASS_ZCHARACTER or
-							v._classname == Wherigo.CLASS_ZITEM)
-							and v._is_visible() then
-							table.insert(list, v);
-							if # list ~= 0 then
+						if (v.Visible and v.Container == Wherigo.Player) or v._is_visible() then
+							--table.insert(list, v);
+							if # choices ~= 0 then
 								choices = choices .. ";"
 								end
 							choices = choices .. v.Name
@@ -1377,19 +1407,22 @@ Wherigo._callback = function(event, id)
 						end
 				elseif c.WorksWithList then
 					for k,v in pairs(c.WorksWithList) do
-						if v._is_visible() then
-							table.insert(list, v);
-							if # list ~= 0 then
+						if (v.Visible and v.Container == Wherigo.Player) or v._is_visible() then
+							--table.insert(list, v);
+							if # choices ~= 0 then
 								choices = choices .. ";"
 								end
 							choices = choices .. v.Name
 							end
 						end
+				else
+					Wherigo.LogMessage(c.Text .. " Works with nothing??")
 					end
-				if # list == 0 then
-					WIGInternal.Dialog("Nothing to command with", "")
+				if # choices == 0 then
+					WIGInternal.Dialog( c.EmptyTargetListText, "")
 					return
 					end
+				Wherigo.LogMessage(t._classname .. " <" .. t.Name .. ">: CommandWith prompt")
 				table.insert(Wherigo._GICallbacks, Wherigo._Internal)
 				table.insert(Wherigo._CMDWithCallbacks, t[event])
 				WIGInternal.GetInput("MultipleChoice", "Choose what to command with", choices, "");
@@ -1398,16 +1431,16 @@ Wherigo._callback = function(event, id)
 		end
 	end
 Wherigo._CMDWithCallbacks = {}
-Wherigo._Internal = {}
+Wherigo._Internal = { Name = "CMDWith (internal)"}
 Wherigo._Internal.OnGetInput = function(self, choice)
+	Wherigo.LogMessage("Choice CMDwith: " .. choice)
 	if # Wherigo._CMDWithCallbacks > 0 then
 		local event = table.remove(Wherigo._CMDWithCallbacks)
 		for k,v in pairs(cartridge.AllZObjects) do
-			if (v._classname == Wherigo.CLASS_ZCHARACTER or
-				v._classname == Wherigo.CLASS_ZITEM)
-				and v._is_visible() and v.Name == choice then
-				
+			if ((v.Visible and v.Container == Wherigo.Player) or v._is_visible()) and v.Name == choice then
+				Wherigo.LogMessage("ZCommand <??>: ?? with [" .. v.Name .. "] START")
 				event(nil, v);
+				Wherigo.LogMessage("ZCommand <??>: ?? with [" .. v.Name .. "] END__")
 				return
 				end
 			end
@@ -1561,6 +1594,7 @@ Wherigo._getTasks = function()
 				.. Wherigo._getMediaField("icon", v.Icon)
 				.. Wherigo._addCommands(v)
 				.. ", \"id\": \"" .. k .. "\""
+				--.. ", \"sort\": \"" .. v.SortOrder .. "\"" -- WF ?? 
 				.. ", \"complete\": " .. Wherigo._bool2str(v.Complete)
 			if v.OnClick then
 				tasks = tasks .. ", \"onclick\": true"
