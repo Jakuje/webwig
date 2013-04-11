@@ -55,13 +55,14 @@ enyo.kind({
 		}
 
 		var render = false;
-		if( data.id != this.data.id || data.media != this.data.media || data.name != this.data.name ){
+		if( data.id != this.data.id || data.media != this.data.media || data.name != this.data.name || data.commands.length != this.data.commands.length ){
 			 render = true;
-		}
-		for(var i in this.data.commands ){
-			if( typeof data.commands[i] == 'undefined' || this.data.commands[i].id != data.commands[i].id
-				|| this.data.commands[i].text != data.commands[i].text ){
-					render = true;
+		} else {
+			for(var i in this.data.commands ){
+				if( typeof data.commands[i] == 'undefined' || this.data.commands[i].id != data.commands[i].id
+					|| this.data.commands[i].text != data.commands[i].text ){
+						render = true;
+				}
 			}
 		}
 		this.data = data;
@@ -145,8 +146,7 @@ enyo.kind({
 		} else if(inEvent.keyCode == 108 ){ // L
 			this.owner.owner.$.plugin.movePosition(0, +0.00001);
 		} else {
-			this.owner.owner.popupMessage( new WIGApp.Dialog(inEvent.keyCode, "Message"));
-			console.error(inEvent.charCode, inEvent.keyCode);
+			--console.error(inEvent.charCode, inEvent.keyCode);
 		}
 	}
 });
