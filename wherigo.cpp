@@ -204,12 +204,14 @@ bool Wherigo::createFile(int i){
 		}
 		types[i] = fd.readLong(); // use to export to Javascript
 		string *path = getFilePath(i);
+		string fp = this->getCartDir();
+		fp.append(*path);
 		//my_error(string("*** Wherigo.cpp *** Creating File: ").append(path));
 		int len = fd.readLong();
 		char *data = new char [len];
 		fd.read(data, len);
 		
-		ofstream f( path->c_str(), ios_base::out | ios_base::binary);
+		ofstream f( fp.c_str(), ios_base::out | ios_base::binary);
 		f.write(data, len);
 		f.close();
 		delete [] data;
@@ -250,7 +252,7 @@ string *Wherigo::getFilePath(int i){
 		if( types[i] == UNDEFINED ){
 			createFile(i);
 		}
-		string *path = new string(this->getCartDir());
+		string *path = new string(/*this->getCartDir()*/);
 		path->append(ss.str());
 		switch (types[i]){
 			case BMP:
@@ -299,7 +301,7 @@ bool Wherigo::createFiles(){
 string Wherigo::getCartDir(){
 	if( cartDir.empty() ){
 		cartDir = string(DATA_DIR);
-		cartDir.append( cartridgeGUID ).append("/");
+		cartDir.append(".").append( cartridgeGUID ).append("/");
 		struct stat st;
 		bool is_dir = false;
 		if(stat(cartDir.c_str(), &st) == 0){

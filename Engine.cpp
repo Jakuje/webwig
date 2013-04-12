@@ -673,6 +673,8 @@ bool OutputMetadata(stringstream *buf, const char *cartridge, bool first = true)
 		<< ",\"guid\": \"" << w->cartridgeGUID << "\""
 		<< ",\"description\": \"" << WherigoLib::escapeJsonString(w->cartridgeDescription) << "\""
 		<< ",\"startingLocationDescription\": \"" << WherigoLib::escapeJsonString(w->startingLocationDescription) << "\""
+		<< ",\"latitude\": " << w->lat
+		<< ",\"longitude\": " << w->lon
 		<< ",\"version\": \"" << w->version << "\""
 		<< ",\"author\": \"" << WherigoLib::escapeJsonString(w->author) << "\""
 		<< ",\"company\": \"" << WherigoLib::escapeJsonString(w->company) << "\""
