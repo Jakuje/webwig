@@ -1,5 +1,3 @@
-function arrays_equal(a,b) { return !(a<b || b<a); }
-
 enyo.kind({
 	name: "WIGApp.GameMain.Detail",
 	kind: enyo.VFlexBox,
