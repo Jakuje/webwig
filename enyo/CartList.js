@@ -7,9 +7,11 @@ enyo.kind({
 	},
 	components: [
 		{kind: "PageHeader", components: [
-			{kind: "Spacer"},
-			{content: "Cartridges"},
-			{kind: "Spacer"},
+			{kind: "IconButton", icon: "images/menu-icon-back.png", onclick: "goBack"},
+			{layoutKind: "VFlexLayout", flex: 1, align: "center", components: [
+				{name: "title", content: "Cartridges"},
+				{name: "subtitle", content: "&nbsp;", className: "enyo-item-secondary", allowHtml: true},
+				]},
 			{kind: "IconButton", icon: "images/menu-icon-sync.png", onclick: "refreshClicked"}
 		]},
 		{kind: "Scroller", flex: 1, horizontal: false, autoHorizontal: false,
@@ -18,36 +20,54 @@ enyo.kind({
 				onSetupRow: "listGetItem", onclick: "playCartridge",
 				components: [
 					{kind: "Item", layoutKind: "VFlexLayout", tapHighlight: true, components: [
-						{name: "title", kind: "Divider", allowHtml: true},
+						{name: "cTitle", kind: "Divider", allowHtml: true},
 						{layoutKind: "HFlexLayout", components: [
-							{layoutKind: "VFlexLayout", components: [
+							{layoutKind: "VFlexLayout", flex: 1, components: [
 								{name: "type"},
 								{name: "author"},
 								]},
-							{kind: "Spacer"},
 							{kind: "IconButton", icon: "images/menu-icon-info.png", onclick: "showDetails"}
 						]}
 					]}
 				]
 			}
 		]},
-		{name: "error", showing: "false", flex: 1, textAlign: "center"},
-      {kind: "Button", caption: "Dialog", onclick: "openError"},
+		{kind: "Item", name: "empty", layoutKind: "HFlexLayout", components: [
+			{name: "nothingText", content: "No cartridges found in working directory",
+			flex: 1, style: "font-style:italic;text-align:center; color:#999999;"}
+		]},
     ],
    	metadata: [],
-
-
-   	openError: function() {
-		this.owner.popupMessage( new WIGApp.MessageBox("Zprava chybova", "Message", "images/tasks.png", "Dobre", "Spatne", false) );
-		//this.owner.popupMessage( new WIGApp.Dialog("Je prave zobrazena prvni zprava a tato by mela zustat v zasobniku", "Error", "images/tasks.png") );
-		this.owner.popupMessage( new WIGApp.Dialog("JAK HRAT:<BR><BR>V nabidce Tasks (Ukoly) najdete konkretni ukoly. Pro jejich splneni staci priblizit se k hledanemu objektu. Na poradi techto objektu pritom nezalezi.<BR><BR>Vzdy vyckejte na potvrzeni nalezu. Nekdy se muze stat, ze budete muset hledat spravne misto, aby byl nalez zaznamenan a potvrzen.<BR><BR>Pozorne ctete pruvodni texty. Reknou vam, jak postupovat dal. Kazdy dialog hned potvrdte tlacitkem.<BR><BR>Kdybyste si nevedeli rady, prozkoumejte polozky v jednotlivych nabidkach.<BR><BR>Hra se automaticky po splneni kazdeho ukolu uklada.", "Message") );
-		//this.owner.popupMessage( new WIGApp.GetInput("Vyberte:", "Select", "images/you_see.png", "MultipleChoice", ";one;two;three;saf;fasfvsav;vas;vfavfad;"));
-		//this.owner.popupMessage( new WIGApp.GetInput("Zadejte text:", "Input", "images/inventory.png", "Text", ""));
-	},
+   	type: "All",
+   	state: "All",
+   	anywhere: false,
 
 	create: function() {
 		this.inherited(arguments);
+	},
+	
+	setup: function(type, state, anywhere){
+		this.type = type;
+		this.state = state;
+		this.anywhere = anywhere;
+		this.updateTitle();
 		this.getCartridges(0);
+	},
+	
+	updateTitle: function(){
+		if( this.anywhere ){
+			this.$.title.setContent("Play anywhere");
+		} else {
+			this.$.title.setContent("Cartridges");
+		}
+		subtitle = "";
+		if( this.type != "All" ){
+			subtitle += "Type: " + this.type;
+		}
+		if( this.state != "All" ){
+			subtitle += ( subtitle.length != 0 ? ", " : "") + "State: " + this.state;
+		}
+		this.$.subtitle.setContent( (subtitle.length != 0 ? subtitle : "&nbsp;") );
 	},
 	
 	refreshClicked: function(){
@@ -61,14 +81,23 @@ enyo.kind({
 	},
 	
 	updateFileList: function(metadata) {
+		data = [];
+		for(var i in metadata){
+			if( (this.type == 'All' || metadata[i].type == this.type)
+			&& ( this.anywhere == (metadata[i].latitude == 360 && metadata[i].longitude == 360) )
+			/* TODO state */ ){
+				data.push(metadata[i]);
+			}
+		}
+		this.metadata = data;
 		console.error("***** WIG Enyo: updateFileList");
-		if( metadata.length == 0 ){
+		if( this.metadata.length == 0 ){
 			this.$.scroller.hide();
-			this.$.error.setContent("No cartridges found in working directory");
+			this.$.nothingText.setContent("No cartridges found in working directory");
+			this.$.empty.show();
 		} else {
 			this.$.scroller.show();
-			this.$.error.hide();
-			this.metadata = metadata;
+			this.$.empty.hide();
 			this.$.list.render();
 			this.$.scroller.setScrollTop(0);
 		}
@@ -78,7 +107,7 @@ enyo.kind({
 		if (inIndex < this.metadata.length) {
 			if (this.$.list) {
 				var item = this.metadata[inIndex];
-				this.$.title.setCaption( item.name + (item.saved ? " [S]" : ""));
+				this.$.cTitle.setCaption( item.name + (item.saved ? " [S]" : ""));
 				this.$.type.setContent( item.type );
 				if( item.author ){
 					this.$.author.setContent(" by " + item.author);
@@ -86,9 +115,9 @@ enyo.kind({
 					this.$.author.setContent("");
 				}
 				if( this.metadata[inIndex].icon ){
-					this.$.title.setIcon(item.icon);
+					this.$.cTitle.setIcon(DATA_DIR + "." + item.guid + "/" + item.icon);
 				} else {
-					this.$.title.setIcon("");
+					this.$.cTitle.setIcon("");
 				}
 			}
 			return true;
@@ -107,6 +136,10 @@ enyo.kind({
 			var c = this.metadata[inEvent.rowIndex];
 			this.doPlay(c);
 		}
-	}
+	},
+	
+	goBack: function(inSender, inEvent){
+		this.owner.goBack(inSender, inEvent);
+	},
 
 });

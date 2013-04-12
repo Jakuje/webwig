@@ -18,9 +18,11 @@ enyo.kind({
 					{name: "author"}, {kind: "Spacer"}, {name: "company"}
 					]},
 				{name: "icon", kind: "Divider", caption: "Description"},
-				{name: "description", layoutKind: "HFlexLayout", allowHtml: true},
+				{name: "description", allowHtml: true},
+				{kind: "Divider", caption: "Start location"},
+				{name: "startLocation"},
 				{kind: "Divider", caption: "Start location description"},
-				{name: "startDescription", layoutKind: "HFlexLayout", allowHtml: true},
+				{name: "startDescription", allowHtml: true},
 				{kind: "Divider", caption: "Type and version"},
 				{layoutKind: "HFlexLayout", components: [
 					{name: "type"}, {kind: "Spacer"}, {name: "version"}
@@ -42,17 +44,22 @@ enyo.kind({
 		this.data = data;
 		this.$.title.setContent(data.name);
 		if( data.icon ){
-			this.$.icon.setIcon( data.icon );
+			this.$.icon.setIcon( DATA_DIR + "." + data.guid + "/" + data.icon );
 		} else {
 			this.$.icon.setIcon('');
 		}
 		if( data.splash ){
-			this.$.splash.setSrc( data.splash );
+			this.$.splash.setSrc( DATA_DIR + "." + data.guid + "/" + data.splash );
 		} else {
 			this.$.splash.setSrc('');
 		}
 		this.$.description.setContent(data.description);
 		this.$.startDescription.setContent(data.startingLocationDescription);
+		if( data.latitude == 360 && data.longitude == 360 ){
+			this.$.startLocation.setContent("Anywhere");
+		} else {
+			this.$.startLocation.setContent(data.latitude.toFixed(6) + " " + data.longitude.toFixed(6));
+		}
 		this.$.type.setContent(data.type);
 		this.$.version.setContent(data.version);
 		this.$.author.setContent(data.author);
