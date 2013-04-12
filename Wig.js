@@ -16,7 +16,9 @@ enyo.kind({
             method : "playFeedback",
         },
 		{name: "pane", kind: "Pane", flex: 1, onSelectView: "viewSelected",
-			components: [
+			transitionKind: "enyo.transitions.LeftRightFlyin", components: [
+				{name: "Main", className: "enyo-bg", kind: "WIGApp.Main",
+					onList: "showList"},
 				{name: "cList", className: "enyo-bg", kind: "WIGApp.CartList",
 					onInfo: "cartSelected", onPlay: "gameStarted"},
 				{name: "cDetail", className: "enyo-bg", kind: "WIGApp.CartDetail",
@@ -51,7 +53,7 @@ enyo.kind({
 		   layoutKind: "VFlexLayout",
 		   lazy: false,
 		   components: [
-				{kind: "BasicScroller", autoVertical: true, style: "height: auto;", flex: 1,
+				{name: "messageScroller", kind: "BasicScroller", autoVertical: true, style: "height: auto;", flex: 1,
 					components: [
 						{ layoutKind: "VFlexLayout", align: "center", components: [
 							{
@@ -145,6 +147,11 @@ enyo.kind({
 		this.$.cDetail.setup(inMetadata);
 	},
 	
+	showList: function(inSender, type, state, anywhere){
+		this.$.cList.setup(type, state, anywhere);
+		this.$.pane.selectViewByName("cList");
+	},
+	
 	showPreferences: function(inSender){
 		this.$.Preferences.setup();
 		this.$.pane.selectViewByName("Preferences");
@@ -224,16 +231,21 @@ enyo.kind({
 	},
 	
 	prefs: null,
+	default_prefs: {"gps": true, "compass": 1, "units": true, "type": "All", "state": "All", "lat": "49", "lon": "16"},
 	getPrefs: function(key){
 		if( !this.prefs ){
 			try {
 				this.prefs = enyo.json.parse( enyo.getCookie(PREFS_COOKIE) );
 			} catch(err) {
-				this.prefs = {"gps": true, "compass": 1, "units": true};
+				this.prefs = this.default_prefs;
 				this.setPrefs();
 			}
 		}
-		return this.prefs[key];
+		if( this.prefs[key] ){
+			return this.prefs[key];
+		} else {
+			return this.default_prefs[key];
+		}
 	},
 	setPrefs: function(key, value){
 		if( key ){

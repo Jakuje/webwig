@@ -9,6 +9,7 @@ enyo.kind({
 		this.media = media;
 	},
 	paintHeader: function(element){
+		element.$.messageScroller.setScrollTop(0);
 		element.$.errorMessage.setCaption(this.title);
 		element.$.errorText.setContent(this.message);
 		if( this.media && this.media != "" ){
