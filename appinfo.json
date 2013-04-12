@@ -3,8 +3,10 @@
 	"type": "web",
 	"main": "index.html",
     "icon": "logo.png",
+	"splashicon": "logo_256.png",
+	"splashBackground": "images/splash.png",
 	"id": "com.dta3team.app.wherigo",
-	"version": "1.0.4",
+	"version": "1.0.5",
 	"vendor": "Dta3 team",
 	"uiRevision": 2,
 	"plug-ins": true

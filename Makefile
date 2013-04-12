@@ -1,7 +1,7 @@
 DESKTOP=0
 PRE=0
 PIXI=1
-DEBUG=1
+DEBUG=0
 
 ifeq (1,$(DEBUG))
 DEVICEOPTS=-g
@@ -83,6 +83,7 @@ package: $(PLUGIN) appinfo.json logo.png
 	$(COPY) depends.js STAGING
 	$(COPY) index.html STAGING
 	$(COPY) logo.png STAGING
+	$(COPY) logo_256.png STAGING
 	mkdir STAGING\images
 	$(COPY) images STAGING\images $(RECURSIVE)
 	mkdir STAGING\enyo
@@ -94,8 +95,8 @@ package: $(PLUGIN) appinfo.json logo.png
 	palm-package STAGING
 
 install:
-	echo "Installing version 1.0.4 !!!"
-	palm-install com.dta3team.app.wherigo_1.0.4_all.ipk
+	echo "Installing version 1.0.5 !!!"
+	palm-install com.dta3team.app.wherigo_1.0.5_all.ipk
 
 run:
 	palm-run STAGING
