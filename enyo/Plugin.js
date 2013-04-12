@@ -33,7 +33,7 @@ enyo.kind({
 	
 	playAudio: function(media){
 		console.error("***** WIG Enyo: playAudio: " + media);
-		this.owner.$.sound.setSrc(media);
+		this.owner.$.sound.setSrc(this.cartDir + media);
 		this.owner.$.sound.play();
 	},
 	stopSound: function(){
@@ -49,14 +49,14 @@ enyo.kind({
 		if( media ){
 			console.error("***** WIG Enyo: Media url: " + media);
 		}*/
-		this.owner.popupMessage( new WIGApp.MessageBox(message, "Message", media, button1, button2, (callback == "1"))  );
+		this.owner.popupMessage( new WIGApp.MessageBox(message, "Message", this.cartDir + media, button1, button2, (callback == "1"))  );
 	},
 	dialog: function(message, media){
 		/*console.error("***** WIG Enyo: dialog:" + message);
 		if( media ){
 			console.error("***** WIG Enyo: Media url: " + media);
 		}*/
-		this.owner.popupMessage( new WIGApp.Dialog(message, "Message", media) );
+		this.owner.popupMessage( new WIGApp.Dialog(message, "Message", this.cartDir + media) );
 	},
 	MessageBoxResponse: function( value ){
 		console.error("***** WIG Enyo: MessageBoxResponse value: " + value);
@@ -66,7 +66,7 @@ enyo.kind({
 	},
 	getInput: function(type, text, choices, media){
 		console.error("***** WIG Enyo: getInput: type: " + type + " text:" + text + " choices: " + choices);
-		this.owner.popupMessage( new WIGApp.GetInput(text, "Message", media, type, choices) );
+		this.owner.popupMessage( new WIGApp.GetInput(text, "Message", this.cartDir + media, type, choices) );
 	},
 	GetInputResponse: function( value ){
 		if ( window.PalmSystem) {
@@ -148,8 +148,10 @@ enyo.kind({
             "guid": "9680e562-caf2-455e-a095-654b67d8080e",
             "description": "Stan se na chvili kralem Artusem a prijmi jeho poslani najit Svaty gral. Cesta to nebude jednoducha. Tvuj verny sluha Patynka a dalsi udatni rytiri kulateho stolu Ti vsak pomohou. Kdo videl film \"Monty Python and the Holy Grail\" bude mit cestu snazsi a hlavne mnohem zazivnejsi.",
             "startingLocationDescription": "Pobl?? zast?vky MHD N?m. 28. dubna. V noci pak jezd? do Bystrce no?n? autobusov? spoje.",
+            "latitude": 49,
+            "longitude": 16,
             "version": "1.2",
-            "author": "Karbanatek"
+            "author": "Karbanatek",
         },
         {
             "filename": "wherigo.lua.gwc",
@@ -159,6 +161,8 @@ enyo.kind({
             "guid": "97e8dd40-78a6-4ae1-9575-6260ff64bdc5",
             "description": "",
             "startingLocationDescription": "",
+            "latitude": 360,
+            "longitude": 360,
             "version": "0",
             "author": ""
         }
@@ -282,7 +286,7 @@ enyo.kind({
 	closeCartridge: function(save, callback){
 		if ( window.PalmSystem) {
 			console.error("***** WIG Enyo: closeCartridge save = " + save);
-			this._resultsCallbacks.push(callback);
+			//this._resultsCallbacks.push(callback);
 			this.callPluginMethodDeferred(enyo.nop, "closeCartridge", save);
 		}
 		this.owner.$.gMain.updateUI({
