@@ -27,11 +27,13 @@ class fileReader: public ifstream {
 		}
 
 		int readShort(){
+			spom = 0;
 			this->read( (char*)&spom, 2 );
 			return (int) spom;
 		}
 
 		int readUShort(){
+			uspom = 0;
 			this->read( (char*)&uspom, 2 );
 			return (int) uspom;
 		}
@@ -43,7 +45,7 @@ class fileReader: public ifstream {
 		}
 
 		double readDouble(){
-			double pom;
+			double pom = 0;
 			this->read((char*)&pom, 8);
 			return pom;
 		}
