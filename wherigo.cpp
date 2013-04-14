@@ -10,7 +10,8 @@
 #include "wherigo.h"
 #include "WherigoLib.hpp"
 #include <syslog.h>
-#include <execinfo.h>
+//#include <execinfo.h>
+#include <glob.h>
 
 //Wherigo *WherigoOpen;
 
@@ -23,7 +24,7 @@ void my_error(string message){
 	}
 }
 
-void print_backtrace(void){
+/*void print_backtrace(void){
 
        void *tracePtrs[10];
        size_t count;
@@ -37,7 +38,7 @@ void print_backtrace(void){
 
        free(funcNames);
 
-}
+}*/
 
 
 bool Wherigo::setup(){
@@ -218,7 +219,7 @@ bool Wherigo::createFile(int i){
 		delete path;
 		return true;
 	} else {
-		print_backtrace();
+		//print_backtrace();
 		return false;
 	}
 }
@@ -352,4 +353,54 @@ string Wherigo::getSaveFilename(){
 	string name = this->filename.substr(0, this->filename.length() - 1);
 	name.append("s");
 	return name;
+}
+
+bool Wherigo::cleanFiles(){
+	setup();
+	fd.close();
+	
+	bool ok = true;
+	glob_t matches;
+	string pattern;
+	const char *name;
+	
+	// remove cartridge directory files
+	//system( (string("rm -rf") + getCartDir()).c_str() );
+	pattern = getCartDir() + "*";
+	if (0 == glob(pattern.c_str(), GLOB_BRACE, NULL, &matches)) {
+		for (size_t i = 0; i < matches.gl_pathc; ++i) {
+			name = matches.gl_pathv[i];
+			struct stat details;
+			if (0 != stat(name, &details)) {
+				// if we can't get file details, go to next one
+				continue;
+			}
+			if (S_ISREG(details.st_mode)) {
+				ok = (remove(name) == 0) && ok;
+			}
+		}
+	}
+	globfree(&matches);
+	// delete dir itself (if previous deletion ok);
+	ok = ok && (rmdir(getCartDir().c_str()) == 0);
+	
+	// remove cartridge and all other data with same name: gw* = gwc, gwl, gws
+	//system( (string("rm -f") + this->filename.substr(0, this->filename.length() - 1) + "*").c_str() );
+	pattern = this->filename.substr(0, this->filename.length() - 1) + "*";
+	if (0 == glob(pattern.c_str(), GLOB_BRACE, NULL, &matches)) {
+		for (size_t i = 0; i < matches.gl_pathc; ++i) {
+			name = matches.gl_pathv[i];
+			struct stat details;
+			if (0 != stat(name, &details)) {
+				// if we can't get file details, go to next one
+				continue;
+			}
+			if (S_ISREG(details.st_mode)) {
+				ok = ok && (remove(name) == 0);
+			}
+		}
+	}
+	globfree(&matches);
+
+	return ok;
 }

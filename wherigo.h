@@ -16,6 +16,7 @@
 #include <sys/types.h>
 #include "filereader.h"
 #include <ctime>
+#include <cstdlib>
 
 #ifndef DESKTOP
 const string DATA_DIR = "/media/internal/appdata/com.dta3team.app.wherigo/";
@@ -112,6 +113,8 @@ public:
 	string *getFilePathById(int i);
 	string *getFilePathById(const char *str_i);
 	string *getFilePath(int i);
+	
+	bool cleanFiles();
 
 	void openLog();
 	void log(string message);

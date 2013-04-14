@@ -33,6 +33,8 @@ enyo.kind({
 		]},
 		{kind: "Toolbar", layoutKind: "HFlexLayout", components: [
 			{caption: "Play", onclick: "playCartridge"},
+			{kind: "Spacer"},
+			{caption: "Delete", onclick: "deleteCartridge"},
 		]},
 	],
 	create: function(){
@@ -69,6 +71,17 @@ enyo.kind({
 	
 	playCartridge: function(){
 		this.doPlay(this.data);
+	},
+	
+	deleteCartridge: function(){
+		this.owner.popupMessage( new WIGApp.MessageBox("Do you realy want to delete this cartridge and all stored data (including savegame and logs)",
+			"Prompt", "", "Yes", "No",
+			function( context, button ){
+				if( button == "Button1" ){
+					context.$.plugin.deleteCartridge(context.$.cDetail.data.filename);
+					context.$.pane.back();
+				}
+			}) );
 	},
 	
 	goBack: function(inSender, inEvent){

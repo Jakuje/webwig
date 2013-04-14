@@ -507,12 +507,17 @@ void DoCartridgeEvent(const char *event){
 	}
 }
 
-void OnStartEvent(int *load_game){
-	if( *load_game == 1 && WherigoLib::restore() ){
-		DoCartridgeEvent("OnRestore");
-		return;
+bool OnStartEvent(int *load_game){
+	if( *load_game == 1 ){
+		if( WherigoLib::restore() ){
+			DoCartridgeEvent("OnRestore");
+			return true;
+		} else {
+			return false;
+		}
 	}
 	DoCartridgeEvent("OnStart");
+	return true;
 
 }
 

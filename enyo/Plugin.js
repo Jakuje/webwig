@@ -347,4 +347,12 @@ enyo.kind({
 			console.error("***** WIG Enyo: Unknown result of showMap");
 		}
 	},
+	deleteCartridge: function(filename){
+		if ( window.PalmSystem) {
+			this.callPluginMethodDeferred(enyo.nop, "deleteCartridge", filename);
+		} else {
+			console.log("Delete " + filename);
+		}
+		this._resultsCallbacks.push( enyo.bind(this.owner.$.cList, "updateFileList") );
+	},
 });

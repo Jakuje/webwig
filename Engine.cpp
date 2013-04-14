@@ -529,6 +529,28 @@ PDL_bool showMapJS(PDL_JSParameters *params){
     return PDL_TRUE;
 }
 
+PDL_bool deleteCartridgeJS(PDL_JSParameters *params){
+	if (PDL_GetNumJSParams(params) != 1) {
+        syslog(LOG_INFO, "**** wrong number of parameters for deleteCartridge");
+        PDL_JSException(params, "wrong number of parameters for deleteCartridge");
+        return PDL_FALSE;
+    }
+    const char *filename = PDL_GetJSParamString(params, 0);
+
+
+    SDL_Event event;
+    event.user.type = SDL_USEREVENT;
+    event.user.code = EVENT_DELETE_CARTRIDGE;
+    event.user.data1 = strdup(filename);
+    event.user.data2 = NULL;
+    
+    syslog(LOG_WARNING, "*** sending deleteCartridge event");
+    SDL_PushEvent(&event);
+    
+    return PDL_TRUE;
+}
+
+
 #endif
 
 void setup(int argc, char **argv)
@@ -567,6 +589,7 @@ void setup(int argc, char **argv)
     PDL_RegisterJSHandler("switchGPS", switchGPSJS);
     PDL_RegisterJSHandler("save", saveJS);
     PDL_RegisterJSHandler("showMap", showMapJS);
+    PDL_RegisterJSHandler("deleteCartridge", deleteCartridgeJS);
     PDL_JSRegistrationComplete();
     
     // Workaround for old webos devices:
@@ -761,14 +784,20 @@ bool openCartridgeToJS(char *filename, int* load_game){
 	stringstream *buffer = new stringstream(stringstream::in | stringstream::out);
 	int status = 0;
 	if( openCartridge(filename) ){
-		*buffer << "{\"type\": \"ok\", \"data\": {\n"
+		if( WherigoLib::OnStartEvent(load_game) ){
+			*buffer << "{\"type\": \"ok\", \"data\": {\n"
 				//<< "\"cartDir\": \"" << WherigoLib::WherigoOpen->cartDir << "\","
 				<< WherigoLib::getStaticData()
-			<< "}}";
+				<< "}}";
+		} else {
+			*buffer << "{\"type\": \"error\", \"message\": \"Failed to restore game.\"}";
+			status = 1;
+		}
 	} else {
 		*buffer << "{\"type\": \"error\", \"message\": \"Unable to load cartidge file\"}";
 		status = 1;
 	}
+
 	
 #ifndef DESKTOP
 	if( PDL_IsPlugin() ){
@@ -791,8 +820,6 @@ bool openCartridgeToJS(char *filename, int* load_game){
 	if( status == 1 ){
 		return false;
 	}
-	
-	WherigoLib::OnStartEvent(load_game);
 	
     delete buffer;
 
@@ -838,6 +865,14 @@ void switchGPS(int *newState){
 	updateState();
 }
 
+void deleteCartridge(const char *filename){
+	Wherigo w( string(DATA_DIR).append(filename) );
+	
+	w.cleanFiles();
+	int refresh = 1;
+	OutputCartridgesToJS(&refresh);
+}
+
 
 
 void loop(){
@@ -879,6 +914,12 @@ void loop(){
 					int *save = (int *)event.user.data1;
 					closeCartridge(save);
 					delete save;
+					}
+					break;
+				case EVENT_DELETE_CARTRIDGE: {
+					char *filename = (char *)event.user.data1;
+					deleteCartridge(filename);
+					delete filename;
 					}
 					break;
 				case EVENT_MESSAGE_BOX_RESPONSE: {
