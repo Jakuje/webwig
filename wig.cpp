@@ -87,8 +87,15 @@ void CommandLineTests(int argc, char **argv){
 		}
 		return;
 	} else {
-		if( argc > 1 ){
-			file = argv[1];
+		int v = 1;
+		if( argc > 1 && strcmp(argv[1], "-r") == 0){
+			*refresh = 1;
+			v++;
+		} else {
+			*refresh = 0;
+		}
+		if( argc > v ){
+			file = argv[v];
 		} else {
 			file = (char *) "minimal.gwc";
 		}
@@ -110,7 +117,7 @@ void CommandLineTests(int argc, char **argv){
 		
 		Engine::setPosition(&lat, &lon);*/
 		
-		//luaL_dostring(WherigoLib::L, "debug.debug()");
+		luaL_dostring(WherigoLib::L, "debug.debug()");
 		
 		//setPosition(&lat, &lon);
 		/*int status = luaL_dostring(L, "return Wherigo._getUI()");
