@@ -14,7 +14,7 @@ enyo.kind({
 				]},
 			{kind: "IconButton", icon: "images/menu-icon-sync.png", onclick: "refreshClicked"}
 		]},
-		{kind: "Scroller", flex: 1, horizontal: false, autoHorizontal: false,
+		{kind: "Scroller", name: "scroller", flex: 1, horizontal: false, autoHorizontal: false,
 			components: [
 			{name: "list", kind: "VirtualRepeater",
 				onSetupRow: "listGetItem", onclick: "playCartridge",
