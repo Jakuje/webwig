@@ -83,6 +83,7 @@ void serialize_table(fileWriter *sf){
 	const char *classname;
 	if( lua_isstring(L, -1) ){
 		classname = lua_tostring(L, -1);
+		cerr <<  " <<<<<< " << classname << " <<<<<< " << endl;
 	} else {
 		classname = "";
 	}
@@ -114,6 +115,7 @@ void serialize_table(fileWriter *sf){
 						|| ( strcmp(classname, "ZCartridge") == 0 && (
 							strcmp(name, "RequestSync") == 0
 							|| strcmp(name, "GetAllOfType") == 0
+							|| strcmp(name, "CompletionCode") == 0
 							|| string(name).compare(0, 4, "AllZ") == 0))
 						|| ( strcmp(classname, "ZMedia") == 0 &&
 							strcmp(name, "Resources") == 0
@@ -157,7 +159,11 @@ void serialize_table(fileWriter *sf){
 					lua_getfield(L, i, "ObjIndex");						// [-0, +1, e]
 					if( !lua_isnoneornil(L, -1) ){
 						sf->writeByte(0x07);
-						sf->writeUShort( lua_tointeger(L, -1) );
+						/*if( lua_tointeger(L, -1) == 0xabcd ){
+							sf->writeUShort(0xabcd);
+						} else {*/
+							sf->writeUShort( lua_tointeger(L, -1) );
+						//}
 						lua_pop(L, 1);									// [-1, +0, e]
 						break;
 					}
@@ -231,16 +237,14 @@ bool sync(){
 	size_t size;
 	const char *name;
 	
-	size = lua_objlen(L, -1);
-	sf.writeLong( size ); // num of zobjects + 1 ???
+	int allz = lua_objlen(L, -1);
+	sf.writeLong( allz+1 ); // num of ZObjects ???
 	
 	// write types of AllZObjects
 	lua_pushnil(L);														// [-0, +1, -]
-	bool first = true;
 	while (lua_next(L, -2) != 0) {										// [-1, +(2|0), e]
-		if( first ) { // do not write cartridge object?
+		if( lua_tointeger(L, -2) == 0 ) { // do not write cartridge object?
 			lua_pop(L,1);
-			first = false;
 			continue;
 		}
 		/*printf("%s - %s\n",
@@ -268,8 +272,12 @@ bool sync(){
 	lua_pop(L, 2);									// [-2, +0, -]
 	
 	// write details of AllZObjects
-	lua_pushnil(L);
-	while (lua_next(L, -2) != 0) {					// [-1, +(2|0), e]
+	
+	for( int i = 0; i <= allz; i++){
+		lua_pushnumber(L, i);
+		lua_gettable(L, -2);
+	//lua_pushnil(L);
+	//while (lua_next(L, -2) != 0) {					// [-1, +(2|0), e]
 		lua_getfield(L, -1, "_classname");			// [-0, +1, e]
 		
 		name = lua_tostring(L, -1);
@@ -302,9 +310,9 @@ bool read_object(fileReader *fd, string name, bool create_objects);
  *  -2	key of table
  *  -1	value at key in table
  * 
- * After function return, last two values on stack will be removed
+ * Before function return, last two values on stack will be removed
  */
-bool read_table(fileReader *fd, bool set_field = false){
+bool read_table(fileReader *fd, bool set_field = false){				// [-2, +0, e]
 	int code = fd->readByte();
 	if(code != 0x05){ // start table
 		cerr << "Expected 0x05 as start of table, got " << code << endl;
@@ -468,7 +476,7 @@ bool read_table(fileReader *fd, bool set_field = false){
  * 
  * After function return, last two values on stack will be removed
  */
-bool read_object(fileReader *fd, string key_name, bool create_objects = false){
+bool read_object(fileReader *fd, string key_name, bool create_objects = false){	// [-2, +0, e]
 	string objname;
 	long len = fd->readLong();
 	fd->readASCII(&objname, len);
@@ -494,18 +502,13 @@ bool read_object(fileReader *fd, string key_name, bool create_objects = false){
 	const char* name = lua_tostring(L, -1);
 	
 	if( objname.compare(name) != 0 ){
-		lua_pop(L, 2);													// [-1, +0, -]
+		lua_pop(L, 3);													// [-2, +0, -]
 		cerr << "Unexpected object at input. Expected " << name << ", got " << objname << endl;
 		return false;
 	}
 	lua_pop(L, 1);														// [-1, +0, -]
 	
-	bool res = read_table(fd, set_field);
-	/*if( set_field ){
-		lua_settable(L, -3);											// [-2, +0, e]
-	} else {
-		lua_pop(L, 2);													// [-2, +0, e]
-	}*/
+	bool res = read_table(fd, set_field);								// [-2, +0, e]
 	return res;
 }
 
@@ -584,27 +587,28 @@ bool restore(){
 	lua_getfield(L, -1, "Player");					// [-0, +1, e]
 	lua_remove(L, -2);								// [-1, +0, -]
 	lua_pushvalue(L, -1);							// [-0, +1, -]
-	if( ! read_object(&fd, "Player", false) ){
+	if( ! read_object(&fd, "Player", false) ){		// [-2, +0, e]
 		lua_pop(L, 2);
 		fd.close();
 		return false;
 	}
-	//lua_pop(L, 1); // included in read_object
 	
 	lua_getfield(L, LUA_GLOBALSINDEX, "cartridge");						// [-0, +1, e]
 	lua_getfield(L, -1, "AllZObjects");									// [-0, +1, e]
 	
-	lua_pushnil(L);
+	//lua_pushnil(L);
 	for(int i = 0; i < num_objects; i++){
-		if( lua_next(L, -2) == 0) {										// [-1, +(2|0), e]
-			lua_pushnil(L);
+		//if( lua_next(L, -2) == 0) {										// [-1, +(2|0), e]
+		//	lua_pushnil(L);
 			/*fd.close();
 			cerr << "Expected more objects in environment ..." << endl;
 			return false;*/
-			break;// ignore more objects 
-		}
-		lua_pushvalue(L, -1);
-		if( ! read_object(&fd, "", false) ){
+		//	break;// ignore more objects 
+		//}
+		lua_pushnumber(L, i);											// [-0, +1, -]
+		lua_pushvalue(L, -1);											// [-0, +1, -]
+		lua_gettable(L, -3);											// [-1, +1, e]
+		if( ! read_object(&fd, "", false) ){							// [-2, +0, e]
 			fd.close();
 			lua_pop(L, 2);
 			return false;
@@ -612,8 +616,8 @@ bool restore(){
 		
 		//lua_pop(L, 1); // included in read_object
 	}
-	// if ended ok, there is still index and AllZObjects on stack
-	lua_pop(L, 2);														// [-2, +0, -]
+	// if ended ok, there is AllZObjects on stack
+	lua_pop(L, 1);														// [-2, +0, -]
 	
 	
 	// renew ZVariables to global namespace
