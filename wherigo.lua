@@ -32,6 +32,7 @@ Wherigo = {
 	CLASS_DISTANCE		= "Distance",
 	CLASS_BEARING		= "Bearing",
 	CLASS_ZONEPOINT		= "ZonePoint",
+	CLASS_ZRECIPROCALCOMMAND = "ZReciprocalCommand",
 	
 	_MBCallbacks = {},
 	_GICallbacks = {}
@@ -517,6 +518,7 @@ function Wherigo.ZCommand.new(table)
 			WorksWithAll = false,
 			WorksWithList = table.WorksWithList or false, -- Zcharacter, ZItem
 		Custom = true, -- doesn't matter
+		ReciprocatedCmds = {},
 		_enabled = true,
 		_classname = Wherigo.CLASS_ZCOMMAND,
 		};
@@ -544,23 +546,55 @@ setmetatable(Wherigo.ZCommand, {
 		end
 	})
 
+Wherigo.ZReciprocalCommand = {}
+Wherigo.ZReciprocalCommand_metatable = {
+	__tostring = function(s)
+		return "a ZReciprocalCommand instance"
+		end,
+}
+function Wherigo.ZReciprocalCommand.new(table)
+	table = table or {}
+	local self = {}
+	setmetatable(self, Wherigo.ZReciprocalCommand_metatable)
+	return self;
+	end
+function Wherigo.ZReciprocalCommand:made( object )
+	return (object._classname == Wherigo.CLASS_ZRECIPROCALCOMMAND)
+	end
+setmetatable(Wherigo.ZReciprocalCommand, {
+	__call = function(s, table)
+		return Wherigo.ZReciprocalCommand.new(table)
+		end
+	})
+
+
+
 Wherigo.ZObject = {} 
 Wherigo.ZObject_metatable = {
 	__index = function(t, key)
 		if key == 'Active' then
 			return t._active
 		elseif key == 'CommandsArray' then
-			local arr = {}
-			for i,v in pairs(t.Commands) do
-				table.insert(arr, v)
+			if t._classname == Wherigo.CLASS_ZCHARACTER or t._classname == Wherigo.CLASS_ZONE or t._classname == Wherigo.CLASS_ZITEM then 
+				local arr = {}
+				local index = 1
+				for i,v in pairs(t.Commands) do
+					v.Keyword = i
+					v.Owner = t
+					v.Index = index
+					index = index + 1
+					table.insert(arr, v)
+					end
+				return arr -- runtime doesn't work with CommandsArray. Only export!
+			else
+				return nil
 				end
-			return arr -- runtime doesn't work with CommandsArray. Only export!
 		elseif key == 'ObjectLocation' then
 			return t._get_pos(false) -- do not export. Only for ... some cartridges ...
 		elseif key == 'Inventory' then
 			local arr = {}
 			for k,v in pairs(cartridge.AllZObjects) do
-				if ((v.Active and v.Visible) or DEBUG) and v.Container == Wherigo.Player then
+				if ((v.Active and v.Visible) or DEBUG) and v.Container == t then
 					table.insert(arr, v)
 					end
 				end
@@ -643,8 +677,8 @@ function Wherigo.ZObject.new(cartridge, container )
 		if self.Active ~= nil then
 			self._active = self.Active
 			self.Active = nil
-		else
-			self._active = true
+		--elseif 
+		--	self._active = true
 			end
 		if self.Complete ~= nil  then
 			self._complete = self.Complete
@@ -671,14 +705,15 @@ function Wherigo.ZObject.new(cartridge, container )
 		self = {
 			Container = container or false,
 			Cartridge = cartridge or nil,
-			_active = true,
+			--_active = true,
 			Media = false,
 			Icon = false,
 		}
 		end
 	self.Name = self.Name or "(NoName)"
-	self.Description = self.Description or -1
+	self.Description = self.Description or ""
 	self.Commands = self.Commands or {}
+	self.ObjectLocation = self.ObjectLocation or 0
 	if self.Visible == nil then
 		self.Visible = true
 		end
@@ -717,7 +752,7 @@ function Wherigo.ZObject.new(cartridge, container )
 		end
 	
 	function self._is_visible()
-		if not ((self.Active and self.Visible) or DEBUG) then
+		if not ( self.Visible or DEBUG) then
 			return false
 			end
 		if not self.Container then
@@ -767,7 +802,7 @@ function Wherigo.ZObject.new(cartridge, container )
 		end
 	if Wherigo.ZCartridge._store ~= nil then
 		--print(debug.traceback())
-		self.ObjIndex = # self.Cartridge.AllZObjects + 1;
+		self.ObjIndex = # self.Cartridge.AllZObjects + 1
 		table.insert(self.Cartridge.AllZObjects, self)
 		end
 	return self
@@ -831,6 +866,9 @@ function Wherigo.Zone.new(cartridge)
 	self._inside = false
 	self.CurrentBearing = Wherigo.Bearing(0)
 	self.CurrentDistance = Wherigo.Distance(0)
+	if self.Active == nil then
+		self._active = true
+		end -- default value only for Zone!
 	
 	--[[
 	self.OriginalPoint = Wherigo.INVALID_ZONEPOINT
@@ -976,20 +1014,29 @@ setmetatable(Wherigo.Zone, {
 	}) 
 
 
+Wherigo.ZCartridge_metatable = {
+	__tostring = function(s)
+		return "a ZCartridge instance"
+		end
+}
+for k,v in pairs(Wherigo.ZObject_metatable) do Wherigo.ZCartridge_metatable[k] = v end
+
 Wherigo.ZCartridge = { }
 function Wherigo.ZCartridge.new(  )
 	Wherigo.ZCartridge._store = true
 	local self = Wherigo.ZObject.new( ) 
 	self._classname = Wherigo.CLASS_ZCARTRIDGE
 	self._mediacount = -1
-	self.AllZObjects = { self }
-	self.ObjIndex = 1
+	self.AllZObjects = {}
+	table.insert(self.AllZObjects, 0, self)
+	self.ObjIndex = 0
 	self.AllZCharacters = {}
 	self.AllZItems = {}
 	self.AllZones = {}
 	self.AllZTimers = {}
 	self.Company = Env._Company
 	self.Activity = Env._Activity
+	self.ZVariables = {}
 	
 	self.EmptyInventoryListText = 'No items'
 	self.EmptyTasksListText = 'No new tasks'
@@ -1082,6 +1129,7 @@ function Wherigo.ZCartridge.new(  )
 		return update_all
 		end
 	
+	setmetatable(self, Wherigo.ZCartridge_metatable) 
 	return self
 	end
 function Wherigo.ZCartridge:made( object )
@@ -1110,6 +1158,7 @@ function Wherigo.ZMedia.new( cartridge )
 	self.Name = ''
 	self.Resources = {Type='jpg', Filname='', Directives = {}}
 	]]
+	self.Visible = false
 	self._id = self.Cartridge._mediacount
 	if self.Cartridge._mediacount > 0 then
 		self.Cartridge._mediacount = self.Cartridge._mediacount + 1;
@@ -1153,7 +1202,9 @@ setmetatable(Wherigo.ZItem, {
 		end
 	})
 
-Wherigo.ZTask = {}
+Wherigo.ZTask = {
+	tasks = 0
+}
 Wherigo.ZTask_metatable = {
 	__tostring = function( s )
 		return "a ZTask instance"
@@ -1161,12 +1212,19 @@ Wherigo.ZTask_metatable = {
 }
 for k,v in pairs(Wherigo.ZObject_metatable) do Wherigo.ZTask_metatable[k] = v end
 function Wherigo.ZTask.new( cartridge, container )
+	-- export CompletedTime
 	local self = Wherigo.ZObject.new( cartridge, container )
 	self._classname = Wherigo.CLASS_ZTASK
+	if self._active == nil then
+		self._active = true
+		end
 	--[[self.Name = 'NoName'
 	self.Description = ''
 	self.Complete = false
 	self.Correct = false]]--
+	
+	Wherigo.ZTask.tasks = Wherigo.ZTask.tasks + 1;
+	self.SortOrder = Wherigo.ZTask.tasks
 	
 	setmetatable(self, Wherigo.ZTask_metatable)
 	-- events OnClick, SetCorrectState, OnSetComplete, OnSetActive
@@ -1286,7 +1344,7 @@ function Wherigo.ZInput.new( cartridge )
 	--[[
 	OnGetInput event
 	]]
-	
+	self.Choices = {}
 	setmetatable(self, Wherigo.ZInput_metatable)
 	
 	return self
@@ -1336,6 +1394,7 @@ setmetatable(Wherigo.ZCharacter, {
 
 Wherigo.Player = Wherigo.ZCharacter.new()
 Wherigo.Player.Name = Env._Player
+Wherigo.Player.Id = -1
 Wherigo.Player.CompletionCode = Env._CompletionCode
 Wherigo.Player.InsideOfZones = {}
 Wherigo.Player.CurrentDistance = nil
@@ -1367,6 +1426,7 @@ for k,v in pairs(zonePaloucek) do print(k,v) end
 for k,v in pairs(itemDum1.Commands.Akce1) do print(k,v) end
 
 for k,v in pairs(cartridge.AllZObjects) do print(k,v, v.Active, v.Visible) end
+for k,v in pairs(cartridge.AllZObjects) do print(k,v, v.ObjIndex, cartridge.AllZObjects[k]) end
 ]]
 
 -- After runing script, setup media ?
@@ -1530,7 +1590,7 @@ Wherigo._getInventory = function()
 	local inventory = "["
 	local first = true
 	for k,v in pairs(cartridge.AllZObjects) do
-		if ((v.Active and v.Visible) or DEBUG) and v.Container == Wherigo.Player then
+		if ( v.Visible or DEBUG) and v.Container == Wherigo.Player then
 			if not first then
 				inventory = inventory .. "," end
 			inventory = inventory .. "{\"name\": \"" .. Wherigo._toJSON(v.Name)
@@ -1585,7 +1645,7 @@ Wherigo._getTasks = function()
 	local tasks = "["
 	local first = true
 	for k,v in pairs(cartridge.AllZObjects) do
-		if v._classname == Wherigo.CLASS_ZTASK and v.Active and v.Visible then
+		if v._classname == Wherigo.CLASS_ZTASK and v.Visible then
 			if not first then
 				tasks = tasks .. "," end
 			tasks = tasks .. "{\"name\": \"" .. Wherigo._toJSON(v.Name) .. "\""
