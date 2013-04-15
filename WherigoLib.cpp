@@ -598,8 +598,7 @@ bool updateLocationInt(){
 	lua_remove(L, -2);								// [-1, +0, -]
 	lua_pushinteger(L, t);							// [-0, +1, -]
 	lua_pushinteger(L, accuracy);					// [-0, +1, -]
-	lua_pushinteger(L, 0);							// [-0, +1, -]
-	status = lua_pcall(L, 4, 1, 0);				// [-5, +1, e]
+	status = lua_pcall(L, 3, 1, 0);					// [-4, +1, e]
 	/*ss << "return cartridge._update(Wherigo.ZonePoint("
 		<< *lat << ", " << *lon << ", Distance(" << *alt << ")), "
 		<< t << ", " << *acc << ", 0)";
