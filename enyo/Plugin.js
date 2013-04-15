@@ -23,8 +23,7 @@ enyo.kind({
 		this.addCallback("Alert", enyo.bind(this, this.Alert), true);
 		this.addCallback("GetInput", enyo.bind(this, this.getInput), true);
 		this.addCallback("ShowStatusText", enyo.bind(this, this.ShowStatusText), true);
-		this.owner.$.plugin.addCallback("updateState",
-			enyo.bind(this, this.updateUI), true);
+		this.addCallback("updateState", enyo.bind(this, this.updateUI), true);
 		this.addCallback("showScreen", enyo.bind(this, this.showScreen), true);
 		this.addCallback("ClosePrompt", enyo.bind(this, this.closePrompt), true);
 		this.addCallback("showMapResponse", enyo.bind(this, this.showMapResponse), true);
