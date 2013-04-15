@@ -53,10 +53,17 @@ void writeTable(fileWriter *sf, const char* field){
 	sf->writeLong( strlen(field) );
 	sf->writeASCII( field, strlen(field) );
 	lua_getfield(L, -1, "_classname");		// [-0, +1, e]
+	if( ! lua_isnoneornil(L, -1) ){
+		sf->writeByte(0x08);
+		const char *name = lua_tostring(L, -1);
+		int size = lua_objlen(L, -1);
+		sf->writeLong(size);
+		sf->writeASCII(name, size);
+	}
 	serialize_table(sf);
 	lua_pop(L, 2);							// [-2, +0, -]
 }
-	
+
 	
 /** Serialize table to file
  * Requested stack state:
@@ -79,6 +86,7 @@ void serialize_table(fileWriter *sf){
 	// CommandsArray
 	writeTable(sf, "CommandsArray");									// [-0, +0, -]
 	writeTable(sf, "Inventory");										// [-0, +0, -]
+	writeTable(sf, "ClosestPoint");									// [-0, +0, -]
 	
 	const char *classname;
 	if( lua_isstring(L, -1) ){
@@ -158,12 +166,8 @@ void serialize_table(fileWriter *sf){
 				case LUA_TTABLE: // i should be -1 => table as ke is useless
 					lua_getfield(L, i, "ObjIndex");						// [-0, +1, e]
 					if( !lua_isnoneornil(L, -1) ){
-						sf->writeByte(0x07);
-						/*if( lua_tointeger(L, -1) == 0xabcd ){
-							sf->writeUShort(0xabcd);
-						} else {*/
-							sf->writeUShort( lua_tointeger(L, -1) );
-						//}
+						sf->writeByte(0x07); // Reference
+						sf->writeUShort( lua_tointeger(L, -1) );
 						lua_pop(L, 1);									// [-1, +0, e]
 						break;
 					}
@@ -177,7 +181,7 @@ void serialize_table(fileWriter *sf){
 						sf->writeLong(size);
 						sf->writeASCII(name, size);
 					}
-					serialize_table(sf);
+					serialize_table(sf); // Table
 					lua_pop(L, 1);										// [-1, +0, e]
 					break;
 				default:

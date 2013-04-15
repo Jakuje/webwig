@@ -590,7 +590,13 @@ Wherigo.ZObject_metatable = {
 				return nil
 				end
 		elseif key == 'ObjectLocation' then
-			return t._get_pos(false) -- do not export. Only for ... some cartridges ...
+			return t._get_pos(false) -- do not export. Only for ... some cartridges ... like default value
+		elseif key == 'ClosestPoint' then
+			if t._classname == Wherigo.CLASS_ZONE then
+				return Wherigo._INVALID_ZONEPOINT
+			else
+				return nil
+				end
 		elseif key == 'Inventory' then
 			local arr = {}
 			for k,v in pairs(cartridge.AllZObjects) do
@@ -635,6 +641,9 @@ Wherigo.ZObject_metatable = {
 					Wherigo.LogMessage(t._classname .. " <" .. t.Name .. ">: END__ OnSetActive")
 					end
 				end
+			return
+		elseif key == 'Inventory' or key == 'ClosestPoint' then
+			-- ignore ...
 			return
 		elseif key == 'CommandsArray' then
 			-- restore Commands from SaveGame
@@ -1100,7 +1109,7 @@ function Wherigo.ZCartridge.new(  )
 			end
 		end
 	
-	function self._update(position, t, accuracy, heading)
+	function self._update(position, t, accuracy)
 		for k,v in pairs(self.AllZObjects) do
 			if v._classname == Wherigo.CLASS_ZTIMER and v._target ~= nil then
 				v.Remaining = v._target - t
@@ -1111,7 +1120,6 @@ function Wherigo.ZCartridge.new(  )
 			return false end
 		Wherigo.Player.ObjectLocation = position
 		Wherigo.Player.PositionAccuracy = Distance(accuracy)
-		Wherigo.Player._heading = heading
 		Wherigo.Player.LastLocationUpdate = t
 		for k,v in pairs(self.AllZObjects) do
 			if v.Active then
@@ -1223,8 +1231,10 @@ function Wherigo.ZTask.new( cartridge, container )
 	self.Complete = false
 	self.Correct = false]]--
 	
-	Wherigo.ZTask.tasks = Wherigo.ZTask.tasks + 1;
+	Wherigo.ZTask.tasks = Wherigo.ZTask.tasks + 1
 	self.SortOrder = Wherigo.ZTask.tasks
+	self.CompletedTime = 0
+	
 	
 	setmetatable(self, Wherigo.ZTask_metatable)
 	-- events OnClick, SetCorrectState, OnSetComplete, OnSetActive
@@ -1403,7 +1413,7 @@ Wherigo.Player.PositionAccuracy = Wherigo.Distance(5)
 Wherigo.Player.ObjIndex = 0xabcd -- ID taken from Emulator to identify references
 
 -- should be for correctness, but I can't simply detect this value
---Wherigo.INVALID_ZONEPOINT = Wherigo.ZonePoint(360,360,360)
+Wherigo._INVALID_ZONEPOINT = Wherigo.ZonePoint(360,360,360)
 
 function Wherigo.Player:RefreshLocation()
 	-- request refresh location ... useless?
