@@ -17,7 +17,7 @@ enyo.kind({
 		{kind: "Scroller", name: "scroller", flex: 1, horizontal: false, autoHorizontal: false,
 			components: [
 			{name: "list", kind: "VirtualRepeater",
-				onSetupRow: "listGetItem", onclick: "playCartridge",
+				onSetupRow: "listGetItem", onclick: "showDetails", //onclick: "playCartridge",
 				components: [
 					{kind: "Item", layoutKind: "VFlexLayout", tapHighlight: true, components: [
 						{name: "cTitle", kind: "Divider", allowHtml: true},
@@ -26,7 +26,10 @@ enyo.kind({
 								{name: "type"},
 								{name: "author"},
 								]},
-							{kind: "IconButton", icon: "images/menu-icon-info.png", onclick: "showDetails"}
+							//{kind: "IconButton", icon: "images/menu-icon-info.png", onclick: "showDetails"}
+							{name: "distance", showing: false},
+							{name: "bearing", kind: "Image", src: "images/arrow.png", showing: false,
+								style: "width: 25px;height:25px;"},
 						]}
 					]}
 				]
@@ -36,11 +39,13 @@ enyo.kind({
 			{name: "nothingText", content: "No cartridges found in working directory",
 			flex: 1, style: "font-style:italic;text-align:center; color:#999999;"}
 		]},
+		{kind: "WIGApp.Utils", name: "utils"},
     ],
    	metadata: [],
    	type: "All",
    	state: "All",
    	anywhere: false,
+   	pos: false,
 
 	create: function() {
 		this.inherited(arguments);
@@ -52,6 +57,11 @@ enyo.kind({
 		this.anywhere = anywhere;
 		this.updateTitle();
 		this.getCartridges(0);
+	},
+	
+	setPosition: function(position){
+		this.pos = position;
+		this.updateFileList(this.metadata);
 	},
 	
 	updateTitle: function(){
@@ -89,6 +99,21 @@ enyo.kind({
 				data.push(metadata[i]);
 			}
 		}
+		if( this.pos ){
+			var sort = false;
+			for(var i in data){
+				if( data[i].latitude != 360 || data[i].longitude != 360 ){
+					r = this.$.utils.VectorToPoint(this.pos, [data[i].latitude, data[i].longitude]);
+					data[i].distance = r[0];
+					data[i].bearing = r[1];
+					sort = true;
+				}
+			}
+			if( sort ){
+				data.sort(function(a,b){ return a.distance - b.distance; });
+				this.render();
+			}
+		}
 		this.metadata = data;
 		console.error("***** WIG Enyo: updateFileList");
 		if( this.metadata.length == 0 ){
@@ -114,10 +139,27 @@ enyo.kind({
 				} else {
 					this.$.author.setContent("");
 				}
-				if( this.metadata[inIndex].icon ){
+				if( item.icon ){
 					this.$.cTitle.setIcon(DATA_DIR + "." + item.guid + "/" + item.icon);
 				} else {
 					this.$.cTitle.setIcon("");
+				}
+				if( item.distance ){
+					if( this.owner.getPrefs('units') ){ // true == "m"
+						this.$.distance.setContent( ( item.distance < 2
+							? (Math.round(item.distance*1000) + " m")
+							: (Math.round(item.distance) + " km")
+							));
+					} else {
+						var d = item.distance / 1609.344;
+						this.$.distance.setContent( ( d < 2 ? (Math.round(d*5280) + " ft") : (Math.round(d) + " miles") ) );
+					}
+					this.$.bearing.applyStyle("-webkit-transform", "rotate(" + item.bearing + "deg)");
+					this.$.distance.show();
+					this.$.bearing.show();
+				} else {
+					this.$.distance.hide();
+					this.$.bearing.hide();
 				}
 			}
 			return true;
@@ -131,12 +173,12 @@ enyo.kind({
 		}
 		inEvent.stopPropagation();
 	},
-	playCartridge: function(inSender, inEvent){
+	/*playCartridge: function(inSender, inEvent){
 		if (inEvent.rowIndex < this.metadata.length) {
 			var c = this.metadata[inEvent.rowIndex];
 			this.doPlay(c);
 		}
-	},
+	},*/
 	
 	goBack: function(inSender, inEvent){
 		this.owner.goBack(inSender, inEvent);

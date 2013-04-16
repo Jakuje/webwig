@@ -94,8 +94,19 @@ enyo.kind({
 					onclick: "closePopup",
 					showing: "false"
 				}
-			   ],
-		   }],
+		   ],
+		},
+		{
+			name      : "location",
+			kind      : "PalmService",
+			service   : "palm://com.palm.location/",
+			method    : "startTracking",
+			onSuccess : "gotPosition",
+			onFailure : "gotPositionError",
+			subscribe : true
+		},
+
+	],
 	
 
 	create: function() {
@@ -140,6 +151,37 @@ enyo.kind({
 		if( this.popupQueue.length > 0 ){
 			this.popupPaint( this.popupQueue.shift() );
 		}
+	},
+	
+	gotPositionError: function(inSender, inResponse){
+		console.error("startTracking failure, results=" + enyo.json.stringify(inResponse));
+	},
+	gotPosition: function(inSender, inResponse){
+		console.error("startTracking success, results=" + enyo.json.stringify(inResponse));
+		if( inResponse.returnValue == true ){
+			if( inResponse.errorCode == 0 ){
+				this.$.cList.setPosition([inResponse.latitude, inResponse.longitude]);
+			}
+		}
+	},
+
+	viewSelected: function(inSender, inView, inPreviousView) {
+		if( inPreviousView.name == "cList"){
+			// unsubscribe from location update
+			if( window.PalmSystem ){
+				this.$.location.cancel();
+			}
+		}
+		if( inView.name == "cList" ){
+			// subscribe to update distances in list
+			if( window.PalmSystem ){
+				this.$.location.call({"subscribe":true});
+			} else {
+				this.gotPosition(null, {latitude: 49.1, longitude: 16.1, returnValue: true, errorCode: 0} );
+			}
+
+		}
+			
 	},
 	
 	cartSelected: function(inSender, inMetadata) {
