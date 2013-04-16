@@ -151,8 +151,8 @@ enyo.kind({
 							: (Math.round(item.distance) + " km")
 							));
 					} else {
-						var d = item.distance / 1609.344;
-						this.$.distance.setContent( ( d < 2 ? (Math.round(d*5280) + " ft") : (Math.round(d) + " miles") ) );
+						var d = item.distance*1000 / 1609.344;
+						this.$.distance.setContent( ( d < 1 ? (Math.round(d*5280) + " ft") : (Math.round(d) + " miles") ) );
 					}
 					this.$.bearing.applyStyle("-webkit-transform", "rotate(" + item.bearing + "deg)");
 					this.$.distance.show();
