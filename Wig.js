@@ -283,7 +283,7 @@ enyo.kind({
 				this.setPrefs();
 			}
 		}
-		if( this.prefs[key] ){
+		if( typeof this.prefs[key] != 'undefined' ){
 			return this.prefs[key];
 		} else {
 			return this.default_prefs[key];
