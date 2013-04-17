@@ -39,7 +39,6 @@ enyo.kind({
 			{name: "nothingText", content: "No cartridges found in working directory",
 			flex: 1, style: "font-style:italic;text-align:center; color:#999999;"}
 		]},
-		{kind: "WIGApp.Utils", name: "utils"},
     ],
    	metadata: [],
    	type: "All",
@@ -103,7 +102,7 @@ enyo.kind({
 			var sort = false;
 			for(var i in data){
 				if( data[i].latitude != 360 || data[i].longitude != 360 ){
-					r = this.$.utils.VectorToPoint(this.pos, [data[i].latitude, data[i].longitude]);
+					r = this.owner.$.utils.VectorToPoint(this.pos, [data[i].latitude, data[i].longitude]);
 					data[i].distance = r[0];
 					data[i].bearing = r[1];
 					sort = true;
@@ -145,15 +144,7 @@ enyo.kind({
 					this.$.cTitle.setIcon("");
 				}
 				if( item.distance ){
-					if( this.owner.getPrefs('units') ){ // true == "m"
-						this.$.distance.setContent( ( item.distance < 2
-							? (Math.round(item.distance*1000) + " m")
-							: (Math.round(item.distance) + " km")
-							));
-					} else {
-						var d = item.distance*1000 / 1609.344;
-						this.$.distance.setContent( ( d < 1 ? (Math.round(d*5280) + " ft") : (Math.round(d) + " miles") ) );
-					}
+					this.$.distance.setContent( this.owner.$.utils.FormatDistance( item.distance*1000 ) );
 					this.$.bearing.applyStyle("-webkit-transform", "rotate(" + item.bearing + "deg)");
 					this.$.distance.show();
 					this.$.bearing.show();

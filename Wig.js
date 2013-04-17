@@ -105,7 +105,7 @@ enyo.kind({
 			onFailure : "gotPositionError",
 			subscribe : true
 		},
-
+		{kind: "WIGApp.Utils", name: "utils"},
 	],
 	
 

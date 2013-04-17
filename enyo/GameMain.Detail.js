@@ -72,11 +72,7 @@ enyo.kind({
 			this.$.image.hide();
 		}
 		if( this.screen == "locations" || (this.screen == "youSee" && data.distance) ){
-			if( data.distance < 1500 ){
-				this.$.distance.setContent(Math.round(data.distance) + " m");
-			} else {
-				this.$.distance.setContent(Math.round(data.distance/1000) + " km");
-			}
+			this.$.distance.setContent( this.owner.owner.$.utils.FormatDistance(data.distance) );
 			if( this.owner.owner.getPrefs("compass") == 1 ){
 				this.$.bearingBackground.applyStyle("-webkit-transform", "rotate(" + -this.owner.data.gps.heading + "deg)");
 			} else {

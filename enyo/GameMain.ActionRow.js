@@ -121,7 +121,7 @@ enyo.kind({
 				if( d == 0 ){
 					this.$.itemDistance.setContent("here");
 				} else {
-					this.$.itemDistance.setContent( ( d < 2000 ? (Math.round(d) + " m") : (Math.round(d/1000) + " km") ) );
+					this.$.itemDistance.setContent( this.owner.owner.owner.$.utils.FormatDistance(d) );
 				}
 				this.$.itemDistance.show();
 				var rotate = this.data[inIndex].bearing
