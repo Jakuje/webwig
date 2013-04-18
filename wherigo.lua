@@ -132,7 +132,7 @@ function Wherigo.VectorToSegment(point, p1, p2)
 		return Wherigo.VectorToPoint (point, p1)
 	elseif dat >= math.rad (ds('nauticalmiles') / 60.) then
 		return Wherigo.VectorToPoint (point, p2) end
-	local intersect = Wherigo.TranslatePoint (p1, Distance (dat * 60, 'nauticalmiles'), bs)
+	local intersect = Wherigo.TranslatePoint (p1, Wherigo.Distance (dat * 60, 'nauticalmiles'), bs)
 	return Wherigo.VectorToPoint (point, intersect)
 	end
 
@@ -882,6 +882,10 @@ function Wherigo.Zone.new(cartridge)
 		self._active = true
 		end -- default value only for Zone!
 	
+	self.ShowObjects = self.ShowObjects or "OnEnter"
+	self.DistanceRange = self.DistanceRange or Wherigo.Distance(-1, "feet")
+	self.ProximityRange = self.ProximityRange or Wherigo.Distance(60, "meters")
+	
 	--[[
 	self.OriginalPoint = Wherigo.INVALID_ZONEPOINT
 	
@@ -889,9 +893,6 @@ function Wherigo.Zone.new(cartridge)
 	self.Visible = false
 	self.Name = "NoName"
 	
-	self.ShowObjects = "OnEnter"
-	self.DistanceRange = Wherigo.Distance(10, 'ft')
-	self.ProximityRange = Wherigo.Distance(30, 'ft')
 	
 		events OnDistant, OnEnter, OnNotInRange, OnExit, OnProximity, OnSetActive
 	]]
@@ -927,9 +928,16 @@ function Wherigo.Zone:made( object )
 function Wherigo.Zone._update( v )
 	local inside = Wherigo.IsPointInZone (Wherigo.Player.ObjectLocation, v)
 	print(v.Name, inside, v._inside, v.OriginalPoint, Wherigo.Player.ObjectLocation)
+	if not inside then
+		-- how far?
+		if # v.Points == 0 or v.Points[1] == Wherigo.INVALID_ZONEPOINT then
+			return update_all end
+		v.CurrentDistance, v.CurrentBearing = Wherigo.VectorToZone (Wherigo.Player.ObjectLocation, v)
+		--[[Wherigo.LogMessage(v.Name .. ": d:" .. tostring(v.CurrentDistance()) .. ", p:" ..
+			tostring(v.ProximityRange()) .. ", d:" .. tostring(v.DistanceRange() ))]]
+		end
 	if inside ~= v._inside then
 		update_all = true
-		v._inside = inside
 		if inside then
 			table.insert(Wherigo.Player.InsideOfZones, v)
 			if v._state == 'NotInRange' and v.OnDistant then
@@ -947,27 +955,24 @@ function Wherigo.Zone._update( v )
 				v.OnEnter(v)
 				Wherigo.LogMessage("Zone <" .. v.Name .. ">: END__ onEnter")
 				end
-		else
+		elseif v.CurrentDistance() > 15 then -- leave it only if we are more than 15 meters from zone
 			Wherigo.Player._removeFromZone(v)
 			if v.OnExit then
 				Wherigo.LogMessage("Zone <" .. v.Name .. ">: START onExit")
 				v.OnExit(v)
 				Wherigo.LogMessage("Zone <" .. v.Name .. ">: END__ onExit")
 				end
+		else
+			inside = true
 			end
+		v._inside = inside
+		v.Inside = v._inside
 		end
 	if inside then
 		--Wherigo.LogMessage("Zone <" .. v.Name .. ">: Inside")
 		v.State = 'Inside'
 		v._state = v.State
 	else
-		-- if it is in table, remove
-		-- how far?
-		if # v.Points == 0 or v.Points[1] == Wherigo.INVALID_ZONEPOINT then
-			return update_all end
-		v.CurrentDistance, v.CurrentBearing = Wherigo.VectorToZone (Wherigo.Player.ObjectLocation, v)
-		--[[Wherigo.LogMessage(v.Name .. ": d:" .. tostring(v.CurrentDistance()) .. ", p:" ..
-			tostring(v.ProximityRange()) .. ", d:" .. tostring(v.DistanceRange() ))]]
 		if v.CurrentDistance() < v.ProximityRange() then
 			if v._state == 'NotInRange' and v.OnDistant then
 				Wherigo.LogMessage("Zone <" .. v.Name .. ">: START onDistant")
@@ -1122,7 +1127,7 @@ function Wherigo.ZCartridge.new(  )
 		if not position then
 			return false end
 		Wherigo.Player.ObjectLocation = position
-		Wherigo.Player.PositionAccuracy = Distance(accuracy)
+		Wherigo.Player.PositionAccuracy = Wherigo.Distance(accuracy)
 		Wherigo.Player.LastLocationUpdate = t
 		for k,v in pairs(self.AllZObjects) do
 			if v.Active then
