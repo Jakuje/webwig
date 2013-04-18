@@ -250,6 +250,7 @@ enyo.kind({
                 "onclick": function(context){
 					context.owner.showScreenLua("main")
 					},
+				"sort": 5,
             },
             {
                 "name": "Go Locations",
@@ -258,6 +259,7 @@ enyo.kind({
                 "onclick": function(context){
 					context.owner.showScreenLua("locations")
 					},
+				"sort": 4,
             },
             {
                 "name": "Go Detail",
@@ -266,13 +268,15 @@ enyo.kind({
                 "onclick": function(context){
 					context.owner.showScreenLua("detail", "138")
 					},
-                "complete": false
+                "complete": false,
+				"sort": 3,
             },
             {
                 "name": "Completed",
                 "commands": [],
                 "id": "13",
-                "complete": true
+                "complete": true,
+				"sort": 2,
             }
         ],
         "gps": {"acc": 38, "state": 1, "heading": 90}

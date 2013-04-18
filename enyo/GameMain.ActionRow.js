@@ -84,10 +84,10 @@ enyo.kind({
 				this.data = data.sort(function(a, b){return a.distance - b.distance;});
 			}
 			
-			// all tasks sort by field. WF ??
-			/*if( screen == "tasks" ){
+			// all tasks sort by field.
+			if( screen == "tasks" ){
 				this.data.sort(function(a,b){return a.sort - b.sort;});
-			}*/
+			}
 
 			this.$.numRows.setContent(data.length);
 			this.render();

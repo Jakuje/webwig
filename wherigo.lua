@@ -871,8 +871,10 @@ function Wherigo.Zone.new(cartridge)
 	local self = Wherigo.ZObject.new(cartridge)
 	self._classname = Wherigo.CLASS_ZONE
 	table.insert(self.Cartridge.AllZones, self)
-	self._state = Wherigo.Zone.NotInRange
+	self._state = 'NotInRange'
+	self.State = self._state
 	self._inside = false
+	self.Inside = self._inside
 	self.CurrentBearing = Wherigo.Bearing(0)
 	self.CurrentDistance = Wherigo.Distance(0)
 	if self.Active == nil then
@@ -1261,6 +1263,8 @@ function Wherigo.ZTimer.new(cartridge)
 	self.Type = self.Type or 'Countdown' -- Countdown or Interval
 	self.Duration = self.Duration or -1
 	self.Remaining = self.Remaining or -1
+	self.Running = 0
+	self.StartTime = 0
 	--[[self.OnStart = nil
 	self.OnStop = nil
 	self.OnTick = nil]]
@@ -1283,7 +1287,9 @@ function Wherigo.ZTimer.new(cartridge)
 			self.Remaining = self.Duration
 			end
 		-- call native timer
-		self._target = WIGInternal.addTimer(self.Remaining, self.ObjIndex);
+		self._target = WIGInternal.addTimer(self.Remaining, self.ObjIndex)
+		self.StartTime = WIGInternal.getTime()
+		self.Runnint = 1
 		end
 	function self:Stop()
 		if self._target == nil then
@@ -1293,11 +1299,12 @@ function Wherigo.ZTimer.new(cartridge)
 		Wherigo.LogMessage("ZTimer <" .. self.Name .. " (" .. self.ObjIndex .. ")>: Stop")
 		-- native timer
 		WIGInternal.removeTimer(self.ObjIndex)
+		self.Running = 0
 		self._target = nil
-		if self.onStop then
-			Wherigo.LogMessage("ZTimer <" .. self.Name .. ">: START onStop")
-			self.onStop(self)
-			Wherigo.LogMessage("ZTimer <" .. self.Name .. ">: END__ onStop")
+		if self.OnStop then
+			Wherigo.LogMessage("ZTimer <" .. self.Name .. ">: START OnStop")
+			self.OnStop(self)
+			Wherigo.LogMessage("ZTimer <" .. self.Name .. ">: END__ OnStop")
 			end
 		
 		end
@@ -1664,7 +1671,7 @@ Wherigo._getTasks = function()
 				.. Wherigo._getMediaField("icon", v.Icon)
 				.. Wherigo._addCommands(v)
 				.. ", \"id\": \"" .. k .. "\""
-				--.. ", \"sort\": \"" .. v.SortOrder .. "\"" -- WF ?? 
+				.. ", \"sort\": \"" .. v.SortOrder .. "\""
 				.. ", \"complete\": " .. Wherigo._bool2str(v.Complete)
 			if v.OnClick then
 				tasks = tasks .. ", \"onclick\": true"
