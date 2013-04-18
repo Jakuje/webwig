@@ -95,8 +95,8 @@ package: $(PLUGIN) appinfo.json logo.png
 	palm-package STAGING
 
 install:
-	echo "Installing version 1.0.5 !!!"
-	palm-install com.dta3team.app.wherigo_1.0.5_all.ipk
+	@echo "Installing version 1.0.6 !!!"
+	palm-install com.dta3team.app.wherigo_1.0.6_all.ipk
 
 run:
 	palm-run STAGING
