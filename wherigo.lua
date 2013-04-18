@@ -600,7 +600,7 @@ Wherigo.ZObject_metatable = {
 		elseif key == 'Inventory' then
 			local arr = {}
 			for k,v in pairs(cartridge.AllZObjects) do
-				if ((v.Active and v.Visible) or DEBUG) and v.Container == t then
+				if (v.Visible or DEBUG) and v.Container == t then
 					table.insert(arr, v)
 					end
 				end
@@ -767,9 +767,9 @@ function Wherigo.ZObject.new(cartridge, container )
 		if not self.Container then
 			return false
 			end
-		if not self.Container.Active or self.Container._classname ~= Wherigo.CLASS_ZONE then
+		--[[if not self.Container.Active or self.Container._classname ~= Wherigo.CLASS_ZONE then
 			return false
-			end
+			end]]
 		if self.Container.ShowObjects == 'OnEnter' and self.Container.State ~= 'Inside' then
 			return false
 		elseif self.Container.ShowObjects == 'OnProximity' and self.Container.State ~= 'Inside' and self.Container.State ~= 'Proximity' then
@@ -1130,16 +1130,14 @@ function Wherigo.ZCartridge.new(  )
 		Wherigo.Player.PositionAccuracy = Wherigo.Distance(accuracy)
 		Wherigo.Player.LastLocationUpdate = t
 		for k,v in pairs(self.AllZObjects) do
-			if v.Active then
-				if (v._classname == Wherigo.CLASS_ZITEM and v.Container ~= Wherigo.Player)
-						or v._classname == Wherigo.CLASS_ZCHARACTER then
-					local pos = v._get_pos()
-					if pos then
-						v.CurrentDistance, v.CurrentBearing = Wherigo.VectorToPoint(Wherigo.Player.ObjectLocation, pos)
-						end
-				elseif v._classname == Wherigo.CLASS_ZONE then
-					update_all = Wherigo.Zone._update(v) or update_all
+			if (v._classname == Wherigo.CLASS_ZITEM or v._classname == Wherigo.CLASS_ZCHARACTER)
+					and v.Container ~= Wherigo.Player then
+				local pos = v._get_pos()
+				if pos then
+					v.CurrentDistance, v.CurrentBearing = Wherigo.VectorToPoint(Wherigo.Player.ObjectLocation, pos)
 					end
+			elseif v._classname == Wherigo.CLASS_ZONE and v.Active then
+				update_all = Wherigo.Zone._update(v) or update_all
 				end
 			end
 		return update_all
