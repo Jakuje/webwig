@@ -35,12 +35,11 @@ enyo.kind({
 		return [d, brng];
 	},
 	MetersFormat: function(d){
-		return ( d < 1.5 ? (d.toFixed(1) + " m")	: ((d/1000).toFixed(1) + " km")
-			)
+		return ( d < 1500 ? (d.toFixed(1) + " m") : ((d/1000).toFixed(1) + " km") );
 	},
 	MilesFormat: function(d){
 		d = d / 1609.344;
-		return (d < 1.5 ? ((d*5280).toFixed(1) + " ft") : (d.toFixed(1) + " miles") );
+		return ( d < 1500 ? ((d*5280).toFixed(1) + " ft") : (d.toFixed(1) + " miles") );
 	},
 	FormatDistance: function(d){
 		if( this.owner.getPrefs('units') ){ // true == "m"
