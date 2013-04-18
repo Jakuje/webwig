@@ -56,6 +56,7 @@ enyo.kind({
 		this.anywhere = anywhere;
 		this.updateTitle();
 		this.getCartridges(0);
+		this.$.scroller.setScrollTop(0);
 	},
 	
 	setPosition: function(position){
@@ -123,7 +124,6 @@ enyo.kind({
 			this.$.scroller.show();
 			this.$.empty.hide();
 			this.$.list.render();
-			this.$.scroller.setScrollTop(0);
 		}
 	},
 
