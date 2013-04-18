@@ -36,7 +36,7 @@ void writeBoolField(fileWriter *sf, const char* field){
 	lua_pop(L, 1);							// [-1, +0, -]
 }
 
-void serialize_table(fileWriter *sf);
+void serialize_table(fileWriter *sf, bool all);
 
 /** Requested stack state:
  *	-2	Table to traverse
@@ -60,7 +60,7 @@ void writeTable(fileWriter *sf, const char* field){
 		sf->writeLong(size);
 		sf->writeASCII(name, size);
 	}
-	serialize_table(sf);
+	serialize_table(sf, false);
 	lua_pop(L, 2);							// [-2, +0, -]
 }
 
@@ -70,7 +70,7 @@ void writeTable(fileWriter *sf, const char* field){
  *	-2	Table to traverse
  *  -1	Classname if it is known class
  */
-void serialize_table(fileWriter *sf){
+void serialize_table(fileWriter *sf, bool all){
 	int i;
 	size_t size;
 	const char *name;
@@ -95,6 +95,7 @@ void serialize_table(fileWriter *sf){
 	} else {
 		classname = "";
 	}
+	bool next_all;
 	lua_pushnil(L);														// [-0, +1, -]
 	while (lua_next(L, -3) != 0) {										// [-1, +(2|0), e]
 		skip = false;
@@ -110,11 +111,12 @@ void serialize_table(fileWriter *sf){
 				case LUA_TNUMBER:
 					sf->writeByte(0x02);
 					sf->writeDouble( lua_tonumber(L, i) );
+					name = "";
 					break;
 				case LUA_TSTRING:
 					name = lua_tostring(L, i);
 					// look at key if we want it save
-					if( i == -2 && (
+					if( ! all && i == -2 && (
 						name[0] == '_'
 						|| ( strcmp(classname, "ZTimer") == 0 && (
 							strcmp(name, "Start") == 0
@@ -163,7 +165,7 @@ void serialize_table(fileWriter *sf){
 					sf->writeLong(dump_length);
 					sf->writeASCII(dump_buffer.c_str(), dump_length);
 					break;
-				case LUA_TTABLE: // i should be -1 => table as ke is useless
+				case LUA_TTABLE: // i should be -1 => table as key is useless
 					lua_getfield(L, i, "ObjIndex");						// [-0, +1, e]
 					if( !lua_isnoneornil(L, -1) ){
 						sf->writeByte(0x07); // Reference
@@ -172,7 +174,6 @@ void serialize_table(fileWriter *sf){
 						break;
 					}
 					lua_pop(L, 1);										// [-1, +0, e]
-					
 					lua_getfield(L, i, "_classname");					// [-0, +1, e]
 					if( ! lua_isnoneornil(L, -1) ){
 						sf->writeByte(0x08); // Object
@@ -180,8 +181,12 @@ void serialize_table(fileWriter *sf){
 						size = lua_objlen(L, -1);
 						sf->writeLong(size);
 						sf->writeASCII(name, size);
+						next_all = false;
+					} else if( strcmp(name, "ZVariables") == 0 ){
+						cerr << "ZVariables all" << endl;
+						next_all = true;
 					}
-					serialize_table(sf); // Table
+					serialize_table(sf, next_all); // Table
 					lua_pop(L, 1);										// [-1, +0, e]
 					break;
 				default:
@@ -272,7 +277,7 @@ bool sync(){
 	lua_remove(L, -2);								// [-1, +0, -]
 	lua_getfield(L, -1, "_classname");				// [-0, +1, e]
 	
-	serialize_table(&sf);
+	serialize_table(&sf, false);
 	lua_pop(L, 2);									// [-2, +0, -]
 	
 	// write details of AllZObjects
@@ -289,7 +294,7 @@ bool sync(){
 		sf.writeLong( size );
 		sf.writeASCII( name, size );
 
-		serialize_table(&sf);
+		serialize_table(&sf, false);
 		
 		lua_pop(L, 2);								// [-2, +0, -]
 	}

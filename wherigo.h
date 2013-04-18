@@ -17,6 +17,7 @@
 #include "filereader.h"
 #include <ctime>
 #include <cstdlib>
+#include <unistd.h>
 
 #ifndef DESKTOP
 const string DATA_DIR = "/media/internal/appdata/com.dta3team.app.wherigo/";

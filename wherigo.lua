@@ -877,6 +877,7 @@ function Wherigo.Zone.new(cartridge)
 	self.Inside = self._inside
 	self.CurrentBearing = Wherigo.Bearing(0)
 	self.CurrentDistance = Wherigo.Distance(0)
+	self.Points = {}
 	if self.Active == nil then
 		self._active = true
 		end -- default value only for Zone!
