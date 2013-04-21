@@ -20,7 +20,10 @@ enyo.kind({
 				{name: "icon", kind: "Divider", caption: "Description"},
 				{name: "description", allowHtml: true},
 				{kind: "Divider", caption: "Start location"},
-				{name: "startLocation"},
+				{layoutKind: "HFlexLayout", components: [
+					{name: "startLocation", flex: 1},
+					{name: "map", kind: "IconButton", icon: "images/locations.png", onclick: "showMap"},
+				]},
 				{kind: "Divider", caption: "Start location description"},
 				{name: "startDescription", allowHtml: true},
 				{kind: "Divider", caption: "Type and version"},
@@ -82,6 +85,17 @@ enyo.kind({
 					context.$.pane.back();
 				}
 			}) );
+	},
+	
+	showMap: function(inSender, inEvent){
+		this.owner.$.mappingTool.call({
+			'id': 'de.metaviewsoft.maptool',
+			'params': [{
+				"name": this.data.name,
+				"lat": this.data.latitude,
+				"lon": this.data.longitude
+			}],
+		});
 	},
 	
 	goBack: function(inSender, inEvent){
