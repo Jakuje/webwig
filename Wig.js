@@ -24,6 +24,7 @@ enyo.kind({
 				{name: "cDetail", className: "enyo-bg", kind: "WIGApp.CartDetail",
 					onPlay: "gameStarted"},
 				{name: "gMain", className: "enyo-bg", kind: "WIGApp.GameMain"},
+				{name: "tWaypoint", className: "enyo-bg", kind: "WIGApp.Waypoint"},
 				{name: "Preferences", className: "enyo-bg", kind: "WIGApp.Preferences"}
 			]
 		},
@@ -31,7 +32,7 @@ enyo.kind({
 			{kind: "EditMenu"},
 			{caption: "Preferences", onclick: "showPreferences"},
 			{caption: "Refresh", name: "menuRefresh", onclick: "doRefresh"},
-			{caption: "Move to Zverokruh", onclick: "tempPostUpdateUI"},
+			{caption: "Move to Zverokruh", onclick: "tempPostUpdateUI", showing: DEBUG},
 			{caption: "Save game", name: "menuSave", onclick: "doSave", showing: false}
 			/*{kind: "HelpMenu", target: "http://jakuje.dta3.com"}*/
 		]},
@@ -114,7 +115,7 @@ enyo.kind({
 		//this.$.pane.selectViewByName("cList");
 		//this.$.pane.selectViewByName("gMain");
 		//this.$.cList.getCartridges(0);
-		enyo.setAllowedOrientation("up");
+		enyo.setAllowedOrientation( this.getPrefs("orientation") );
 	},
 	
 	openMessage: null,
@@ -273,7 +274,7 @@ enyo.kind({
 	},
 	
 	prefs: null,
-	default_prefs: {"gps": true, "compass": 1, "units": true, "type": "All", "state": "All", "lat": "49", "lon": "16"},
+	default_prefs: {"gps": true, "compass": 1, "units": true, "type": "All", "state": "All", "lat": "49", "lon": "16", "orientation": "up"},
 	getPrefs: function(key){
 		if( !this.prefs ){
 			try {
@@ -291,8 +292,14 @@ enyo.kind({
 	},
 	setPrefs: function(key, value){
 		if( key ){
+			if( key == "orientation" ){
+				enyo.setAllowedOrientation( value );
+			}
 			this.prefs[key] = value;
 		}
 		enyo.setCookie(PREFS_COOKIE, enyo.json.stringify(this.prefs));
 	},
+	showTools: function(what){
+		this.$.pane.selectViewByName(what);
+	}
 });

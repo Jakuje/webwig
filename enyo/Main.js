@@ -44,6 +44,10 @@ enyo.kind({
 			{kind: "Button", caption: "Play Anywhere", onclick: "showLibraryAnywhere"},
 			]
 		},
+		{kind: "RowGroup", caption: "Tools", components: [
+			{kind: "Button", caption: "Waypoint calculator", className: "enyo-button-affirmative", onclick: "showWaypoint"},
+			]
+		},
 		]
 	}],
 	create: function(){
@@ -74,5 +78,9 @@ enyo.kind({
 	
 	notImplemented: function(){
 		this.owner.popupMessage( new WIGApp.Dialog("Website connector not implemented yet", "Message"));
+	},
+	
+	showWaypoint: function(){
+		this.owner.showTools('tWaypoint');
 	},
 });
