@@ -1,1 +1,11 @@
 Wherigo Player for WebOS
+
+Cartridges must be placed in USB drive directory appdata/com.dta3team.app.wherigo/
+
+Todo
+ * BT GPS for Touchpad ???
+ * Magnetic compass for Pre3 ???
+ * Disable turning off screen
+ * Zone approach notification
+ * Import functions from GWS (disabled for incompatibility)
+ * Own graphics
