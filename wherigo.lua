@@ -927,7 +927,11 @@ function Wherigo.Zone:made( object )
 	end
 function Wherigo.Zone._update( v )
 	local inside = Wherigo.IsPointInZone (Wherigo.Player.ObjectLocation, v)
-	print(v.Name, inside, v._inside, v.OriginalPoint, Wherigo.Player.ObjectLocation)
+	--print(v.Name, inside, v._inside, v.OriginalPoint, Wherigo.Player.ObjectLocation)
+	local comfortZone = 7
+	if Wherigo.Player.PositionAccuracy() < 10 then
+		comfortZone = 4
+		end -- handle jitter and unexpected leaving zone
 	if not inside then
 		-- how far?
 		if # v.Points == 0 or v.Points[1] == Wherigo.INVALID_ZONEPOINT then
@@ -938,7 +942,7 @@ function Wherigo.Zone._update( v )
 		end
 	if inside ~= v._inside then
 		update_all = true
-		if inside then
+		if inside then -- we go in
 			table.insert(Wherigo.Player.InsideOfZones, v)
 			if v._state == 'NotInRange' and v.OnDistant then
 				Wherigo.LogMessage("Zone <" .. v.Name .. ">: START onDistant")
@@ -955,7 +959,7 @@ function Wherigo.Zone._update( v )
 				v.OnEnter(v)
 				Wherigo.LogMessage("Zone <" .. v.Name .. ">: END__ onEnter")
 				end
-		elseif v.CurrentDistance() > 15 then -- leave it only if we are more than 15 meters from zone
+		elseif v.CurrentDistance() > comfortZone then -- leave it only if we are more than 15 meters from zone
 			Wherigo.Player._removeFromZone(v)
 			if v.OnExit then
 				Wherigo.LogMessage("Zone <" .. v.Name .. ">: START onExit")
@@ -973,7 +977,7 @@ function Wherigo.Zone._update( v )
 		v.State = 'Inside'
 		v._state = v.State
 	else
-		if v.CurrentDistance() < v.ProximityRange() then
+		if v.CurrentDistance() < (v.ProximityRange() + comfortZone) then
 			if v._state == 'NotInRange' and v.OnDistant then
 				Wherigo.LogMessage("Zone <" .. v.Name .. ">: START onDistant")
 				v.OnDistant (v)
@@ -982,7 +986,7 @@ function Wherigo.Zone._update( v )
 				end
 			--Wherigo.LogMessage("Zone <" .. v.Name .. ">: Distant")
 			v.State = 'Proximity'
-		elseif v.DistanceRange() < 0 or v.CurrentDistance() < v.DistanceRange() then
+		elseif v.DistanceRange() < 0 or v.CurrentDistance() < (v.DistanceRange() + comfortZone) then
 			if v._state == 'Inside' and v.OnProximity then
 				Wherigo.LogMessage("Zone <" .. v.Name .. ">: START onProximity")
 				v.OnProximity(v)
@@ -1010,7 +1014,6 @@ function Wherigo.Zone._update( v )
 		if v._state ~= v.State then
 			--Wherigo.LogMessage("Zone <" .. v.Name .. ">: Other state: ")
 			--Wherigo.LogMessage("Zone <" .. v.Name .. ">: " .. v.State)
-			local s = v._state
 			v._state = v.State
 			local attr = 'On' .. v.State
 			local event = rawget(v, attr)
