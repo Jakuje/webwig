@@ -32,6 +32,18 @@ enyo.kind({
 					{name: "units", pack: "end", kind: "ToggleButton", onChange: "prefsChange", onLabel: "Metric", offLabel: "Imperial"}
 				]},
 			]},
+			{kind: "RowGroup", caption: "Behavior", components: [
+				{kind: "HFlexBox", align: "center", components: [
+					{name: "orientation", label: "Screen orientation", kind: "ListSelector",
+					flex: 1, value: "up", onChange: "prefsChange", items: [
+						{caption: "Up", value: "up"},
+						{caption: "Down", value: "down"},
+						{caption: "Left", value: "left"},
+						{caption: "Right", value: "right"},
+						{caption: "Free", value: "free"}
+					]}
+				]},
+			]},
 		]},
 	],
 	create: function(){
@@ -41,6 +53,7 @@ enyo.kind({
 		this.$.gps.setState( this.owner.getPrefs('gps') );
 		this.$.compass.setValue( this.owner.getPrefs('compass') );
 		this.$.units.setState( this.owner.getPrefs('units') );
+		this.$.orientation.setValue( this.owner.getPrefs('orientation') );
 	},
 	
 	prefsChange: function(inSender, inValue, inOldValue){
