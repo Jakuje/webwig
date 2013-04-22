@@ -1458,23 +1458,23 @@ for k,v in pairs(cartridge.AllZObjects) do print(k,v, v.ObjIndex, cartridge.AllZ
 -- onClick, Commands
 Wherigo._callback = function(event, id)
 	local t = cartridge.AllZObjects[id]
-	if event == "OnClick" then
+	if event == "Click" then
 		if t.OnClick then
-			Wherigo.LogMessage(t._classname .. " <" .. t.Name .. "> ZCommand: " .. event .. " START")
-			t[event](t)
-			Wherigo.LogMessage(t._classname .. " <" .. t.Name .. "> ZCommand: " .. event .. " END__")
+			Wherigo.LogMessage(t._classname .. " <" .. t.Name .. "> ZCommand: On" .. event .. " START")
+			t["On" .. event](t)
+			Wherigo.LogMessage(t._classname .. " <" .. t.Name .. "> ZCommand: On" .. event .. " END__")
 			end
 	else
 		if t then
-			local command = string.sub(event, 3)
+			local command = tonumber(event) or event
 			local c = t.Commands[command]
 			if not c.CmdWith then
-				if t[event] then
-					Wherigo.LogMessage(t._classname .. " <" .. t.Name .. "> ZCommand: " .. event .. " START")
-					t[event](t)
-					Wherigo.LogMessage(t._classname .. " <" .. t.Name .. "> ZCommand: " .. event .. " END__")
+				if t["On" .. event] then
+					Wherigo.LogMessage(t._classname .. " <" .. t.Name .. "> ZCommand: On" .. event .. " START")
+					t["On" .. event](t)
+					Wherigo.LogMessage(t._classname .. " <" .. t.Name .. "> ZCommand: On" .. event .. " END__")
 				else
-					Wherigo.LogMessage(t._classname .. " <" .. t.Name .. "> ZCommand: " .. event .. " [no script]")
+					Wherigo.LogMessage(t._classname .. " <" .. t.Name .. "> ZCommand: On" .. event .. " [no script]")
 					end
 			else
 				--local list = {}
@@ -1508,7 +1508,7 @@ Wherigo._callback = function(event, id)
 					end
 				Wherigo.LogMessage(t._classname .. " <" .. t.Name .. ">: CommandWith prompt")
 				table.insert(Wherigo._GICallbacks, Wherigo._Internal)
-				table.insert(Wherigo._CMDWithCallbacks, t[event])
+				table.insert(Wherigo._CMDWithCallbacks, t["On" .. event])
 				WIGInternal.GetInput("MultipleChoice", "Choose what to command with", choices, "");
 				end
 			end

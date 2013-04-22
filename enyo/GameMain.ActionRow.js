@@ -43,7 +43,7 @@ enyo.kind({
 				// debug UI
 				this.data[inEvent.rowIndex].onclick(this.owner);
 			} else {
-				this.owner.owner.owner.$.plugin.callback("OnClick", this.data[inEvent.rowIndex].id)
+				this.owner.owner.owner.$.plugin.callback("Click", this.data[inEvent.rowIndex].id)
 			}
 		} else {
 			this.owner.owner.showScreen(this.screen,

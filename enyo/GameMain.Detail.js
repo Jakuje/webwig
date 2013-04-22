@@ -19,16 +19,21 @@ enyo.kind({
 			]
 		},
 		{kind: "HFlexBox", name: "distanceBox", showing: false, components: [
-			{ name: "bearingBackground", style: "background: transparent url('images/compass_bg.png') center center no-repeat;", components: [
-				{name: "bearingArrow", kind: "Image", src: "images/compass_arrow.png"},
-				]},
-			{ kind: "VFlexBox", components: [
-				{name: "distance"},
-				{content: "Map", kind: "Button", onclick: "showMappingTool"},
-				{kind: "Spacer"},
-				{kind: "Button", onclick: "moveTo", content: "Move To", showing: DEBUG},
+			{ kind: "VFlexBox", flex: 1, showing: DEBUG, components: [
+				{ kind: "Input", onkeypress: "onKeypress", autoCapitalize: "lowercase", flex: 1}
 			]},
-			{ kind: "Input", onkeypress: "onKeypress", autoCapitalize: "lowercase", showing: DEBUG}
+			{ name: "bearingBackground", style: "background: transparent url('images/compass_bg.png') center center no-repeat;", onclick: "toggleCompass", components: [
+				{name: "bearingArrow", kind: "Image", src: "images/compass_arrow.png"},
+			]},
+			{ kind: "VFlexBox", flex: 1, components: [
+				{name: "distance", style: "margin-left: -25px;"},
+				{kind: "Spacer"},
+				{kind: "HFlexBox", components: [
+					{kind: "IconButton", icon: "images/locations.png", onclick: "showMappingTool"},
+				]},
+				{kind: "Spacer"},
+				{kind: "Button", onclick: "moveTo", content: "Move To", showing: DEBUG, style: "margin-left: -15px;"},
+			]},
 		]},
 		],
 	screen: null,
@@ -102,7 +107,7 @@ enyo.kind({
 		}
 	},
 	executeCommand: function(inSender, inEvent){
-		event = "On" + this.data.commands[inEvent.rowIndex].id;
+		event = this.data.commands[inEvent.rowIndex].id;
 		this.owner.owner.$.plugin.callback(event, this.data.id)
 	},
 	moveTo: function(){
@@ -120,6 +125,15 @@ enyo.kind({
 				'name': this.data.name,
 				}] )
 		});*/
+	},
+	toggleCompass: function(){
+		if( this.$.bearingArrow.getSrc() == "images/compass_arrow.png" ){
+			this.$.bearingBackground.applyStyle("background-image", "url('images/compass_bg_large.png')");
+			this.$.bearingArrow.setSrc("images/compass_arrow_large.png");
+		} else {
+			this.$.bearingBackground.applyStyle("background-image", "url('images/compass_bg.png')");
+			this.$.bearingArrow.setSrc("images/compass_arrow.png");
+		}
 	},
 	onKeypress: function(inSender, inEvent){
 		if( inEvent.keyCode == 115 ){ // S
@@ -140,7 +154,7 @@ enyo.kind({
 		} else if(inEvent.keyCode == 108 ){ // L
 			this.owner.owner.$.plugin.movePosition(0, +0.00001);
 		} else {
-			--console.error(inEvent.charCode, inEvent.keyCode);
+			//console.error(inEvent.charCode, inEvent.keyCode);
 		}
 	}
 });
