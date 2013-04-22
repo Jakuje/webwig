@@ -62,8 +62,10 @@ enyo.kind({
 		this.$.startDescription.setContent(data.startingLocationDescription);
 		if( data.latitude == 360 && data.longitude == 360 ){
 			this.$.startLocation.setContent("Anywhere");
+			this.$.map.hide();
 		} else {
 			this.$.startLocation.setContent(data.latitude.toFixed(6) + " " + data.longitude.toFixed(6));
+			this.$.map.show();
 		}
 		this.$.type.setContent(data.type);
 		this.$.version.setContent(data.version);
