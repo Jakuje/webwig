@@ -6,7 +6,7 @@
 	"splashicon": "logo_256.png",
 	"splashBackground": "images/splash.png",
 	"id": "com.dta3team.app.wherigo",
-	"version": "1.0.7",
+	"version": "1.0.8",
 	"vendor": "Dta3 team",
 	"uiRevision": 2,
 	"plug-ins": true
