@@ -78,23 +78,36 @@ function Wherigo._MessageBoxResponse(action)
 		end
 	end
 	
-function Wherigo.Dialog(table)
-	for k,v in pairs(table) do
-		if type(v) == 'table' then
-			text = rawget(v, "Text")
-			media = rawget(v, "Media")
-		else
-			text = rawget(table, "Text")
-			media = rawget(table, "Media")
-			end
-		if media then
-			media = media._id
-		else
-			media = ""
-			end
-		WIGInternal.Dialog(text, media)
+function Wherigo.Dialog(t)
+	-- change to corespond with Groundspeak
+	local message
+	if type(t) ~= 'table' then
+		error("Dialog expected table")
+	elseif type(t[1]) ~= 'table' then
+		message = {}
+		message.Text = t.Text
+		message.Media = t.Media
+	else
+		message = t[1]
 		end
 	
+	-- ignore functions ...
+	
+	if not message then
+		return
+		end
+	table.remove(t, 1)
+	if #t > 0 then
+		message.Callback = function(action)
+			if action then
+				Wherigo.LogMessage("Dialog response")
+				Wherigo.Dialog(t)
+				end
+			end
+	else
+		message.Callback = nil
+		end
+	Wherigo.MessageBox(message);
 	end
 
 function Wherigo.PlayAudio(media)
@@ -767,9 +780,9 @@ function Wherigo.ZObject.new(cartridge, container )
 		if not self.Container then
 			return false
 			end
-		--[[if not self.Container.Active or self.Container._classname ~= Wherigo.CLASS_ZONE then
+		if not self.Container.Active or self.Container._classname ~= Wherigo.CLASS_ZONE then
 			return false
-			end]]
+			end
 		if self.Container.ShowObjects == 'OnEnter' and self.Container.State ~= 'Inside' then
 			return false
 		elseif self.Container.ShowObjects == 'OnProximity' and self.Container.State ~= 'Inside' and self.Container.State ~= 'Proximity' then
