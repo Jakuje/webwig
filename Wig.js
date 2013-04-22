@@ -1,6 +1,6 @@
 const DATA_DIR = "/media/internal/appdata/com.dta3team.app.wherigo/";
 const CONF_DIR = DATA_DIR;
-const DEBUG = true;
+const DEBUG = false;
 const PREFS_COOKIE = "appPrefs";
 
 enyo.kind({
