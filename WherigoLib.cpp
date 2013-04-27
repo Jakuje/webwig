@@ -15,7 +15,7 @@ map<int,int*> timers_ids;
 /** Env variables*/
 std::string DEVICE = "WebOS";
 std::string DIR = "./";
-std::string VERSION = "2.11";
+std::string VERSION = "2.11-compatible";
 std::string SLASH = "/";
 int TIME = 0;
 
