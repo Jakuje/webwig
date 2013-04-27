@@ -1,12 +1,22 @@
+--- Wherigo Library, backward compatible with Wherigo Library by Groundspeak
+--   @module Wherigo
+--   @author Jakub Jelen <jakuje@gmail.com>
+--   @copyright 2012 - 2013 ???
+-- 
+
+--- Obfuscation to ignore require("Wherigo") in user scripts
+--   this adds key Wherigo to list of loaded modules and so lua engine
+--   will not look for library all over the filesystem
 package.loaded['Wherigo'] = 1
 
-_VERSION = "Lua 5.1"
-
+-- Variable to show more than normal player should view (hidden zones)
 DEBUG = false
 
 Wherigo = {
+	-- ZonePoint is not set
 	INVALID_ZONEPOINT 	= nil,
 	
+	-- Constants for ShowScreen function
 	MAINSCREEN			= "main",
 	INVENTORYSCREEN 	= "inventory",
 	ITEMSCREEN 			= "youSee",
@@ -14,12 +24,14 @@ Wherigo = {
 	TASKSCREEN			= "tasks",
 	DETAILSCREEN 		= "detail",
 	
+	-- Constants for LogMessage function
 	LOGDEBUG			= 150,
 	LOGCARTRIDGE		= 151,
 	LOGINFO				= 152,
 	LOGWARNING			= 153,
 	LOGERROR			= 154,
 	
+	-- Internal constants to determine object name
 	CLASS_ZONE			= "Zone",
 	CLASS_ZMEDIA		= "ZMedia",
 	CLASS_ZCARTRIDGE	= "ZCartridge",
@@ -33,11 +45,22 @@ Wherigo = {
 	CLASS_BEARING		= "Bearing",
 	CLASS_ZONEPOINT		= "ZonePoint",
 	CLASS_ZRECIPROCALCOMMAND = "ZReciprocalCommand",
+	CLASS_ZOBJECT		= "ZObject",
 	
+	-- internal tables to store callbacks from MessageBox and GetInput
 	_MBCallbacks = {},
-	_GICallbacks = {}
+	_GICallbacks = {},
+	_CMDWithCallbacks = {}
 	}
 
+--- Show message to user
+--   accepts table param or multiple parameters as below.
+--   Params table: <ul>
+--   <li> Text 		string message to show (required)
+--   <li> Media		ZMedia image to show with it
+--   <li> Buttons		Table with text to show on buttons
+--   <li> Callback	Function to call after user pushes on of the buttons
+--   </ul>
 function Wherigo.MessageBox(t)
 	local text = rawget(t, "Text")
 	local media = rawget(t, "Media")
@@ -68,6 +91,10 @@ function Wherigo.MessageBox(t)
 		end
 	WIGInternal.MessageBox(text, media, button1, button2, callback )
 	end
+--- Receives users response and calls desired callback. Called only if
+--   callback was set. Internal usage only!
+-- 
+--   @param	action	Button1 or Button2 or nil depending on user choice
 function Wherigo._MessageBoxResponse(action)
 	if # Wherigo._MBCallbacks > 0 then
 		Wherigo.LogMessage("MessageBox Callback: [" .. action .. "]")
@@ -78,8 +105,12 @@ function Wherigo._MessageBoxResponse(action)
 		end
 	end
 	
+--- Shows series of messages to user, one after another. Internal using 
+--   MessageBox. For more details @see MessageBox
+-- 
+--   @param t	Table of tables with keys "Text" and "Media" to be shown
 function Wherigo.Dialog(t)
-	-- change to corespond with Groundspeak
+	-- change to correspond with Groundspeak
 	local message
 	if type(t) ~= 'table' then
 		error("Dialog expected table")
@@ -110,15 +141,28 @@ function Wherigo.Dialog(t)
 	Wherigo.MessageBox(message);
 	end
 
-function Wherigo.PlayAudio(media)
-	WIGInternal.PlayAudio(media._id)
+--- Request to play user some audio. Sends request to user interface what
+--   handles it. If it is long, can be stopped by calling Command("StopSound")
+-- 
+--   @param	Media	ZMedia object containing audio to play
+function Wherigo.PlayAudio(Media)
+	WIGInternal.PlayAudio(Media._id)
 	end
 	
-function Wherigo.ShowStatusText(text)
+--- Shows status text somewhere. Not used and not well documented
+--
+--   @param Text	What should be shown to user
+function Wherigo.ShowStatusText(Text)
 	-- for PPC devices only?
-	WIGInternal.ShowStatusText(text)
+	WIGInternal.ShowStatusText(Text)
 	end
 
+--- Calculates distance from given point to nearest point of given zone
+--   
+--   @param		point	ZonePoint object as a starting location
+--   @param 	zone	Zone object as a destination
+--   @return	Distance (object) to nearest point of zone
+--   @return	Bearing (object) to nearest point of zone
 function Wherigo.VectorToZone(point, zone)
 	if Wherigo.IsPointInZone (point, zone) then
 		return Wherigo.Distance (0), Wherigo.Bearing (0) end
@@ -135,6 +179,14 @@ function Wherigo.VectorToZone(point, zone)
 	return current, b
 	end
 
+--- Calculates distance from given point to nearest point on segment of zone
+--   defined by two points (p1, p2)
+--
+--   @param		point	ZonePoint object as a starting location
+--   @param		p1		ZonePoint, first point of segment
+--   @param		p2		ZonePoint, second point of segment
+--   @return	Distance (object) to nearest point of segment
+--   @return	Bearing (object) to nearest point of segment
 function Wherigo.VectorToSegment(point, p1, p2)
 	local d1, b1 = Wherigo.VectorToPoint (p1, point)
 	local d1 = math.rad (d1('nauticalmiles') / 60.)
@@ -149,7 +201,9 @@ function Wherigo.VectorToSegment(point, p1, p2)
 	return Wherigo.VectorToPoint (point, intersect)
 	end
 
+--- Unknown purpose
 function Wherigo.Inject() end
+
 
 function Wherigo._intersect(point, segment)
 	--print("Loc:" .. point.latitude .. " " .. point.longitude .. " Loc:" .. segment[1].latitude .. " " .. segment[1].longitude .. " Loc:" .. segment[2].latitude .. " " .. segment[2].longitude)
@@ -206,7 +260,13 @@ function Wherigo.IsPointInZoneOld(point, zone)
 		end
 	return (num % 2) == 0
 	end
-	
+
+--- Determines whether is given point in given zone using Minimal Bounding 
+--   Box algorithm and then with Cross Count algorithm
+--
+--   @param		point	ZonePoint object
+--   @param		zone	Zone object
+--   @return 	True if is point in zone
 function Wherigo.IsPointInZone(point, zone)
 	-- fisrt go through Bounging Box
 	if( zone._xmin == nil) then zone._calculateBoundingBox() end
@@ -255,7 +315,14 @@ function Wherigo.IsPointInZone(point, zone)
 		end
 	return inside
 	end
-	
+
+--- Calculate new position of point, which is translated by given distance
+--   and with given bearing
+--
+--   @param		point		ZonePoint object as a starting point
+--   @param		distance	Distance object
+--   @param		bearing		Bearing object or number to determine direction
+--   @return 	ZonePoint object with new location
 function Wherigo.TranslatePoint(point, distance, bearing)
 	local d = math.rad (distance.GetValue ('nauticalmiles') / 60.)
 	local b
@@ -270,6 +337,12 @@ function Wherigo.TranslatePoint(point, distance, bearing)
 	return Wherigo.ZonePoint (math.deg (lat2), point.longitude + math.deg (dlon), point.altitude)
 	end
 
+--- Calculate distance and bearing from one point to another
+-- 
+--   @param		p1	Starting ZonePoint
+--   @param		p2	Destination ZonePoint
+--   @return	Distance object
+--   @return	Bearing object
 function Wherigo.VectorToPoint(p1, p2)
 	if p1.longitude == p2.longitude then
 		local d = Wherigo.Distance ( math.abs(p1.latitude - p2.latitude) * 60, 'nauticalmiles')
@@ -295,10 +368,25 @@ function Wherigo.VectorToPoint(p1, p2)
 	return Wherigo.Distance (math.deg (dist) * 60, 'nauticalmiles'), Wherigo.Bearing (math.deg (bearing))
 	end
 
+--- Compare two strings ignoring case
+--
+--   @param		f	First string
+--   @param		s	Second string
+--   @return	True if they equals
 function Wherigo.NoCaseEquals(f, s)
 	return type(f) == type(s) and f:lower() == s:lower()
 	end
-	
+
+--- Sends some command to engine<br>
+--    Possible values:
+--    <ul>
+--		<li>SaveClose	- Saves cartridges and prompt user to quit
+--		<li>DriveTo		- This should start Turn-by-turn navigation, but it is not used
+--		<li>StopSound	- Stops playing sound in user interface
+--		<li>Alert		- Beep. Used on Garmins, which can't play sound
+--    </ul>
+--
+--   @param text	Command
 function Wherigo.Command(text)
 	if text == 'SaveClose' then
 		Wherigo.LogMessage("Wherigo.Command: SaveClose");
@@ -317,14 +405,22 @@ function Wherigo.Command(text)
 		end
 	end
 
-function Wherigo.LogMessage(text, level)
-	if type(text) == 'table' then
-		level = text.Level
-		text = text.Text
+--- Write message into logfile for opened cartridge
+--   params can be table
+--
+--   @param	Text	Message to log
+--   @param	Level	Level of message
+function Wherigo.LogMessage(Text, Level)
+	if type(Text) == 'table' then
+		Level = Text.Level
+		Text = Text.Text
 		end
-	WIGInternal.LogMessage(text--[[, level]])
+	WIGInternal.LogMessage(Text--[[, Level]])
 	end
 
+--- Request user to fill in input. Appearance depends on ZInput object
+--
+--   @param	input	ZInput object containing data about input appearance
 function Wherigo.GetInput(input)
 	-- ZInput is dialog to show and returns value from user
 	Wherigo.LogMessage("ZInput:GetInput: " .. input.Name)
@@ -349,6 +445,10 @@ function Wherigo.GetInput(input)
 	
 	WIGInternal.GetInput( input.InputType, input.Text, o, media)
 	end
+--- Callback of GetInput. Internal usage only!
+--   This is called for every GetInput
+-- 
+--   @param	response	User's response (selected button or written string)
 function Wherigo._GetInputResponse( response )
 	if # Wherigo._GICallbacks > 0 then
 		local input = table.remove(Wherigo._GICallbacks)
@@ -359,6 +459,10 @@ function Wherigo._GetInputResponse( response )
 		end
 	end
 
+--- Sends request to user interface to show screen
+--
+--   @param	screen	Screen name (see constants)
+--   @param item	For 'DETAILSCREEN' particular ZObject
 function Wherigo.ShowScreen(screen, item)
 	if screen == Wherigo.DETAILSCREEN then
 		if item == nil then
@@ -371,6 +475,11 @@ function Wherigo.ShowScreen(screen, item)
 		end
 	end
 
+--- Conversion function from Distance or Bearing object to number
+--   used in metamethods to arithmetic and comparisons
+--
+--   @param		arg		Number or object to convert
+--   @return	Number representing Distance in meters or bearing in degrees
 function Wherigo.__tonumber(arg)
 	if type(arg) == "table" then
 		arg = arg.value
@@ -378,9 +487,298 @@ function Wherigo.__tonumber(arg)
 	return arg
 	end
 
---[[ A direction from one point to another ]]
+
+--[[
+for k,v in pairs(cartridge) do print(k,v) end
+for k,v in pairs(Wherigo.Player.Inventory) do print(k,v) end
+for k,v in pairs(Env.__propset) do print(k,v) end
+for k,v in pairs(_G) do print(k,v) end
+for k,v in pairs(zonePaloucek) do print(k,v) end
+for k,v in pairs(itemDum1.Commands.Akce1) do print(k,v) end
+
+for k,v in pairs(cartridge.AllZObjects) do print(k,v, v.Active, v.Visible) end
+for k,v in pairs(cartridge.AllZObjects) do print(k,v, v.ObjIndex, cartridge.AllZObjects[k]) end
+]]
+
+-- After runing script, setup media ?
+
+--- Execute user command or click event on UI item. OnClick is simply executed,
+--   other events On* of commands must be handled with care of command type.
+--   Internal use only.
+--
+--   @param event	Event name in Commands table, or Click for OnClick event
+--   @param id		Global id in AllZObjects table
+Wherigo._callback = function(event, id)
+	local t = cartridge.AllZObjects[id]
+	if event == "Click" then
+		if t.OnClick then
+			Wherigo.LogMessage(t._classname .. " <" .. t.Name .. "> ZCommand: On" .. event .. " START")
+			t["On" .. event](t)
+			Wherigo.LogMessage(t._classname .. " <" .. t.Name .. "> ZCommand: On" .. event .. " END__")
+			end
+	else
+		if t then
+			local command = tonumber(event) or event
+			local c = t.Commands[command]
+			if not c.CmdWith then
+				if t["On" .. event] then
+					Wherigo.LogMessage(t._classname .. " <" .. t.Name .. "> ZCommand: On" .. event .. " START")
+					t["On" .. event](t)
+					Wherigo.LogMessage(t._classname .. " <" .. t.Name .. "> ZCommand: On" .. event .. " END__")
+				else
+					Wherigo.LogMessage(t._classname .. " <" .. t.Name .. "> ZCommand: On" .. event .. " [no script]")
+					end
+			else
+				--local list = {}
+				local choices = ""
+				if c.WorksWithAll then
+					for k,v in pairs(cartridge.AllZObjects) do
+						if (v.Visible and v.Container == Wherigo.Player) or v._is_visible() then
+							--table.insert(list, v);
+							if # choices ~= 0 then
+								choices = choices .. ";"
+								end
+							choices = choices .. v.Name
+							end
+						end
+				elseif c.WorksWithList then
+					for k,v in pairs(c.WorksWithList) do
+						if (v.Visible and v.Container == Wherigo.Player) or v._is_visible() then
+							--table.insert(list, v);
+							if # choices ~= 0 then
+								choices = choices .. ";"
+								end
+							choices = choices .. v.Name
+							end
+						end
+				else
+					Wherigo.LogMessage(c.Text .. " Works with nothing??")
+					end
+				if # choices == 0 then
+					WIGInternal.Dialog( c.EmptyTargetListText, "")
+					return
+					end
+				Wherigo.LogMessage(t._classname .. " <" .. t.Name .. ">: CommandWith prompt")
+				table.insert(Wherigo._GICallbacks, Wherigo._Internal)
+				table.insert(Wherigo._CMDWithCallbacks, t["On" .. event])
+				WIGInternal.GetInput("MultipleChoice", "Choose what to command with", choices, "");
+				end
+			end
+		end
+	end
+--- Virtual object to execute command with other item, same way as GetInput.
+--   Internaly substitutes ZInput object.
+-- 
+--   @class table
+--   @name Wherigo._Internal
+Wherigo._Internal = { Name = "CMDWith (internal)"}
+Wherigo._Internal.OnGetInput = function(self, choice)
+	Wherigo.LogMessage("Choice CMDwith: " .. choice)
+	if # Wherigo._CMDWithCallbacks > 0 then
+		local event = table.remove(Wherigo._CMDWithCallbacks)
+		for k,v in pairs(cartridge.AllZObjects) do
+			if ((v.Visible and v.Container == Wherigo.Player) or v._is_visible()) and v.Name == choice then
+				Wherigo.LogMessage("ZCommand <??>: ?? with [" .. v.Name .. "] START")
+				event(nil, v);
+				Wherigo.LogMessage("ZCommand <??>: ?? with [" .. v.Name .. "] END__")
+				return
+				end
+			end
+		end
+	end
+
+--- Get field with media path in JSON notation for UI. Internal usa only.
+--
+--   @param field	String "media" or "icon" used as index in JSON
+--   @param t		Table value to chech and add it exists
+--   @return String containing JSON notation of field or empty string if <i>t</i> is nil
+Wherigo._getMediaField = function(field, t)
+	if t then
+		return ", \"" .. field .. "\": \"" .. --[[Env.CartFolder ..]] t._id .. "." .. t.Resources[1].Type .. "\""
+	else
+		return "" end
+	end
+
+--- Get Commands field with array of enabled commands for current object in JSON notation.
+--   Internal use only!
+--
+--   @param item	ZObject to get commands for
+--   @return 		String containing JSON notation of commands field
+Wherigo._addCommands = function(item)
+	v = ", \"commands\": ["
+	first = true
+	if item.Commands then
+		for id,c in pairs(item.Commands) do
+			if c.Enabled then
+				if not first then
+					v = v .. "," end
+				v = v .. "{\"id\": \"" .. id .. "\", \"text\": \"" .. c.Text .. "\"}"
+				first = false
+				end
+			end
+		end
+	return v .. "]"
+	end
+
+--- Convert boolean value to string for JSON notation. Internal use only!
+--   @param b	Boolean value
+--   @return 	String value containing true or false
+Wherigo._bool2str = function( b )
+	if b then return "true"
+	else return "false" end
+	end
+
+--- Escape string to put in JSON structure. Just proxy to ignore nil values.
+--   Internal use only!
+--   @param str	String to escape
+--   @return Escaped string
+Wherigo._toJSON = function(str)
+	if str ~= nil then
+		return WIGInternal.escapeJsonString(str)
+	else
+		return ""
+		end
+	end
+
+--- Get JSON fields to send to UI, containing all 4 sections, without brackets around,
+--   so C++ can add more fields. Internal use only!
+--   @return String containing JSON notation of UI data
+Wherigo._getUI = function()
+	return --"{" ..
+		"\"locations\": " .. Wherigo._getLocations() .. ", "
+		.. "\"youSee\": " .. Wherigo._getYouSee() .. ", "
+		.. "\"inventory\": " .. Wherigo._getInventory() .. ", "
+		.. "\"tasks\": " .. Wherigo._getTasks() -- .. "}"
+		-- it is just without brackets around, so c++ can add more fields
+	end
+
+--- Get Locations data in JSON to be send to UI. Internal use only!
+--   @return String containing JSON
+Wherigo._getLocations = function()
+	local locations = "["
+	local first = true
+	for k,v in pairs(cartridge.AllZObjects) do
+		if v._classname == Wherigo.CLASS_ZONE and ((v.Active and v.Visible) or DEBUG) then
+			if not first then
+				locations = locations .. "," end
+			locations = locations .. "{\"name\": \"" .. Wherigo._toJSON(v.Name) .. "\""
+				.. ", \"description\": \"" .. Wherigo._toJSON(v.Description) .. "\""
+			if v.OriginalPoint then
+				locations = locations .. ", \"lat\": " .. v.OriginalPoint.latitude .. ", \"lon\": " .. v.OriginalPoint.longitude
+				end
+			if v.State == 'Inside' then
+				locations = locations .. ", \"distance\": 0, \"bearing\": 0"
+			else
+				locations = locations .. ", \"distance\": " .. v.CurrentDistance("m") .. ", \"bearing\": " .. v.CurrentBearing("m")
+				end
+			locations = locations
+				.. Wherigo._getMediaField("media", v.Media)
+				.. Wherigo._getMediaField("icon", v.Icon)
+				.. Wherigo._addCommands(v)
+				.. ", \"id\": \"" .. k .. "\""
+				.. "}"
+			first = false
+			end
+		end
+	return locations .. "]"
+end
+
+--- Get Inventory data in JSON to be send to UI. Internal use only!
+--   @return String containing JSON
+Wherigo._getInventory = function()
+	local inventory = "["
+	local first = true
+	for k,v in pairs(cartridge.AllZObjects) do
+		if ( v.Visible or DEBUG) and v.Container == Wherigo.Player then
+			if not first then
+				inventory = inventory .. "," end
+			inventory = inventory .. "{\"name\": \"" .. Wherigo._toJSON(v.Name)
+				.. "\", \"description\": \"" .. Wherigo._toJSON(v.Description) .. "\""
+				.. Wherigo._getMediaField("media", v.Media)
+				.. Wherigo._getMediaField("icon", v.Icon)
+				.. Wherigo._addCommands(v)
+				.. ", \"id\": \"" .. k .. "\""
+			if v.OnClick then
+				inventory = inventory .. ", \"onclick\": true"
+				end
+			inventory = inventory .. "}"
+			first = false
+			end
+		end
+	
+	return inventory .. "]"
+end
+
+--- Get YouSee data in JSON to be send to UI. Internal use only!
+--   @return String containing JSON
+Wherigo._getYouSee = function()
+	local yousee = "["
+	local first = true
+	for k,v in pairs(cartridge.AllZObjects) do
+		if v._is_visible() and v.Container ~= Wherigo.Player then
+			if not first then
+				yousee = yousee .. "," end
+			yousee = yousee .. "{\"name\": \"" .. Wherigo._toJSON(v.Name)
+				.. "\", \"description\": \"" .. Wherigo._toJSON(v.Description) .. "\""
+				.. Wherigo._getMediaField("media", v.Media)
+				.. Wherigo._getMediaField("icon", v.Icon)
+				.. Wherigo._addCommands(v)
+				.. ", \"id\": \"" .. k .. "\""
+			pos = v._get_pos()
+			if pos and v.CurrentDistance then
+				yousee = yousee .. ", \"distance\": " .. v.CurrentDistance("m")
+					.. ", \"bearing\": " .. v.CurrentBearing("m")
+					.. ", \"lat\": " .. pos.latitude
+					.. ", \"lon\": " .. pos.longitude
+				end
+			if v.OnClick then
+				yousee = yousee .. ", \"onclick\": true"
+				end
+			yousee = yousee .. "}"
+			first = false
+			end
+		end
+	
+	return yousee .. "]"
+end
+
+--- Get Tasks data in JSON to be send to UI. Internal use only!
+--   @return String containing JSON
+Wherigo._getTasks = function()
+	local tasks = "["
+	local first = true
+	for k,v in pairs(cartridge.AllZObjects) do
+		if v._classname == Wherigo.CLASS_ZTASK and v.Visible then
+			if not first then
+				tasks = tasks .. "," end
+			tasks = tasks .. "{\"name\": \"" .. Wherigo._toJSON(v.Name) .. "\""
+				.. ", \"description\": \"" .. Wherigo._toJSON(v.Description) .. "\""
+				.. Wherigo._getMediaField("media", v.Media)
+				.. Wherigo._getMediaField("icon", v.Icon)
+				.. Wherigo._addCommands(v)
+				.. ", \"id\": \"" .. k .. "\""
+				.. ", \"sort\": \"" .. v.SortOrder .. "\""
+				.. ", \"complete\": " .. Wherigo._bool2str(v.Complete)
+			if v.OnClick then
+				tasks = tasks .. ", \"onclick\": true"
+				end
+			tasks = tasks .. "}"
+			first = false
+			end
+		end
+	return tasks .. "]"
+end
+
+
+
+
+--- Object representing a bearing in degrees
+-- @type Wherigo.Bearing
 Wherigo.Bearing = {}
-Wherigo.Bearing_metatable = {
+--- Metatable for Bearing objects. Implements arithmetic, call and tostring 
+--   as required by cartridges
+-- @class table
+Wherigo.Bearing.metatable = {
 	__tostring = function( s )
 		return "a Bearing instance"
 		end,
@@ -400,6 +798,11 @@ Wherigo.Bearing_metatable = {
 		return ( Wherigo.__tonumber(op1) / Wherigo.__tonumber(op2) ) % 360
 		end,
 }
+--- Bearing object constructor. Number is automatically normalized to interval
+--   0 - 360 degrees
+--
+--   @param value Numeric value representing bearing in degrees
+--   @return Bearing instance
 function Wherigo.Bearing.new(value)
 	local self = { _classname = Wherigo.CLASS_BEARING}
 	if type(value) == 'number' then
@@ -408,7 +811,7 @@ function Wherigo.Bearing.new(value)
 		self.value = 0
 		end
 	
-	setmetatable(self, Wherigo.Bearing_metatable)
+	setmetatable(self, Wherigo.Bearing.metatable)
 
 	return self;
 	end
@@ -418,9 +821,14 @@ setmetatable(Wherigo.Bearing, {
 		end,
 	})
 
---[[ A distance between two points ]]
+
+
+--- Object representing distance in meters
+-- @type Wherigo.Distance
 Wherigo.Distance = {}
-Wherigo.Distance_metatable = {
+--- Metatable for Distance objects. Implements arithmetic, comparison, call
+--   and tostring as required by cartridges
+Wherigo.Distance.metatable = {
 	__tostring = function( s )
 		return "a Distance instance"
 		end,
@@ -449,6 +857,11 @@ Wherigo.Distance_metatable = {
 		return ( Wherigo.__tonumber(op1) / Wherigo.__tonumber(op2) )
 		end,
 }
+--- Distance object constructor. Represent distance in meters
+-- 
+--   @param value Numeric value of distance (required)
+--   @param units String representation of units in which is value set for conversion, default "meters"
+--   @return Distance instance
 function Wherigo.Distance.new(value, units)
 	units = units or 'meters'
 	
@@ -467,6 +880,12 @@ function Wherigo.Distance.new(value, units)
 		error("Unknown units used in Distance: " .. units)
 		end
 	
+	--- Conversion function to get distance in other units
+	-- @name GetValue
+	-- @class function
+	-- 
+	-- @param units String representation of units in which you want the result, default "meters"
+	-- @return Numeric representation of distance in required units
 	function self.GetValue(units)
 		if type(units) == 'table' then
 			units = units.units end
@@ -488,7 +907,7 @@ function Wherigo.Distance.new(value, units)
 		
 		end
 	
-	setmetatable(self, Wherigo.Distance_metatable)
+	setmetatable(self, Wherigo.Distance.metatable)
 	
 	return self
 	end
@@ -498,8 +917,14 @@ setmetatable(Wherigo.Distance, {
 		end
 	})
 
+
+
+--- Object representing ZCommand of ZObject
+-- @type Wherigo.ZCommand
 Wherigo.ZCommand = {}
-Wherigo.ZCommand_metatable = {
+--- Metatable for ZCommand objects. Implements index, newindex to watch 
+--   Enabled property and tostring
+Wherigo.ZCommand.metatable = {
 	__tostring = function(s)
 		return "a ZCommand instance"
 		end,
@@ -519,6 +944,10 @@ Wherigo.ZCommand_metatable = {
 		rawset(t, key, value)
 		end,
 }
+--- ZCommand object constructor. Sets allowed combination of parameters
+-- 
+--   @param table Parameters of command to set
+--   @return ZCommand object
 function Wherigo.ZCommand.new(table)
 	table = table or {}
 	-- ReciprocatedCmds
@@ -547,9 +976,12 @@ function Wherigo.ZCommand.new(table)
 			self._enabled = table.Enabled
 			end
 		end
-	setmetatable(self, Wherigo.ZCommand_metatable)
+	setmetatable(self, Wherigo.ZCommand.metatable)
 	return self;
 	end
+--- Check membership of given object to class ZCommand
+-- @param object Some object
+-- @return True if object is a member of class
 function Wherigo.ZCommand:made( object )
 	return (object._classname == Wherigo.CLASS_ZCOMMAND)
 	end
@@ -559,18 +991,31 @@ setmetatable(Wherigo.ZCommand, {
 		end
 	})
 
+
+
+--- ZReciprocalCommand object
+-- @type Wherigo.ZReciprocalCommand
 Wherigo.ZReciprocalCommand = {}
-Wherigo.ZReciprocalCommand_metatable = {
+--- Metatable for ZReciprocalCommand objects. Implements tostring
+Wherigo.ZReciprocalCommand.metatable = {
 	__tostring = function(s)
 		return "a ZReciprocalCommand instance"
 		end,
 }
+--- ZReciprocalCommand object constructor. Sets parameters from arguments.
+--   Not used in runtime.
+-- 
+--   @param table Parameters of command to set
+--   @return ZReciprocalCommand object
 function Wherigo.ZReciprocalCommand.new(table)
 	table = table or {}
 	local self = {}
-	setmetatable(self, Wherigo.ZReciprocalCommand_metatable)
+	setmetatable(self, Wherigo.ZReciprocalCommand.metatable)
 	return self;
 	end
+--- Check membership of given object to class ZReciprocalCommand
+-- @param object Some object
+-- @return True if object is a member of class
 function Wherigo.ZReciprocalCommand:made( object )
 	return (object._classname == Wherigo.CLASS_ZRECIPROCALCOMMAND)
 	end
@@ -582,8 +1027,12 @@ setmetatable(Wherigo.ZReciprocalCommand, {
 
 
 
+--- Base object for all next Z* objects
+-- @type Wherigo.ZObject
 Wherigo.ZObject = {} 
-Wherigo.ZObject_metatable = {
+--- Metatable for ZObject objects. Implements index and newindex to keep
+--   a track of desired properties and to invoke desired actions
+Wherigo.ZObject.metatable = {
 	__index = function(t, key)
 		if key == 'Active' then
 			return t._active
@@ -691,6 +1140,12 @@ Wherigo.ZObject_metatable = {
 		rawset(t, key, value)
 		end
 }
+--- ZObject constructor. Sets default values and parameters of all objects.
+--   Also can accept table argument with all values to set
+-- 
+--   @param cartridge ZCartridge object of global cartridge
+--   @param container Default location of object. Can be moved later by calling Wherigo.ZObject.MoveTo function
+--   @return ZObject
 function Wherigo.ZObject.new(cartridge, container )
 	local self = {}
 	if type(cartridge) == 'table' and not cartridge._classname then
@@ -736,6 +1191,7 @@ function Wherigo.ZObject.new(cartridge, container )
 	self.Description = self.Description or ""
 	self.Commands = self.Commands or {}
 	self.ObjectLocation = self.ObjectLocation or 0
+	self._classname = Wherigo.CLASS_ZOBJECT
 	if self.Visible == nil then
 		self.Visible = true
 		end
@@ -749,6 +1205,13 @@ function Wherigo.ZObject.new(cartridge, container )
 		ObjectLocation = Wherigo.INVALID_ZONEPOINT,
 		Visible = true,]]--
 	
+	--- Check weather obj is contained in self container (recursive search)
+	--   Special handling for Player and detecting if is in zone.
+	--
+	-- @name Contains
+	-- @class function
+	-- @param obj Object to check 
+	-- @return True if self contains obj
 	function self:Contains(obj)
 		if obj == Wherigo.Player then
 			return Wherigo.IsPointInZone(Wherigo.Player.ObjectLocation, self)
@@ -764,6 +1227,11 @@ function Wherigo.ZObject.new(cartridge, container )
 			p = p.Container
 			end
 		end
+	--- Move self object to another container or to nil
+	--
+	-- @name MoveTo
+	-- @class function
+	-- @param owner Destination container
 	function self:MoveTo(owner)
 		if owner ~= nil then
 			Wherigo.LogMessage("Move " .. self.Name .. " to " .. owner.Name)
@@ -773,6 +1241,11 @@ function Wherigo.ZObject.new(cartridge, container )
 		self.Container = owner
 		end
 	
+	--- Checks if self object is visible to player. Internal use only!
+	--
+	-- @name _is_visible
+	-- @class function
+	-- @return True if is object visible
 	function self._is_visible()
 		if not ( self.Visible or DEBUG) then
 			return false
@@ -793,6 +1266,11 @@ function Wherigo.ZObject.new(cartridge, container )
 		return true
 		end
 	
+	--- Return position of object. Recurs into Container property. Internal use only!
+	--
+	-- @name _get_pos
+	-- @class function
+	-- @return ZonePoint object or nil if is position of object undefined
 	function self._get_pos (exists)
 		if recurse == nil then
 			recurse = true
@@ -813,7 +1291,7 @@ function Wherigo.ZObject.new(cartridge, container )
 			end
 		end
 	
-	setmetatable(self, Wherigo.ZObject_metatable)
+	setmetatable(self, Wherigo.ZObject.metatable)
 	
 	-- initialization
 	if self.Cartridge == nil then
@@ -829,8 +1307,11 @@ function Wherigo.ZObject.new(cartridge, container )
 		end
 	return self
 	end
+--- Check membership of given object to class ZObject
+-- @param object Some object to test
+-- @return True if object is a member of class
 function Wherigo.ZObject:made( object )
-	return true
+	return object._classname == Wherigo.CLASS_ZOBJECT
 	end
 setmetatable(Wherigo.ZObject, {
 	__call = function(s, cartridge, container)
@@ -838,12 +1319,22 @@ setmetatable(Wherigo.ZObject, {
 		end
 })
 
+--- ZonePoint object
+-- @type Wherigo.ZonePoint
 Wherigo.ZonePoint = {} 
-Wherigo.ZonePoint_metatable = {
+--- Metatable for ZonePoint objects. Implements tostring as required by cartridges
+Wherigo.ZonePoint.metatable = {
 	__tostring = function(s)
 		return "a ZonePoint instance"
 		end
 }
+--- ZonePoint constructor. Creates new ZonePoint object defined by geographical
+--   coordinates and altitude.
+--
+--   @param	lat	Latitude
+--   @param lon	Longitude
+--   @param alt	Altitude
+--   @return 	ZonePoint object
 function Wherigo.ZonePoint.new(lat, lon, alt)
 	local self = { _classname = Wherigo.CLASS_ZONEPOINT}
 	self.latitude = lat
@@ -854,9 +1345,12 @@ function Wherigo.ZonePoint.new(lat, lon, alt)
 		self.altitude = alt
 		end
 	
-	setmetatable(self, Wherigo.ZonePoint_metatable)
+	setmetatable(self, Wherigo.ZonePoint.metatable)
 	return self
 	end
+--- Check membership of given object to class ZonePoint
+--   @param object Some object to test
+--   @return True if object is a member of class
 function Wherigo.ZonePoint:made( object )
 	return (object._classname == Wherigo.CLASS_ZONEPOINT)
 	end
@@ -866,20 +1360,23 @@ setmetatable(Wherigo.ZonePoint, {
 		end
 	}) 
 
-Wherigo.Zone = {
-	STATES = {
-		NotInRange,
-		Distant,
-		Proximity,
-		Inside
-		}
-	}
-Wherigo.Zone_metatable = {
+
+
+--- Zone object extends ZObject
+-- @type Wherigo.Zone
+Wherigo.Zone = {}
+--- Metatable for ZonePoint objects. Implements tostring as required by
+--   cartridges. Other metamethods are inherited from ZObject
+Wherigo.Zone.metatable = {
 	__tostring = function(s)
 		return "a Zone instance"
 		end
 }
-for k,v in pairs(Wherigo.ZObject_metatable) do Wherigo.Zone_metatable[k] = v end
+for k,v in pairs(Wherigo.ZObject.metatable) do Wherigo.Zone.metatable[k] = v end
+--- Zone constructor, extend ZObject. Creates new Zone object.
+--
+--   @param cartridge	global cartridge object
+--   @return 	Zone object
 function Wherigo.Zone.new(cartridge)
 	local self = Wherigo.ZObject.new(cartridge)
 	self._classname = Wherigo.CLASS_ZONE
@@ -910,6 +1407,10 @@ function Wherigo.Zone.new(cartridge)
 		events OnDistant, OnEnter, OnNotInRange, OnExit, OnProximity, OnSetActive
 	]]
 	
+	--- Computes minimum bounding rectangle of this zone. Internal use only!
+	--
+	-- @class function
+	-- @name Wherigo.Zone._calculateBoundingBox
 	function self._calculateBoundingBox()
 		if self.Points[1] ~= Wherigo.INVALID_ZONEPOINT then
 			self._xmin = self.Points[1].longitude
@@ -932,12 +1433,20 @@ function Wherigo.Zone.new(cartridge)
 			end
 		end
 	
-	setmetatable(self, Wherigo.Zone_metatable) 
+	setmetatable(self, Wherigo.Zone.metatable) 
 	return self
 	end
+--- Check membership of given object to class Zone
+--   @param object Some object to test
+--   @return True if object is a member of class
 function Wherigo.Zone:made( object )
 	return (object._classname == Wherigo.CLASS_ZONE)
 	end
+--- Update zone state depending on location update. Recalculate distance
+--   and change state if required
+--
+--   @param v	Zone object
+--   @return 	True if changed. Unused.
 function Wherigo.Zone._update( v )
 	local inside = Wherigo.IsPointInZone (Wherigo.Player.ObjectLocation, v)
 	--print(v.Name, inside, v._inside, v.OriginalPoint, Wherigo.Player.ObjectLocation)
@@ -1047,14 +1556,23 @@ setmetatable(Wherigo.Zone, {
 	}) 
 
 
-Wherigo.ZCartridge_metatable = {
+
+--- ZCartridge object extend ZObject
+-- @type Wherigo.ZCartridge
+Wherigo.ZCartridge = { }
+--- Metatable for ZCartridge object. Implements tostring as required by
+--   cartridges. Other metamethods are inherited from ZObject
+Wherigo.ZCartridge.metatable = {
 	__tostring = function(s)
 		return "a ZCartridge instance"
 		end
 }
-for k,v in pairs(Wherigo.ZObject_metatable) do Wherigo.ZCartridge_metatable[k] = v end
+for k,v in pairs(Wherigo.ZObject.metatable) do Wherigo.ZCartridge.metatable[k] = v end
 
-Wherigo.ZCartridge = { }
+--- ZCartridge constructor, extend ZObject. Creates new ZCartridge object
+--   and initializes all default values and structures for storing all game data
+--
+--   @return 	ZCartridge object
 function Wherigo.ZCartridge.new(  )
 	Wherigo.ZCartridge._store = true
 	local self = Wherigo.ZObject.new( ) 
@@ -1097,6 +1615,12 @@ function Wherigo.ZCartridge.new(  )
 	self._mediacount = 1
 	Wherigo.Player.Cartridge = self
 	
+	--- Request cartridge synchronization (store runtime data to file). 
+	--   Only accepts the request and waits for the end of lua call stack
+	--   and then stores data.
+	-- 
+	--   @class function
+	--   @name Wherigo.ZCartridge:RequestSync
 	function self:RequestSync()
 		Wherigo.LogMessage("ZCartridge:RequestSync")
 		if self.OnSync then
@@ -1107,6 +1631,11 @@ function Wherigo.ZCartridge.new(  )
 		WIGInternal.RequestSync();
 		end
 	
+	--- Request all Z* objects by type
+	-- 
+	--   @class function
+	-- @name Wherigo.ZCartridge:GetAllOfType
+	-- @param t Requested type
 	function self:GetAllOfType(t)
 		if t == "Zone" then
 			return self.AllZones
@@ -1119,20 +1648,14 @@ function Wherigo.ZCartridge.new(  )
 			end
 		end
 	
-	function self._setup_media()
-		self._sound = {}
-		self._image = {}
-		for k,v in pairs(self.AllZObjects) do
-			if v.resources then
-				if v.resources['Type'] == 'wav' or v.resources['Type'] == 'mp3' or v.resources['Type'] == 'fdl' then
-					self._sound[k] = v -- nastavit to co je z hlavicky gwc
-				else
-					self._image[k] = v
-					end
-				end
-			end
-		end
-	
+	--- Process position update. Internal use only!
+	-- 
+	--   @class function
+	--   @name Wherigo.ZCartridge._update
+	--   @param	position	ZonePoint object with player location
+	--   @param	t			Time to update timers
+	--   @param accuracy	GPS position accuracy
+	--   @return 	If something changed, request GUI update
 	function self._update(position, t, accuracy)
 		for k,v in pairs(self.AllZObjects) do
 			if v._classname == Wherigo.CLASS_ZTIMER and v._target ~= nil then
@@ -1159,9 +1682,12 @@ function Wherigo.ZCartridge.new(  )
 		return update_all
 		end
 	
-	setmetatable(self, Wherigo.ZCartridge_metatable) 
+	setmetatable(self, Wherigo.ZCartridge.metatable) 
 	return self
 	end
+--- Check membership of given object to class ZCartridge
+--   @param object Some object to test
+--   @return True if object is a member of class
 function Wherigo.ZCartridge:made( object )
 	return (object._classname == Wherigo.CLASS_ZCARTRIDGE)
 	end
@@ -1171,13 +1697,23 @@ setmetatable(Wherigo.ZCartridge, {
 		end
 	}) 
 
+--- ZMedia object extend ZObject
+-- @type Wherigo.ZMedia
 Wherigo.ZMedia = {}
-Wherigo.ZMedia_metatable = {
+--- Metatable for ZMedia objects. Implements tostring as required by
+--   cartridges. Other metamethods are inherited from ZObject
+Wherigo.ZMedia.metatable = {
 	__tostring  = function(s)
 		return "a ZMedia instance"
 		end
 }
-for k,v in pairs(Wherigo.ZObject_metatable) do Wherigo.ZMedia_metatable[k] = v end
+for k,v in pairs(Wherigo.ZObject.metatable) do Wherigo.ZMedia.metatable[k] = v end
+
+--- ZMedia constructor, extend ZObject. Creates new ZMedia object
+--   and initializes default values. Parameters can be in table.
+--
+--   @param cartridge ZCartridge object of global cartridge
+--   @return 	ZMedia object
 function Wherigo.ZMedia.new( cartridge )
 	self = Wherigo.ZObject.new(cartridge)
 	self._classname = Wherigo.CLASS_ZMEDIA
@@ -1193,10 +1729,13 @@ function Wherigo.ZMedia.new( cartridge )
 	if self.Cartridge._mediacount > 0 then
 		self.Cartridge._mediacount = self.Cartridge._mediacount + 1;
 		end
-	setmetatable(self, Wherigo.ZMedia_metatable) 
+	setmetatable(self, Wherigo.ZMedia.metatable) 
 
 	return self
 	end
+--- Check membership of given object to class ZMedia
+--   @param object Some object to test
+--   @return True if object is a member of class
 function Wherigo.ZMedia:made( object )
 	return (object._classname == Wherigo.CLASS_ZMEDIA)
 	end
@@ -1206,23 +1745,37 @@ setmetatable(Wherigo.ZMedia, {
 		end
 	}) 
 
+--- ZItem object extend ZObject
+-- @type Wherigo.ZItem
 Wherigo.ZItem = {}
-Wherigo.ZItem_metatable = {
+--- Metatable for ZItem objects. Implements tostring as required by
+--   cartridges. Other metamethods are inherited from ZObject
+Wherigo.ZItem.metatable = {
 	__tostring = function( s )
 		return "a ZItem instance"
 		end,
 }
-for k,v in pairs(Wherigo.ZObject_metatable) do Wherigo.ZItem_metatable[k] = v end
+for k,v in pairs(Wherigo.ZObject.metatable) do Wherigo.ZItem.metatable[k] = v end
+
+--- ZItem constructor, extend ZObject. Creates new ZItem object
+--   and initializes default values. Parameters can be in table.
+--
+--   @param cartridge ZCartridge object of global cartridge
+--   @param container Default container tu put
+--   @return 	ZItem object
 function Wherigo.ZItem.new( cartridge, container )
 	local self = Wherigo.ZObject.new(cartridge, container)
 	self._classname = Wherigo.CLASS_ZITEM
 	table.insert(self.Cartridge.AllZItems, self)
 	self._target = nil
 	
-	setmetatable(self, Wherigo.ZItem_metatable)
+	setmetatable(self, Wherigo.ZItem.metatable)
 	
 	return self
 	end
+--- Check membership of given object to class ZItem
+--   @param object Some object to test
+--   @return True if object is a member of class
 function Wherigo.ZItem:made( object )
 	return (object._classname == Wherigo.CLASS_ZITEM)
 	end
@@ -1232,15 +1785,27 @@ setmetatable(Wherigo.ZItem, {
 		end
 	})
 
+--- ZTask object extends ZObject
+-- @type Wherigo.ZTask
 Wherigo.ZTask = {
 	tasks = 0
 }
-Wherigo.ZTask_metatable = {
+--- Metatable for ZTask objects. Implements tostring as required by
+--   cartridges. Other metamethods are inherited from ZObject
+Wherigo.ZTask.metatable = {
 	__tostring = function( s )
 		return "a ZTask instance"
 		end,
 }
-for k,v in pairs(Wherigo.ZObject_metatable) do Wherigo.ZTask_metatable[k] = v end
+for k,v in pairs(Wherigo.ZObject.metatable) do Wherigo.ZTask.metatable[k] = v end
+
+--- ZTask constructor, extend ZObject. Creates new ZTask object
+--   and initializes default values. Parameters can be in table.
+--   Also keeps track of all tasks to set default SortOrder.
+--
+--   @param cartridge ZCartridge object of global cartridge
+--   @param container Default location of object. Can be moved later by calling Wherigo.ZObject.MoveTo function
+--   @return 	ZTask object
 function Wherigo.ZTask.new( cartridge, container )
 	-- export CompletedTime
 	local self = Wherigo.ZObject.new( cartridge, container )
@@ -1258,10 +1823,13 @@ function Wherigo.ZTask.new( cartridge, container )
 	self.CompletedTime = 0
 	
 	
-	setmetatable(self, Wherigo.ZTask_metatable)
+	setmetatable(self, Wherigo.ZTask.metatable)
 	-- events OnClick, SetCorrectState, OnSetComplete, OnSetActive
 	return self
 	end
+--- Check membership of given object to class ZTask
+--   @param object Some object to test
+--   @return True if object is a member of class
 function Wherigo.ZTask:made( object )
 	return (object._classname == Wherigo.CLASS_ZTASK)
 	end
@@ -1271,13 +1839,22 @@ setmetatable(Wherigo.ZTask, {
 		end
 	}) 
 
+--- ZTimer object extends ZObject
+-- @type Wherigo.ZTimer
 Wherigo.ZTimer = {}
-Wherigo.ZTimer_metatable = {
+--- Metatable for ZTask objects. Implements tostring as required by
+--   cartridges. Other metamethods are inherited from ZObject
+Wherigo.ZTimer.metatable = {
 	__tostring = function( s )
 		return "a ZTimer instance"
 		end,
 }
-for k,v in pairs(Wherigo.ZObject_metatable) do Wherigo.ZTimer_metatable[k] = v end
+for k,v in pairs(Wherigo.ZObject.metatable) do Wherigo.ZTimer.metatable[k] = v end
+--- ZTimer constructor, extend ZObject. Creates new ZTimer object
+--   and initializes default values. Parameters can be in table.
+--
+--   @param cartridge ZCartridge object of global cartridge
+--   @return 	ZTimer object
 function Wherigo.ZTimer.new(cartridge)
 	self = Wherigo.ZObject.new(cartridge)
 	self.Type = self.Type or 'Countdown' -- Countdown or Interval
@@ -1292,6 +1869,10 @@ function Wherigo.ZTimer.new(cartridge)
 	self._classname = Wherigo.CLASS_ZTIMER
 	self._target = nil -- target time
 	
+	--- Starts timer (countdown) and execute attached event
+	-- 
+	--   @class function
+	--   @name Wherigo.ZTimer:Start
 	function self:Start()
 		if self._target ~= nil then
 			Wherigo.LogMessage("ZTimer <" .. self.Name .. " (" .. self.ObjIndex .. ")>: Not starting. Already running")
@@ -1309,8 +1890,12 @@ function Wherigo.ZTimer.new(cartridge)
 		-- call native timer
 		self._target = WIGInternal.addTimer(self.Remaining, self.ObjIndex)
 		self.StartTime = WIGInternal.getTime()
-		self.Runnint = 1
+		self.Running = 1
 		end
+	--- Stops this timer and execute attached event
+	-- 
+	--   @class function
+	--   @name Wherigo.ZTimer:Stop
 	function self:Stop()
 		if self._target == nil then
 			Wherigo.LogMessage("ZTimer <" .. self.Name .. " (" .. self.ObjIndex .. ")>: Not stopping. Not running")
@@ -1328,6 +1913,11 @@ function Wherigo.ZTimer.new(cartridge)
 			end
 		
 		end
+	--- Timer expired. Desired action is executed and timer reset.
+	--   if type is interval, then it starts again
+	-- 
+	--   @class function
+	--   @name Wherigo.ZTimer:Tick
 	function self:Tick()
 		Wherigo.LogMessage("ZTimer <" .. self.Name .. " (" .. self.ObjIndex .. ")>: Tick")
 		if self.Type == 'Interval' then
@@ -1350,10 +1940,13 @@ function Wherigo.ZTimer.new(cartridge)
 			end
 		end
 
-	setmetatable(self, Wherigo.ZTimer_metatable)
+	setmetatable(self, Wherigo.ZTimer.metatable)
 	
 	return self
 	end
+--- Check membership of given object to class ZTimer
+--   @param object Some object to test
+--   @return True if object is a member of class
 function Wherigo.ZTimer:made( object )
 	return (object._classname == Wherigo.CLASS_ZTIMER)
 	end
@@ -1362,19 +1955,32 @@ setmetatable(Wherigo.ZTimer, {
 		return Wherigo.ZTimer.new(cartridge)
 		end
 	})
+--- Internaly used function to call from C API.
+--   Calls desired Tick event by given id in AllZObjects table
+--
+--   @param id	ID from AllZobjects table
 function Wherigo.ZTimer._Tick(id)
 	local t = cartridge.AllZObjects[id]
 	if t._classname == Wherigo.CLASS_ZTIMER then
 		t.Tick(t) end
 	end
 
+--- ZInput object extends ZObject
+-- @type Wherigo.ZInput
 Wherigo.ZInput = {}
-Wherigo.ZInput_metatable = {
+--- Metatable for ZInput objects. Implements tostring as required by
+--   cartridges. Other metamethods are inherited from ZObject
+Wherigo.ZInput.metatable = {
 	__tostring = function( s )
 		return "a ZInput instance"
 		end,
 }
-for k,v in pairs(Wherigo.ZObject_metatable) do Wherigo.ZInput_metatable[k] = v end
+for k,v in pairs(Wherigo.ZObject.metatable) do Wherigo.ZInput.metatable[k] = v end
+--- Zinput constructor, extend ZObject. Creates new Zinput object
+--   and initializes default values. Parameters can be in table.
+--
+--   @param cartridge ZCartridge object of global cartridge
+--   @return 	ZTimer object
 function Wherigo.ZInput.new( cartridge )
 	local self = Wherigo.ZObject.new( cartridge )
 	self._classname = Wherigo.CLASS_ZINPUT
@@ -1382,10 +1988,13 @@ function Wherigo.ZInput.new( cartridge )
 	OnGetInput event
 	]]
 	self.Choices = {}
-	setmetatable(self, Wherigo.ZInput_metatable)
+	setmetatable(self, Wherigo.ZInput.metatable)
 	
 	return self
 	end
+--- Check membership of given object to class ZInput
+--   @param object Some object to test
+--   @return True if object is a member of class
 function Wherigo.ZInput:made( object )
 	return (object._classname == Wherigo.CLASS_ZINPUT)
 	end
@@ -1395,13 +2004,24 @@ setmetatable(Wherigo.ZInput, {
 		end
 	})
 
+
+--- ZCharacter object extends ZObject
+-- @type Wherigo.ZCharacter
 Wherigo.ZCharacter = {}
-Wherigo.ZCharacter_metatable = {
+--- Metatable for ZCharacter objects. Implements tostring as required by
+--   cartridges. Other metamethods are inherited from ZObject
+Wherigo.ZCharacter.metatable = {
 	__tostring = function( s )
 		return "a ZCharacter instance"
 		end,
 }
-for k,v in pairs(Wherigo.ZObject_metatable) do Wherigo.ZCharacter_metatable[k] = v end
+for k,v in pairs(Wherigo.ZObject.metatable) do Wherigo.ZCharacter.metatable[k] = v end
+--- ZCharacter constructor, extend ZObject. Creates new ZCharacter object
+--   and initializes default values. Parameters can be in table.
+--
+--   @param cartridge ZCartridge object of global cartridge
+--   @param container Default container for character
+--   @return 	ZCharacter object
 function Wherigo.ZCharacter.new( cartridge, container )
 	self = Wherigo.ZObject.new(cartridge, container)
 	self._classname = Wherigo.CLASS_ZCHARACTER
@@ -1418,6 +2038,9 @@ function Wherigo.ZCharacter.new( cartridge, container )
 	
 	return self
 	end
+--- Check membership of given object to class ZCharacter
+--   @param object Some object to test
+--   @return True if object is a member of class
 function Wherigo.ZCharacter:made( object )
 	return (object._classname == Wherigo.CLASS_ZCHARACTER)
 	end
@@ -1429,6 +2052,12 @@ setmetatable(Wherigo.ZCharacter, {
 
 --WIGInternal = {}
 
+--- Global object representing player as ZCharacter with position.
+-- 
+--   @type Wherigo.Player
+--   @field CompletionCode - Secret code to unlock cartridge on wherigo portal. Set from GWC head
+--   @field ObjIndex = 0xabcd - taken from savegame. Since Player is created before ZCartridge, it can't be numbered as other objects
+--   @field Name Username of player, it was downloaded for
 Wherigo.Player = Wherigo.ZCharacter.new()
 Wherigo.Player.Name = Env._Player
 Wherigo.Player.Id = -1
@@ -1439,12 +2068,14 @@ Wherigo.Player.CurrentBearing = nil
 Wherigo.Player.PositionAccuracy = Wherigo.Distance(5)
 Wherigo.Player.ObjIndex = 0xabcd -- ID taken from Emulator to identify references
 
--- should be for correctness, but I can't simply detect this value
-Wherigo._INVALID_ZONEPOINT = Wherigo.ZonePoint(360,360,360)
-
+--- Request new position update for special application. Required by some
+--   cartridges. There is not implemented since I can't see point in it.
 function Wherigo.Player:RefreshLocation()
 	-- request refresh location ... useless?
 	end
+--- Remove zone from InsideOfZones table of Player. Required for runtime 
+--   for some cartridges and used for savegame. Internal use only!
+--   @param zone Zone object to remove
 function Wherigo.Player._removeFromZone(zone)
 	for i,t in pairs(Wherigo.Player.InsideOfZones) do
 		if t == zone then
@@ -1454,251 +2085,6 @@ function Wherigo.Player._removeFromZone(zone)
 	end
 
 
---[[
-for k,v in pairs(cartridge) do print(k,v) end
-for k,v in pairs(Wherigo.Player.Inventory) do print(k,v) end
-for k,v in pairs(Env.__propset) do print(k,v) end
-for k,v in pairs(_G) do print(k,v) end
-for k,v in pairs(zonePaloucek) do print(k,v) end
-for k,v in pairs(itemDum1.Commands.Akce1) do print(k,v) end
+-- should be for correctness, but I can't simply detect this value
+Wherigo._INVALID_ZONEPOINT = Wherigo.ZonePoint(360,360,360)
 
-for k,v in pairs(cartridge.AllZObjects) do print(k,v, v.Active, v.Visible) end
-for k,v in pairs(cartridge.AllZObjects) do print(k,v, v.ObjIndex, cartridge.AllZObjects[k]) end
-]]
-
--- After runing script, setup media ?
-
--- onClick, Commands
-Wherigo._callback = function(event, id)
-	local t = cartridge.AllZObjects[id]
-	if event == "Click" then
-		if t.OnClick then
-			Wherigo.LogMessage(t._classname .. " <" .. t.Name .. "> ZCommand: On" .. event .. " START")
-			t["On" .. event](t)
-			Wherigo.LogMessage(t._classname .. " <" .. t.Name .. "> ZCommand: On" .. event .. " END__")
-			end
-	else
-		if t then
-			local command = tonumber(event) or event
-			local c = t.Commands[command]
-			if not c.CmdWith then
-				if t["On" .. event] then
-					Wherigo.LogMessage(t._classname .. " <" .. t.Name .. "> ZCommand: On" .. event .. " START")
-					t["On" .. event](t)
-					Wherigo.LogMessage(t._classname .. " <" .. t.Name .. "> ZCommand: On" .. event .. " END__")
-				else
-					Wherigo.LogMessage(t._classname .. " <" .. t.Name .. "> ZCommand: On" .. event .. " [no script]")
-					end
-			else
-				--local list = {}
-				local choices = ""
-				if c.WorksWithAll then
-					for k,v in pairs(cartridge.AllZObjects) do
-						if (v.Visible and v.Container == Wherigo.Player) or v._is_visible() then
-							--table.insert(list, v);
-							if # choices ~= 0 then
-								choices = choices .. ";"
-								end
-							choices = choices .. v.Name
-							end
-						end
-				elseif c.WorksWithList then
-					for k,v in pairs(c.WorksWithList) do
-						if (v.Visible and v.Container == Wherigo.Player) or v._is_visible() then
-							--table.insert(list, v);
-							if # choices ~= 0 then
-								choices = choices .. ";"
-								end
-							choices = choices .. v.Name
-							end
-						end
-				else
-					Wherigo.LogMessage(c.Text .. " Works with nothing??")
-					end
-				if # choices == 0 then
-					WIGInternal.Dialog( c.EmptyTargetListText, "")
-					return
-					end
-				Wherigo.LogMessage(t._classname .. " <" .. t.Name .. ">: CommandWith prompt")
-				table.insert(Wherigo._GICallbacks, Wherigo._Internal)
-				table.insert(Wherigo._CMDWithCallbacks, t["On" .. event])
-				WIGInternal.GetInput("MultipleChoice", "Choose what to command with", choices, "");
-				end
-			end
-		end
-	end
-Wherigo._CMDWithCallbacks = {}
-Wherigo._Internal = { Name = "CMDWith (internal)"}
-Wherigo._Internal.OnGetInput = function(self, choice)
-	Wherigo.LogMessage("Choice CMDwith: " .. choice)
-	if # Wherigo._CMDWithCallbacks > 0 then
-		local event = table.remove(Wherigo._CMDWithCallbacks)
-		for k,v in pairs(cartridge.AllZObjects) do
-			if ((v.Visible and v.Container == Wherigo.Player) or v._is_visible()) and v.Name == choice then
-				Wherigo.LogMessage("ZCommand <??>: ?? with [" .. v.Name .. "] START")
-				event(nil, v);
-				Wherigo.LogMessage("ZCommand <??>: ?? with [" .. v.Name .. "] END__")
-				return
-				end
-			end
-		end
-	end
-
-Wherigo._getMediaField = function(field, t)
-	if t then
-		return ", \"" .. field .. "\": \"" .. --[[Env.CartFolder ..]] t._id .. "." .. t.Resources[1].Type .. "\""
-	else
-		return "" end
-	end
-
-Wherigo._addCommands = function(item)
-	v = ", \"commands\": ["
-	first = true
-	if item.Commands then
-		for id,c in pairs(item.Commands) do
-			if c.Enabled then
-				if not first then
-					v = v .. "," end
-				v = v .. "{\"id\": \"" .. id .. "\", \"text\": \"" .. c.Text .. "\"}"
-				first = false
-				end
-			end
-		end
-	return v .. "]"
-	end
-
-Wherigo._bool2str = function( b )
-	if b then return "true"
-	else return "false" end
-	end
-	
-Wherigo._toJSON = function(str)
-	if str ~= nil then
-		return WIGInternal.escapeJsonString(str)
-	else
-		return ""
-		end
-	end
-
-Wherigo._getUI = function()
-	--[[for k,v in pairs(cartridge.AllZObjects) do
-		print(v)
-		if v._classname == Wherigo.CLASS_ZMEDIA and v.Resources then
-			print(v.Resources[1].Type, v.Resources[1].Filename) end
-		end]]
-	return --"{" ..
-		"\"locations\": " .. Wherigo._getLocations() .. ", "
-		.. "\"youSee\": " .. Wherigo._getYouSee() .. ", "
-		.. "\"inventory\": " .. Wherigo._getInventory() .. ", "
-		.. "\"tasks\": " .. Wherigo._getTasks() -- .. "}"
-		-- it is just without brackets around, so c++ can add more fields
-	end
-
-Wherigo._getLocations = function()
-	local locations = "["
-	local first = true
-	for k,v in pairs(cartridge.AllZObjects) do
-		if v._classname == Wherigo.CLASS_ZONE and ((v.Active and v.Visible) or DEBUG) then
-			if not first then
-				locations = locations .. "," end
-			locations = locations .. "{\"name\": \"" .. Wherigo._toJSON(v.Name) .. "\""
-				.. ", \"description\": \"" .. Wherigo._toJSON(v.Description) .. "\""
-			if v.OriginalPoint then
-				locations = locations .. ", \"lat\": " .. v.OriginalPoint.latitude .. ", \"lon\": " .. v.OriginalPoint.longitude
-				end
-			if v.State == 'Inside' then
-				locations = locations .. ", \"distance\": 0, \"bearing\": 0"
-			else
-				locations = locations .. ", \"distance\": " .. v.CurrentDistance("m") .. ", \"bearing\": " .. v.CurrentBearing("m")
-				end
-			locations = locations
-				.. Wherigo._getMediaField("media", v.Media)
-				.. Wherigo._getMediaField("icon", v.Icon)
-				.. Wherigo._addCommands(v)
-				.. ", \"id\": \"" .. k .. "\""
-				.. "}"
-			first = false
-			end
-		end
-	return locations .. "]"
-end
-
-Wherigo._getInventory = function()
-	local inventory = "["
-	local first = true
-	for k,v in pairs(cartridge.AllZObjects) do
-		if ( v.Visible or DEBUG) and v.Container == Wherigo.Player then
-			if not first then
-				inventory = inventory .. "," end
-			inventory = inventory .. "{\"name\": \"" .. Wherigo._toJSON(v.Name)
-				.. "\", \"description\": \"" .. Wherigo._toJSON(v.Description) .. "\""
-				.. Wherigo._getMediaField("media", v.Media)
-				.. Wherigo._getMediaField("icon", v.Icon)
-				.. Wherigo._addCommands(v)
-				.. ", \"id\": \"" .. k .. "\""
-			if v.OnClick then
-				inventory = inventory .. ", \"onclick\": true"
-				end
-			inventory = inventory .. "}"
-			first = false
-			end
-		end
-	
-	return inventory .. "]"
-end
-
-Wherigo._getYouSee = function()
-	local yousee = "["
-	local first = true
-	for k,v in pairs(cartridge.AllZObjects) do
-		if v._is_visible() and v.Container ~= Wherigo.Player then
-			if not first then
-				yousee = yousee .. "," end
-			yousee = yousee .. "{\"name\": \"" .. Wherigo._toJSON(v.Name)
-				.. "\", \"description\": \"" .. Wherigo._toJSON(v.Description) .. "\""
-				.. Wherigo._getMediaField("media", v.Media)
-				.. Wherigo._getMediaField("icon", v.Icon)
-				.. Wherigo._addCommands(v)
-				.. ", \"id\": \"" .. k .. "\""
-			pos = v._get_pos()
-			if pos and v.CurrentDistance then
-				yousee = yousee .. ", \"distance\": " .. v.CurrentDistance("m")
-					.. ", \"bearing\": " .. v.CurrentBearing("m")
-					.. ", \"lat\": " .. pos.latitude
-					.. ", \"lon\": " .. pos.longitude
-				end
-			if v.OnClick then
-				yousee = yousee .. ", \"onclick\": true"
-				end
-			yousee = yousee .. "}"
-			first = false
-			end
-		end
-	
-	return yousee .. "]"
-end
-
-Wherigo._getTasks = function()
-	local tasks = "["
-	local first = true
-	for k,v in pairs(cartridge.AllZObjects) do
-		if v._classname == Wherigo.CLASS_ZTASK and v.Visible then
-			if not first then
-				tasks = tasks .. "," end
-			tasks = tasks .. "{\"name\": \"" .. Wherigo._toJSON(v.Name) .. "\""
-				.. ", \"description\": \"" .. Wherigo._toJSON(v.Description) .. "\""
-				.. Wherigo._getMediaField("media", v.Media)
-				.. Wherigo._getMediaField("icon", v.Icon)
-				.. Wherigo._addCommands(v)
-				.. ", \"id\": \"" .. k .. "\""
-				.. ", \"sort\": \"" .. v.SortOrder .. "\""
-				.. ", \"complete\": " .. Wherigo._bool2str(v.Complete)
-			if v.OnClick then
-				tasks = tasks .. ", \"onclick\": true"
-				end
-			tasks = tasks .. "}"
-			first = false
-			end
-		end
-	return tasks .. "]"
-end
