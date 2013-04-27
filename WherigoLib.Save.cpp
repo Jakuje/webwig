@@ -125,7 +125,6 @@ void serialize_table(fileWriter *sf, bool all){
 						|| ( strcmp(classname, "ZCartridge") == 0 && (
 							strcmp(name, "RequestSync") == 0
 							|| strcmp(name, "GetAllOfType") == 0
-							|| strcmp(name, "CompletionCode") == 0
 							|| string(name).compare(0, 4, "AllZ") == 0))
 						|| ( strcmp(classname, "ZMedia") == 0 &&
 							strcmp(name, "Resources") == 0
@@ -133,9 +132,10 @@ void serialize_table(fileWriter *sf, bool all){
 						|| ( strcmp(classname, "Distance") == 0 &&
 							strcmp(name, "GetValue") == 0
 							)
-						|| ( strcmp(classname, "ZCharacter") == 0 &&
+						|| ( strcmp(classname, "ZCharacter") == 0 && (
 							strcmp(name, "RefreshLocation") == 0
-							)
+							|| strcmp(name, "CompletionCode") == 0
+							))
 						|| ( strcmp(classname, "Zone") == 0 &&
 							strcmp(name, "Inside") == 0
 							)
