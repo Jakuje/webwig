@@ -772,7 +772,7 @@ end
 
 
 
---- Object representing a bearing in degrees
+--- Object representing a bearing in degrees.
 -- @type Wherigo.Bearing
 Wherigo.Bearing = {}
 --- Metatable for Bearing objects. Implements arithmetic, call and tostring 
@@ -823,7 +823,7 @@ setmetatable(Wherigo.Bearing, {
 
 
 
---- Object representing distance in meters
+--- Object representing distance in meters.
 -- @type Wherigo.Distance
 Wherigo.Distance = {}
 --- Metatable for Distance objects. Implements arithmetic, comparison, call
@@ -919,7 +919,7 @@ setmetatable(Wherigo.Distance, {
 
 
 
---- Object representing ZCommand of ZObject
+--- Object representing ZCommand of ZObject.
 -- @type Wherigo.ZCommand
 Wherigo.ZCommand = {}
 --- Metatable for ZCommand objects. Implements index, newindex to watch 
@@ -1027,7 +1027,7 @@ setmetatable(Wherigo.ZReciprocalCommand, {
 
 
 
---- Base object for all next Z* objects
+--- Base object for all next Z* objects. Implements all common
 -- @type Wherigo.ZObject
 Wherigo.ZObject = {} 
 --- Metatable for ZObject objects. Implements index and newindex to keep
@@ -1319,7 +1319,7 @@ setmetatable(Wherigo.ZObject, {
 		end
 })
 
---- ZonePoint object
+--- ZonePoint object representing geographical point on sphere
 -- @type Wherigo.ZonePoint
 Wherigo.ZonePoint = {} 
 --- Metatable for ZonePoint objects. Implements tostring as required by cartridges
@@ -1362,7 +1362,7 @@ setmetatable(Wherigo.ZonePoint, {
 
 
 
---- Zone object extends ZObject
+--- Zone object extends ZObject. Location, defined with 3 or more ZonePoint.
 -- @type Wherigo.Zone
 Wherigo.Zone = {}
 --- Metatable for ZonePoint objects. Implements tostring as required by
@@ -1557,7 +1557,8 @@ setmetatable(Wherigo.Zone, {
 
 
 
---- ZCartridge object extend ZObject
+--- ZCartridge object extend ZObject. Global cartridge object to store all
+--   game data.
 -- @type Wherigo.ZCartridge
 Wherigo.ZCartridge = { }
 --- Metatable for ZCartridge object. Implements tostring as required by
@@ -1697,7 +1698,7 @@ setmetatable(Wherigo.ZCartridge, {
 		end
 	}) 
 
---- ZMedia object extend ZObject
+--- ZMedia object extend ZObject. Media object with defined resources.
 -- @type Wherigo.ZMedia
 Wherigo.ZMedia = {}
 --- Metatable for ZMedia objects. Implements tostring as required by
@@ -1745,7 +1746,8 @@ setmetatable(Wherigo.ZMedia, {
 		end
 	}) 
 
---- ZItem object extend ZObject
+--- ZItem object extend ZObject. Item that can be seen or that can be in
+--   inventory. This can have also some ZCommands.
 -- @type Wherigo.ZItem
 Wherigo.ZItem = {}
 --- Metatable for ZItem objects. Implements tostring as required by
@@ -1785,7 +1787,8 @@ setmetatable(Wherigo.ZItem, {
 		end
 	})
 
---- ZTask object extends ZObject
+--- ZTask object extends ZObject. Tasks given to player. Showing or hiding,
+--   but keeps user in track what to do.
 -- @type Wherigo.ZTask
 Wherigo.ZTask = {
 	tasks = 0
@@ -1839,7 +1842,7 @@ setmetatable(Wherigo.ZTask, {
 		end
 	}) 
 
---- ZTimer object extends ZObject
+--- ZTimer object extends ZObject. Can invoke action in some time.
 -- @type Wherigo.ZTimer
 Wherigo.ZTimer = {}
 --- Metatable for ZTask objects. Implements tostring as required by
@@ -1965,7 +1968,8 @@ function Wherigo.ZTimer._Tick(id)
 		t.Tick(t) end
 	end
 
---- ZInput object extends ZObject
+--- ZInput object extends ZObject. Request input from user. Can be text or
+--   multiple choice
 -- @type Wherigo.ZInput
 Wherigo.ZInput = {}
 --- Metatable for ZInput objects. Implements tostring as required by
@@ -2005,7 +2009,8 @@ setmetatable(Wherigo.ZInput, {
 	})
 
 
---- ZCharacter object extends ZObject
+--- ZCharacter object extends ZObject. Player or other character to be seen in 
+--   inventory or in nearby zones.
 -- @type Wherigo.ZCharacter
 Wherigo.ZCharacter = {}
 --- Metatable for ZCharacter objects. Implements tostring as required by
