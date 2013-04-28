@@ -104,6 +104,7 @@ run:
 clean:
 	$(RMDIR) STAGING
 	$(RM) $(PLUGIN)
+	$(RM) gws2xml
 	make -C lua clean
 	$(RM) *.o
 	$(RM) liblua.a
