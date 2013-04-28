@@ -90,14 +90,12 @@ enyo.kind({
 	},
 	
 	showMap: function(inSender, inEvent){
-		this.owner.$.mappingTool.call({
-			'id': 'de.metaviewsoft.maptool',
-			'params': [{
-				"name": this.data.name,
-				"lat": this.data.latitude,
-				"lon": this.data.longitude
-			}],
-		});
+		this.owner.showMap( [{
+			"name": this.data.name,
+			"lat": this.data.latitude,
+			"lon": this.data.longitude
+		}]);
+		
 	},
 	
 	goBack: function(inSender, inEvent){

@@ -22,7 +22,7 @@ enyo.kind({
 					flex: 1, value: 1, onChange: "prefsChange", items: [
 						{caption: "Bearing", value: 1},
 						{caption: "North", value: 2},
-						{caption: "Magnetic bearing", value: 3}
+						//{caption: "Magnetic bearing", value: 3},
 					]}
 				]},
 			]},
@@ -30,6 +30,16 @@ enyo.kind({
 				{kind: "HFlexBox", align: "center", components: [
 					{content: "Units", className: "enyo-menucheckitem-caption", flex: 1},
 					{name: "units", pack: "end", kind: "ToggleButton", onChange: "prefsChange", onLabel: "Metric", offLabel: "Imperial"}
+				]},
+			]},
+			{kind: "RowGroup", caption: "Maps", components: [
+				{kind: "HFlexBox", align: "center", components: [
+					{name: "map", label: "application", kind: "ListSelector",
+					flex: 1, value: 1, onChange: "prefsChange", items: [
+						{caption: "Maping Tool", value: MAP_MAP_TOOL},
+						{caption: "HP Maps", value: MAP_HP},
+						{caption: "Google Maps", value: MAP_GOOGLE},
+					]}
 				]},
 			]},
 			{kind: "RowGroup", caption: "Behavior", components: [
@@ -53,6 +63,7 @@ enyo.kind({
 		this.$.gps.setState( this.owner.getPrefs('gps') );
 		this.$.compass.setValue( this.owner.getPrefs('compass') );
 		this.$.units.setState( this.owner.getPrefs('units') );
+		this.$.map.setValue( this.owner.getPrefs('map') );
 		this.$.orientation.setValue( this.owner.getPrefs('orientation') );
 	},
 	

@@ -3,6 +3,10 @@ const CONF_DIR = DATA_DIR;
 const DEBUG = false;
 const PREFS_COOKIE = "appPrefs";
 
+const MAP_MAP_TOOL = 1;
+const MAP_HP = 2;
+const MAP_GOOGLE = 3;
+
 enyo.kind({
 	name: "WIGApp",
 	kind: "VFlexBox",
@@ -37,11 +41,20 @@ enyo.kind({
 			/*{kind: "HelpMenu", target: "http://jakuje.dta3.com"}*/
 		]},
 		{
-			name: "mappingTool",
+			name: "mapTool",
 			kind: "PalmService",
-			service: "palm://com.palm.applicationManager",
+			service: "palm://com.palm.applicationManager/",
 			method: "launch",
-			onFailure: "mappingToolFailed"
+			onFailure: "mapToolFallback",
+			onSuccess: "mapSuccess",
+		},
+		{
+			name: "launcher",
+			kind: "PalmService",
+			service: "palm://com.palm.applicationManager/",
+			method: "open",
+			onFailure: "mapFailed",
+			onSuccess: "mapSuccess",
 		},
 		{ kind: enyo.ApplicationEvents,
 			onBack: "goBack",
@@ -269,12 +282,75 @@ enyo.kind({
 	doRefresh: function(){
 		this.$.cList.refreshClicked();
 	},
-	mappingToolFailed: function(){
-		this.owner.owner.popupMessage( new WIGApp.Dialog("Failed to open Mapping Tool. Not installed?", "Error") );
+	
+	tmp_params: null,
+	showMap: function( params ){
+		switch( this.getPrefs("map") ){
+			case MAP_MAP_TOOL:
+				this.$.mapTool.onFailure = "mapToolFallback";
+				tmp_params = params;
+				this.$.mapTool.call({
+					'id': 'de.metaviewsoft.maptoolpro',
+					'params': params,
+				});
+				break;
+			case MAP_HP:
+				var lat = 0;
+				var lon = 0;
+				for( i in params ){
+					lat += params[i].lat;
+					lon += params[i].lon;
+				}
+				lat = lat / params.length;
+				lon = lon / params.length;
+				this.$.launcher.call({
+					'id': 'com.palm.app.maps',
+					'params': {
+						"query": lat + " " + lon,
+						"zoom": "17"
+					},
+				});
+				break;
+			case MAP_GOOGLE:
+				var lat = 0;
+				var lon = 0;
+				for( i in params ){
+					lat += params[i].lat;
+					lon += params[i].lon;
+				}
+				lat = lat / params.length;
+				lon = lon / params.length;
+				var dest = "http://maps.google.com/?q=" + lat + "%20" + lon;
+				this.$.launcher.call({
+					"id": "com.palm.app.browser",
+					'params': {
+						"target": dest,
+					},
+				});
+				break;
+			default:
+				this.popupMessage( new WIGApp.Dialog("No mapping app specified. Please choose one in preferences.", "Error") );
+				break;
+		}
+	},
+	mapToolFallback: function(inSender, inResponse){
+		console.error("map failde, results=" + enyo.json.stringify(inResponse));
+		this.$.mapTool.onFailure = this.mapFailed;
+		this.$.mapTool.call({
+			'id': 'de.metaviewsoft.maptool',
+			'params': tmp_params,
+		});
+	},
+	mapFailed: function(inSender, inResponse){
+		this.popupMessage( new WIGApp.Dialog("Failed to open Mapping app. Not installed?", "Error") );
+		//console.error("map failde, results=" + enyo.json.stringify(inResponse));
+	},
+	mapSuccess: function(inSender, inResponse){
+		console.error("map success, results=" + enyo.json.stringify(inResponse));
 	},
 	
 	prefs: null,
-	default_prefs: {"gps": true, "compass": 1, "units": true, "type": "All", "state": "All", "lat": "49", "lon": "16", "orientation": "up"},
+	default_prefs: {"gps": true, "compass": 1, "units": true, "type": "All", "state": "All", "lat": "49", "lon": "16", "map": MAP_MAP_TOOL, "orientation": "up"},
 	getPrefs: function(key){
 		if( !this.prefs ){
 			try {

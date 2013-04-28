@@ -341,10 +341,7 @@ enyo.kind({
 		result = enyo.json.parse(JSONdata);
 		console.error(JSONdata);
 		if( result ) {
-			this.owner.$.mappingTool.call({
-				'id': 'de.metaviewsoft.maptool',
-				'params': result,
-			});
+			this.owner.showMap(result);
 			console.error("***** WIG Enyo: showMap OK ...");
 		} else {
 			console.error("***** WIG Enyo: Unknown result of showMap");
