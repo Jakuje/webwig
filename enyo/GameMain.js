@@ -24,7 +24,7 @@ enyo.kind({
 			{kind: "Spacer"},
 			{name: "GPSStatus", kind: "ToggleButton", onChange: "switchGPS"}
 		]},
-		{name: "pane", kind: "Pane", flex: 1,
+		{name: "pane", kind: "Pane", flex: 1, onSelectView: "viewSelected",
 			components: [
 				{name: "gMain", className: "enyo-bg", kind: "WIGApp.GameMain.HomeScreen"},
 				{name: "gList", className: "enyo-bg", kind: "WIGApp.GameMain.List"},
@@ -34,6 +34,7 @@ enyo.kind({
 	],
 	data: [],
 	details: [],
+	magnetic: false,
 	create: function(){
 		this.inherited(arguments);
 	},
@@ -46,6 +47,26 @@ enyo.kind({
 	
 	setup: function(data){
 		this.details = data;
+	},
+	
+	viewSelected: function(inSender, inView, inPreviousView) {
+		if( inPreviousView.name == "gDetail"){
+			// unsubscribe from compass update
+			if( window.PalmSystem && this.magnetic){
+				document.removeEventListener('compass', enyo.bind(this.$.gDetail, this.$.gDetail.compassHandler), false);
+				this.magnetic = false;
+				console.error("Unsubscribe compass");
+			}
+		}
+		if( inView.name == "gDetail" ){
+			// subscribe to compass rotate update
+			if( window.PalmSystem && this.owner.getPrefs("compass") == 3 ){
+				this.magnetic = true;
+				document.addEventListener('compass', enyo.bind(this.$.gDetail, this.$.gDetail.compassHandler), false);
+				console.error("Subscribe compass");
+			}
+		}
+			
 	},
 	
 	updateUI: function(data){

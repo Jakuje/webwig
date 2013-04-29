@@ -22,7 +22,7 @@ enyo.kind({
 					flex: 1, value: 1, onChange: "prefsChange", items: [
 						{caption: "Bearing", value: 1},
 						{caption: "North", value: 2},
-						//{caption: "Magnetic bearing", value: 3},
+						{caption: "Magnetic", value: 3},
 					]}
 				]},
 			]},

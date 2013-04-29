@@ -243,7 +243,7 @@ enyo.kind({
 		inEvent.stopPropagation();
 
 		// we are on home page and we want to go to card view
-		if( this.$.pane.getViewName() !=  "cList" ){
+		if( this.$.pane.getViewName() !=  "Main" ){
 			inEvent.preventDefault();
 		}
 

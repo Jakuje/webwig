@@ -80,7 +80,7 @@ enyo.kind({
 			this.$.distance.setContent( this.owner.owner.$.utils.FormatDistance(data.distance) );
 			if( this.owner.owner.getPrefs("compass") == 1 ){
 				this.$.bearingBackground.applyStyle("-webkit-transform", "rotate(" + -this.owner.data.gps.heading + "deg)");
-			} else {
+			} else if( this.owner.owner.getPrefs("compass") == 2 ){
 				this.$.bearingBackground.applyStyle("-webkit-transform", "rotate(0deg)");
 			}
 			this.$.bearingArrow.applyStyle("-webkit-transform", "rotate(" + data.bearing + "deg)");
@@ -156,5 +156,9 @@ enyo.kind({
 		} else {
 			//console.error(inEvent.charCode, inEvent.keyCode);
 		}
-	}
+	},
+	compassHandler: function(event) {
+		this.$.bearingBackground.applyStyle("-webkit-transform", "rotate(" + -event.trueHeading + "deg)");
+		console.error("comapassEvent heading: " + enyo.json.stringify(event.trueHeading));
+	},
 });
