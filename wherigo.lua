@@ -1,7 +1,7 @@
 --- Wherigo Library, backward compatible with Wherigo Library by Groundspeak
 --   @module Wherigo
---   @author Jakub Jelen <jakuje@gmail.com>
---   @copyright 2012 - 2013 ???
+--   @author Jakub Jelen <a href="jakuje@gmail.com">jakuje@gmail.com</a>
+--   @copyright 2012 - 2013
 -- 
 
 --- Obfuscation to ignore require("Wherigo") in user scripts
@@ -1272,8 +1272,8 @@ function Wherigo.ZObject.new(cartridge, container )
 	-- @class function
 	-- @return ZonePoint object or nil if is position of object undefined
 	function self._get_pos (exists)
-		if recurse == nil then
-			recurse = true
+		if exists == nil then
+			exists = true
 			end
 		if self._classname == Wherigo.CLASS_ZONE then
 			return self.OriginalPoint end
