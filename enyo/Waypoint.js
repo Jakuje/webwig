@@ -67,14 +67,11 @@ enyo.kind({
 		this.$.lon_dest.setValue(p2[1]);
 	},
 	showMap: function(){
-		this.owner.$.mappingTool.call({
-			'id': 'de.metaviewsoft.maptool',
-			'params': [{
+		this.owner.showMap([{
 				"name": "Point",
 				"lat": this.$.lat_dest.getValue(),
 				"lon": this.$.lon_dest.getValue()
-			}],
-		});
+			}]);
 	},
 	getCurrent: function(){
 		this.$.locate.setActive(true);
