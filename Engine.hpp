@@ -63,6 +63,7 @@ namespace Engine
 	extern void Alert();
 	extern void ShowStatusText(const char *text);
 	extern void GetInput(const char *type, const char *text, const char* choices, string media);	
+	extern void cartridgeEvent(string name);
 	
 	extern void ClosePrompt();
 	
@@ -77,7 +78,7 @@ namespace Engine
 	extern bool openCartridgeToJS(char *filename, int *load_game);
 	extern void OutputCartridgesToJS(int *refresh);
 	extern void showMapResponse(string data);
-	
+
 	extern void setup(int argc, char **argv);
 	extern void loop();
 }

@@ -1117,6 +1117,9 @@ Wherigo.ZObject.metatable = {
 		elseif key == 'Complete' and (t._classname == Wherigo.CLASS_ZTASK or t._classname == Wherigo.CLASS_ZCARTRIDGE) then
 			if value ~= t._complete then
 				t._complete = value
+				if t._classname == Wherigo.CLASS_ZCARTRIDGE and value then
+					WIGInternal.CartridgeEvent("complete");
+					end
 				Wherigo.LogMessage(t._classname .. " <" .. t.Name .. ">.Complete = " .. Wherigo._bool2str(value))
 				if t.OnSetComplete then
 					Wherigo.LogMessage(t._classname .. " <" .. t.Name .. ">: START OnSetComplete")

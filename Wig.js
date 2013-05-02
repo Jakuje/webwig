@@ -1,6 +1,6 @@
 const DATA_DIR = "/media/internal/appdata/com.dta3team.app.wherigo/";
 const CONF_DIR = DATA_DIR;
-const DEBUG = false;
+const DEBUG = true;
 const PREFS_COOKIE = "appPrefs";
 
 const MAP_MAP_TOOL = 1;
@@ -203,8 +203,8 @@ enyo.kind({
 		this.$.cDetail.setup(inMetadata);
 	},
 	
-	showList: function(inSender, type, state, anywhere){
-		this.$.cList.setup(type, state, anywhere);
+	showList: function(inSender, type, saved, complete, anywhere){
+		this.$.cList.setup(type, saved, complete, anywhere);
 		this.$.pane.selectViewByName("cList");
 	},
 	
@@ -350,7 +350,8 @@ enyo.kind({
 	},
 	
 	prefs: null,
-	default_prefs: {"gps": true, "compass": 1, "units": true, "type": "All", "state": "All", "lat": "49", "lon": "16", "map": MAP_MAP_TOOL, "orientation": "up"},
+	default_prefs: {"gps": true, "compass": 1, "units": true, "type": "All", "saved": "All", "complete": "All",
+		"lat": "49.1", "lon": "16.5", "map": MAP_MAP_TOOL, "orientation": "up"},
 	getPrefs: function(key){
 		if( !this.prefs ){
 			try {

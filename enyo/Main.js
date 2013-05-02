@@ -7,19 +7,6 @@ enyo.kind({
 	},
 	components: [
 	{kind: "Scroller", flex: 1, components: [
-		{kind: "RowGroup", caption: "Search online", components: [
-			{kind: "Input", name: "lat", value: "49", onchange: "inputChange", components: [
-				{ content: "Latitude", className: "enyo-label"}
-				]},
-			{kind: "Input", name: "lon", value: "16", onchange: "inputChange", components: [
-				{ content: "Longitude", className: "enyo-label"}
-				]},
-			{kind: "HFlexBox", components: [
-				{kind: "Button", flex: 1, caption: "Search", onclick: "notImplemented"},
-				{kind: "Button", flex: 1, className: "enyo-button-affirmative", caption: "Nearest", onclick: "notImplemented"}
-				]},
-			]
-		},
 		{kind: "RowGroup", caption: "Library", components: [
 			{kind: "HFlexBox", align: "center", components: [
 				{name: "type", label: "Cartridge type", kind: "ListSelector",
@@ -32,16 +19,36 @@ enyo.kind({
 				]}
 			]},
 			{kind: "HFlexBox", align: "center", components: [
-				{name: "state", label: "State", kind: "ListSelector",
+				{name: "saved", label: "Saved", kind: "ListSelector",
 				flex: 1, value: "All", onChange: "prefsChange", items: [
 					{caption: "All"},
-					{caption: "New"},
-					{caption: "Saved"},
-					{caption: "Complete"},
+					{caption: "Yes"},
+					{caption: "No"},
+				]}
+			]},
+			{kind: "HFlexBox", align: "center", components: [
+				{name: "complete", label: "Completed", kind: "ListSelector",
+				flex: 1, value: "All", onChange: "prefsChange", items: [
+					{caption: "All"},
+					{caption: "Yes"},
+					{caption: "No"},
 				]}
 			]},
 			{kind: "Button", caption: "Show Nearby", className: "enyo-button-affirmative", onclick: "showLibrary"},
 			{kind: "Button", caption: "Play Anywhere", onclick: "showLibraryAnywhere"},
+			]
+		},
+		{kind: "RowGroup", caption: "Search online", components: [
+			{kind: "Input", name: "lat", value: "49.1", onchange: "inputChange", disabled: true, components: [
+				{ content: "Latitude", className: "enyo-label"}
+				]},
+			{kind: "Input", name: "lon", value: "16.5", onchange: "inputChange", disabled: true, components: [
+				{ content: "Longitude", className: "enyo-label"}
+				]},
+			{kind: "HFlexBox", components: [
+				{kind: "Button", flex: 1, caption: "Search", disabled: true, onclick: "notImplemented"},
+				{kind: "Button", flex: 1, className: "enyo-button-affirmative", caption: "Nearest", disabled: true, onclick: "notImplemented"}
+				]},
 			]
 		},
 		{kind: "RowGroup", caption: "Tools", components: [
@@ -55,7 +62,8 @@ enyo.kind({
 		this.$.lat.setValue(this.owner.getPrefs('lat'));
 		this.$.lon.setValue(this.owner.getPrefs('lon'));
 		this.$.type.setValue(this.owner.getPrefs('type'));
-		this.$.state.setValue(this.owner.getPrefs('state'));
+		this.$.saved.setValue(this.owner.getPrefs('saved'));
+		this.$.complete.setValue(this.owner.getPrefs('complete'));
 	},
 	
 	inputChange: function(inSender, inEvent, inValue){
@@ -69,11 +77,11 @@ enyo.kind({
 	},
 	
 	showLibrary: function(){
-		this.doList(this.$.type.getValue(), this.$.state.getValue(), false);
+		this.doList(this.$.type.getValue(), this.$.saved.getValue(), this.$.complete.getValue(), false);
 	},
 	
 	showLibraryAnywhere: function(){
-		this.doList(this.$.type.getValue(), this.$.state.getValue(), true);
+		this.doList(this.$.type.getValue(), this.$.saved.getValue(), this.$.complete.getValue(), true);
 	},
 	
 	notImplemented: function(){

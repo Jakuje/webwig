@@ -122,6 +122,8 @@ public:
 	void closeLog();
 
 	string getSaveFilename();
+
+	void setComplete();
 };
 
 #endif

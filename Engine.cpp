@@ -679,9 +679,15 @@ bool OutputMetadata(stringstream *buf, const char *cartridge, bool first = true)
 	ifstream ifile(w->getSaveFilename().c_str());
 	string is_saved = "false";
 	if (ifile) {
-	  is_saved = "true";
+		is_saved = "true";
 	}
 	
+	ifstream cfile(w->getCartDir().append("complete").c_str());
+	string complete = "false";
+	if (cfile) {
+		complete = "true";
+	}
+
 	if (!first) {
 		*buf << ",\n";
 	}
@@ -702,6 +708,7 @@ bool OutputMetadata(stringstream *buf, const char *cartridge, bool first = true)
 		<< ",\"author\": \"" << WherigoLib::escapeJsonString(w->author) << "\""
 		<< ",\"company\": \"" << WherigoLib::escapeJsonString(w->company) << "\""
 		<< ",\"saved\": " << is_saved << ""
+		<< ",\"complete\": " << complete << ""
 		<< "\n}";
 	delete icon;
 	delete splash;
@@ -983,6 +990,19 @@ void loop(){
     }
 #endif
 }
+
+/**
+ * Handle complete game in engine.
+ */
+void cartridgeEvent(string name){
+	if( name.compare("complete") == 0){
+		WherigoLib::WherigoOpen->setComplete();
+		int r = 1;
+		OutputCartridgesToJS(&r);
+	}
+}
+
+
 
 }
 

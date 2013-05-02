@@ -404,3 +404,11 @@ bool Wherigo::cleanFiles(){
 
 	return ok;
 }
+
+
+void Wherigo::setComplete( ){
+	my_error("Set complete invoked");
+	ofstream f( getCartDir().append("complete").c_str(), ios_base::out);
+	f << "true" << endl;
+	f.close();
+}

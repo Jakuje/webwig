@@ -13,7 +13,7 @@ enyo.kind({
 		this.inherited(arguments);
 		// we create this as a deferred callback so we can call back into the
 		// plugin immediately
-		this.addCallback("getCartridgesResult", enyo.bind(this, this._getMetaCallback), true);
+		this.addCallback("getCartridgesResult", enyo.bind(this, this.getCardridgesCallback), true);
 		this.addCallback("openCartridgeResult", enyo.bind(this, this.openCartridgeResult), true);
 		
 		this.addCallback("MessageBox", enyo.bind(this, this.messageBox), true);
@@ -91,17 +91,17 @@ enyo.kind({
 			console.error("***** WIG Enyo: Unknown result of updateUI");
 		}
 	},
-	_resultsCallbacks: [],
-	_getMetaCallback: function(filesJSON) {
+	//_resultsCallbacks: [],
+	getCardridgesCallback: function(filesJSON) {
 		console.error("***** WIG Enyo: _getMetaCallback");
 		// we rely on the fact that calls to the plugin will result in callbacks happening
 		// in the order that the calls were made to do a first-in, first-out queue
-		var callback = this._resultsCallbacks.shift();
-		if (callback) {
+		//var callback = this._resultsCallbacks.shift();
+		//if (callback) {
 			console.error(filesJSON);
 			result = enyo.json.parse(filesJSON);
 			if(result.type == "ok") {
-				callback(result.data);
+				this.owner.$.cList.updateFileList(result.data);
 			} else if( result.type == "error" ){
 				console.error("***** WIG Enyo: Result failed ...");
 				this.owner.popupMessage( new WIGApp.Dialog(result.message, "Error") );
@@ -109,10 +109,10 @@ enyo.kind({
 			} else {
 				console.error("***** WIG Enyo: Unknown result of getMetaCallback");
 			}
-		}
+		/*}
 		else {
 			console.error("WIG Enyo: got results with no callbacks registered: " + filesJSON);
-		}
+		}*/
 	},
 	openCartridgeResult: function(JSONdata){
 		console.error(JSONdata);
@@ -130,15 +130,15 @@ enyo.kind({
 		}
 	},
 	
-	getCartridges: function(refresh, callback) {
+	getCartridges: function(refresh/*, callback*/) {
 		if ( window.PalmSystem) {
 			console.error("***** WIG Enyo: getCartridges refresh = " + refresh);
-			this._resultsCallbacks.push(callback);
+			//this._resultsCallbacks.push(callback);
 			this.callPluginMethodDeferred(enyo.nop, "getCartridges", refresh);
 		}
 		else {
 			// if not on device, return mock data
-			enyo.nextTick(this, function() { callback([
+			enyo.nextTick(this, function() { this.owner.$.cList.updateFileList([
         {
             "filename": "mp.gwc",
             "iconID": "28",
@@ -151,6 +151,8 @@ enyo.kind({
             "longitude": 16,
             "version": "1.2",
             "author": "Karbanatek",
+            "saved": false,
+            "complete": false
         },
         {
             "filename": "wherigo.lua.gwc",
@@ -163,7 +165,9 @@ enyo.kind({
             "latitude": 360,
             "longitude": 360,
             "version": "0",
-            "author": ""
+            "author": "",
+            "saved": true,
+            "complete": true
         }
 			]);
 			});

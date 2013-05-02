@@ -122,7 +122,13 @@ void ShowScreenLua(const char *screen, const char *detail) {
 /** Save Game */
 bool sync(){
 	WherigoOpen->log("ZCartridge:Sync");
-	return WherigoLib::Save::sync();
+	bool res = WherigoLib::Save::sync();
+	if( res ){
+		// refresh list 
+		int r = 1;
+		Engine::OutputCartridgesToJS(&r);
+	}
+	return res;
 }
 
 bool restore(){
@@ -397,6 +403,7 @@ lua_State * openLua(Wherigo *w){
 			.addFunction("LogMessage", log)
 			.addFunction("StopSound", Engine::stopSound)
 			.addFunction("Alert", Engine::Alert)
+			.addFunction("CartridgeEvent", Engine::cartridgeEvent)
 		.endNamespace();
 			
 	// library in Lua

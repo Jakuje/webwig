@@ -50,9 +50,10 @@ enyo.kind({
 		this.inherited(arguments);
 	},
 	
-	setup: function(type, state, anywhere){
+	setup: function(type, saved, complete, anywhere){
 		this.type = type;
-		this.state = state;
+		this.saved = saved;
+		this.complete = complete;
 		this.anywhere = anywhere;
 		this.updateTitle();
 		this.getCartridges(0);
@@ -86,7 +87,7 @@ enyo.kind({
 	
 	getCartridges: function( refresh ) {
 		//this.$.directory.setContent("Current Directory: " + this.directory);
-		this.owner.$.plugin.getCartridges(refresh, enyo.bind(this, this.updateFileList));
+		this.owner.$.plugin.getCartridges(refresh/*, enyo.bind(this, this.updateFileList)*/);
 		//this.$.parent.setDisabled(this.directory === "/");
 	},
 	
@@ -95,7 +96,9 @@ enyo.kind({
 		for(var i in metadata){
 			if( (this.type == 'All' || metadata[i].type == this.type)
 			&& ( this.anywhere == (metadata[i].latitude == 360 && metadata[i].longitude == 360) )
-			/* TODO state */ ){
+			&& ( this.saved == 'All' || (this.saved == 'Yes' == metadata[i].saved ))
+			&& ( this.complete == 'All' || (this.complete == 'Yes' == metadata[i].complete ))
+			/* TODO complete, saved */ ){
 				data.push(metadata[i]);
 			}
 		}
@@ -131,7 +134,7 @@ enyo.kind({
 		if (inIndex < this.metadata.length) {
 			if (this.$.list) {
 				var item = this.metadata[inIndex];
-				this.$.cTitle.setCaption( item.name + (item.saved ? " [S]" : ""));
+				this.$.cTitle.setCaption( item.name + (item.saved ? " [S]" : "") + (item.complete ? " [C]" : ""));
 				this.$.type.setContent( item.type );
 				if( item.author ){
 					this.$.author.setContent(" by " + item.author);
