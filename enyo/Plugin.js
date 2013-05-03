@@ -141,7 +141,8 @@ enyo.kind({
 			enyo.nextTick(this, function() { this.owner.$.cList.updateFileList([
         {
             "filename": "mp.gwc",
-            "iconID": "28",
+            "icon": "images/locations.png",
+            "splash": "images/locations.png",
             "type": "Geocache",
             "name": "Monty Python a Svaty Gral",
             "guid": "9680e562-caf2-455e-a095-654b67d8080e",
