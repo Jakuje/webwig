@@ -562,21 +562,37 @@ void showMap(int *zone_id){
 	lua_remove(L, -2);								// [-1, +0, -]
 	if( !lua_isnoneornil(L, -1) ){
 		lua_getfield(L, -1, "Points");				// [-0, +1, -]
-		lua_remove(L, -2);							// [-1, +0, -]
-		lua_pushnil(L);
-		while( lua_next(L, -2) != 0 ){
-			if( !first ){
-				ss << ", ";
-			} else {
-				first = false;
+		if( lua_isnoneornil(L, -1) ){
+			lua_pop(L,1);							// [-1, +0, e]
+			lua_getfield(L, -1, "_get_pos");		// [-0, +1, e]
+			lua_pcall(L, 0, 1, 0);					// [-1, +1, e]
+			if( lua_isnoneornil(L, -1) ){
+				lua_pop(L, 2);
+				return;
 			}
 			lua_getfield(L, -1, "latitude");		// [-0, +1, -]
-			ss << "{\"name\": \"zone\", \"lat\": " << lua_tostring(L, -1);
+			ss << "{\"name\": \"point\", \"lat\": " << lua_tostring(L, -1);
 			lua_pop(L, 1);							// [-1, +0, -]
 			lua_getfield(L, -1, "longitude");		// [-0, +1, -]
 			ss << ", \"lon\": " << lua_tostring(L, -1) << "}";
-			
 			lua_pop(L, 2);
+		} else {
+			lua_remove(L, -2);							// [-1, +0, -]
+			lua_pushnil(L);
+			while( lua_next(L, -2) != 0 ){
+				if( !first ){
+					ss << ", ";
+				} else {
+					first = false;
+				}
+				lua_getfield(L, -1, "latitude");		// [-0, +1, -]
+				ss << "{\"name\": \"zone\", \"lat\": " << lua_tostring(L, -1);
+				lua_pop(L, 1);							// [-1, +0, -]
+				lua_getfield(L, -1, "longitude");		// [-0, +1, -]
+				ss << ", \"lon\": " << lua_tostring(L, -1) << "}";
+				
+				lua_pop(L, 2);
+			}
 		}
 	}
 	lua_pop(L, 1);
