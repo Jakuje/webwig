@@ -255,6 +255,7 @@ enyo.kind({
                 "onclick": function(context){
 					context.owner.showScreenLua("main")
 					},
+                "complete": false,
 				"sort": 5,
             },
             {
@@ -264,6 +265,7 @@ enyo.kind({
                 "onclick": function(context){
 					context.owner.showScreenLua("locations")
 					},
+                "complete": true,
 				"sort": 4,
             },
             {
