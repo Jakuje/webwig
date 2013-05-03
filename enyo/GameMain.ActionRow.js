@@ -70,6 +70,11 @@ enyo.kind({
 		this.$.icon.setSrc("images/" + this.screen + ".png");
 		
 		if( data ){
+			// all tasks sort by field.
+			if( screen == "tasks" ){
+				data.sort(function(a,b){return a.sort - b.sort;});
+			}
+
 			if( this.name == "tasks" ){
 				// hide complete tasks on main screen
 				this.data = [];
@@ -78,18 +83,15 @@ enyo.kind({
 						this.data.push(data[i]);
 					}
 				}
+			} else if( screen == "tasks") {
+				this.data = data.sort(function(a, b){return (a.complete === b.complete ? 0 : (b.complete ? -1 : 1) )});
 			} else if( screen == "inventory") {
 				this.data = data;
 			} else { // locations and youSee => Sort by distance
 				this.data = data.sort(function(a, b){return a.distance - b.distance;});
 			}
 			
-			// all tasks sort by field.
-			if( screen == "tasks" ){
-				this.data.sort(function(a,b){return a.sort - b.sort;});
-			}
-
-			this.$.numRows.setContent(data.length);
+			this.$.numRows.setContent(this.data.length);
 			this.render();
 			if( this.data.length == 0 ){
 				var title = this.owner.owner.details[this.screen + "Empty"];
