@@ -7,9 +7,10 @@ enyo.kind({
 	components: [
 		{kind: "PageHeader", components: [
 			{kind: "IconButton", icon: "images/menu-icon-back.png", onclick: "goBack"},
-			{kind: "Spacer"},
-			{name: "title", kind: enyo.VFlexBox, content: "Wherigo name"},
-			{kind: "Spacer"}
+			{layoutKind: "VFlexLayout", flex: 1, align: "center", components: [
+				{name: "title", kind: enyo.VFlexBox, content: "Wherigo name"},
+				{name: "subtitle", content: "&nbsp;", className: "enyo-item-secondary", allowHtml: true},
+				]},
 		]},
 		{kind: "Scroller", flex: 1, components: [
 			{kind: "Item", components: [
@@ -30,7 +31,7 @@ enyo.kind({
 				{layoutKind: "HFlexLayout", components: [
 					{name: "type"}, {kind: "Spacer"}, {name: "version"}
 					]},
-				{kind: "Image", name: "splash"}
+				{kind: "Image", name: "splash", style: "width:100%;"}
 			]},
 				
 		]},
@@ -48,6 +49,7 @@ enyo.kind({
 	setup: function(data){
 		this.data = data;
 		this.$.title.setContent(data.name);
+		this.$.subtitle.setContent( (data.complete ? "Complete" : (data.saved ? "Saved" : "") ) );
 		if( data.icon ){
 			this.$.icon.setIcon( DATA_DIR + "." + data.guid + "/" + data.icon );
 		} else {
@@ -55,8 +57,9 @@ enyo.kind({
 		}
 		if( data.splash ){
 			this.$.splash.setSrc( DATA_DIR + "." + data.guid + "/" + data.splash );
+			this.$.splash.show();
 		} else {
-			this.$.splash.setSrc('');
+			this.$.splash.hide();
 		}
 		this.$.description.setContent(data.description);
 		this.$.startDescription.setContent(data.startingLocationDescription);

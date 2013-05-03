@@ -75,8 +75,11 @@ enyo.kind({
 		if( this.type != "All" ){
 			subtitle += "Type: " + this.type;
 		}
-		if( this.state != "All" ){
-			subtitle += ( subtitle.length != 0 ? ", " : "") + "State: " + this.state;
+		if( this.saved != "All" ){
+			subtitle += ( subtitle.length != 0 ? ", " : "") + (this.saved == "Yes" ? "Saved" : "Unsaved");
+		}
+		if( this.complete != "All" ){
+			subtitle += ( subtitle.length != 0 ? ", " : "") + (this.complete == "Yes" ? "Complete" : "Incomplete");
 		}
 		this.$.subtitle.setContent( (subtitle.length != 0 ? subtitle : "&nbsp;") );
 	},
@@ -118,7 +121,7 @@ enyo.kind({
 			}
 		}
 		this.metadata = data;
-		console.error("***** WIG Enyo: updateFileList");
+		//console.error("***** WIG Enyo: updateFileList");
 		if( this.metadata.length == 0 ){
 			this.$.scroller.hide();
 			this.$.nothingText.setContent("No cartridges found in working directory");
