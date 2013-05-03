@@ -146,6 +146,7 @@ function Wherigo.Dialog(t)
 -- 
 --   @param	Media	ZMedia object containing audio to play
 function Wherigo.PlayAudio(Media)
+	Wherigo.LogMessage("PlayAudio" .. Media.Name)
 	WIGInternal.PlayAudio(Media._id)
 	end
 	
@@ -748,7 +749,7 @@ Wherigo._getTasks = function()
 	local tasks = "["
 	local first = true
 	for k,v in pairs(cartridge.AllZObjects) do
-		if v._classname == Wherigo.CLASS_ZTASK and v.Visible then
+		if v._classname == Wherigo.CLASS_ZTASK and (v.Active and v.Visible) then
 			if not first then
 				tasks = tasks .. "," end
 			tasks = tasks .. "{\"name\": \"" .. Wherigo._toJSON(v.Name) .. "\""
@@ -1097,7 +1098,7 @@ Wherigo.ZObject.metatable = {
 						Wherigo.Player._removeFromZone(t)
 						end
 					end
-				if table.OnSetActive then
+				if t.OnSetActive then
 					Wherigo.LogMessage(t._classname .. " <" .. t.Name .. ">: START OnSetActive")
 					t.OnSetActive(t)
 					Wherigo.LogMessage(t._classname .. " <" .. t.Name .. ">: END__ OnSetActive")
