@@ -361,6 +361,6 @@ enyo.kind({
 		} else {
 			console.log("Delete " + filename);
 		}
-		this._resultsCallbacks.push( enyo.bind(this.owner.$.cList, "updateFileList") );
+		//this._resultsCallbacks.push( enyo.bind(this.owner.$.cList, "updateFileList") );
 	},
 });
