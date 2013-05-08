@@ -294,8 +294,8 @@ enyo.kind({
 		}
 	},
 	closeCartridge: function(save, callback){
+		console.error("***** WIG Enyo: closeCartridge save = " + save);
 		if ( window.PalmSystem) {
-			console.error("***** WIG Enyo: closeCartridge save = " + save);
 			//this._resultsCallbacks.push(callback);
 			this.callPluginMethodDeferred(enyo.nop, "closeCartridge", save);
 		}
@@ -330,7 +330,7 @@ enyo.kind({
 		this.owner.$.gMain.showScreenLua(screen, item);
 	},
 	switchGPS: function(newState){
-		console.error("***** WIG Enyo: callback switchGPS = " + newState);
+		console.error("***** WIG Enyo: switchGPS = " + newState);
 		if ( window.PalmSystem) {
 			this.callPluginMethodDeferred(enyo.nop, "switchGPS", newState);
 		}
@@ -339,6 +339,7 @@ enyo.kind({
 		this.owner.goBack(null, this);
 	},
 	save: function(){
+		console.error("***** WIG Enyo: Savegame");
 		this.callPluginMethodDeferred(enyo.nop, "save");
 	},
 	showMap: function(zone_id){
