@@ -29,7 +29,7 @@ enyo.kind({
 				{name: "distance", style: "margin-left: -25px;"},
 				{kind: "Spacer"},
 				{kind: "HFlexBox", components: [
-					{kind: "IconButton", icon: "images/locations.png", onclick: "showMappingTool"},
+					{kind: "IconButton", icon: "images/map_button.png", onclick: "showMappingTool"},
 				]},
 				{kind: "Spacer"},
 				{kind: "Button", onclick: "moveTo", content: "Move To", showing: DEBUG, style: "margin-left: -15px;"},

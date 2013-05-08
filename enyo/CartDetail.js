@@ -23,7 +23,7 @@ enyo.kind({
 				{kind: "Divider", caption: "Start location"},
 				{layoutKind: "HFlexLayout", components: [
 					{name: "startLocation", flex: 1},
-					{name: "map", kind: "IconButton", icon: "images/locations.png", onclick: "showMap"},
+					{name: "map", kind: "IconButton", icon: "images/map_button.png", onclick: "showMap"},
 				]},
 				{kind: "Divider", caption: "Start location description"},
 				{name: "startDescription", allowHtml: true},
