@@ -16,7 +16,7 @@ enyo.kind({
 				{name: "title", content: "Wherigo name"},
 				{name: "subtitle", content: "&nbsp;", className: "enyo-item-secondary", allowHtml: true},
 				]},
-			{kind: "Image", name: "GPSAccuracy", src: "images/gps_0.png", onclick: "showDashboard"},
+			{kind: "IconButton", name: "GPSAccuracy", icon: "images/gps_0.png", onclick: "showDashboard"},
 		]},
 		{kind: "PageHeader", showing: false, name: "dashboard", components: [
 			{content: "Accuracy:&nbsp;"},
@@ -30,6 +30,45 @@ enyo.kind({
 				{name: "gList", className: "enyo-bg", kind: "WIGApp.GameMain.List"},
 				{name: "gDetail", className: "enyo-bg", kind: "WIGApp.GameMain.Detail"}
 			]
+		},
+		{
+		   kind: "ModalDialog",
+		   name: "exitPrompt",
+		   caption: "Prompt",
+		   layoutKind: "VFlexLayout",
+		   components: [
+				{name: "messageScroller", kind: "BasicScroller", autoVertical: true, style: "height: auto;", flex: 1,
+					components: [
+						{
+							allowHtml: true,
+							content: "Closing cartridge.<br>Would you like to save your game?",
+						},
+					]
+				},
+				{kind: "HFlexBox", components: [
+					{
+						name: "Yes",
+						kind: "Button",
+						caption: "Yes",
+						flex: 1,
+						onclick: "CloseSave",
+					},
+					{
+						name: "No",
+						kind: "Button",
+						caption: "No",
+						flex: 1,
+						onclick: "Close",
+					},
+					{
+						name: "Cancel",
+						kind: "Button",
+						caption: "Cancel",
+						flex: 1,
+						onclick: "CloseCancel",
+					},
+				]}
+		   ],
 		},
 	],
 	data: [],
@@ -97,7 +136,7 @@ enyo.kind({
 		} else {
 			acc_class = 4;
 		}
-		this.$.GPSAccuracy.setSrc("images/gps_"+acc_class+".png");
+		this.$.GPSAccuracy.setIcon("images/gps_"+acc_class+".png");
 		this.$.accuracy.setContent(acc + " m");
 		this.$.GPSStatus.setState(data.gps.state);
 	},
@@ -169,6 +208,20 @@ enyo.kind({
 		} else {
 			this.$.subtitle.setContent("&nbsp;");
 		}
+	},
+	
+	Close: function(inSender, inEvent){
+		this.owner.$.plugin.closeCartridge(0);
+		this.$.exitPrompt.close();
+		this.owner.$.pane.back();
+	},
+	CloseSave: function(inSender, inEvent){
+		this.owner.$.plugin.closeCartridge(1);
+		this.$.exitPrompt.close();
+		this.owner.$.pane.back();
+	},
+	CloseCancel: function(){
+		this.$.exitPrompt.close();
 	},
 	
 	goBack: function(inSender, inEvent){
