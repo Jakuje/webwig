@@ -4,7 +4,8 @@ enyo.kind({
 	flex: 1,
 	components: [
 		{kind: "Item", layoutKind: "VFlexLayout", pack: "center", name: "leftMarker",
-		align: "center", style: "width: 100px;", onclick: "showScreen", components: [
+		align: "center", style: "width: 100px;", onclick: "showScreen", tapHighlight: true,
+		components: [
 			{name: "icon", kind: "Image", src: "images/you_see.png"},
 			{name: "title", content: "You See"},
 			{name: "numRows", content: "0"}
