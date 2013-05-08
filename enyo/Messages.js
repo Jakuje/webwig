@@ -77,7 +77,7 @@ enyo.kind({
 		if( typeof this.callback == "function" ){
 			// internal usage, JS function is callback
 			this.callback( element, name );
-		} else if( this.callback == true ){
+		} else if( this.callback == true && inSender ){
 			element.$.plugin.MessageBoxResponse( name );
 		}
 		

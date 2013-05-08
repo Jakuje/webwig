@@ -48,7 +48,7 @@ Wherigo = {
 	CLASS_ZOBJECT		= "ZObject",
 	
 	-- internal tables to store callbacks from MessageBox and GetInput
-	_MBCallbacks = {},
+	_MBCallback = nil,
 	_GICallbacks = {},
 	_CMDWithCallbacks = {}
 	}
@@ -83,8 +83,12 @@ function Wherigo.MessageBox(t)
 		button1 = ""
 		button2 = ""
 		end
+	if Wherigo._MBCallback ~= nil then
+		Wherigo._MBCallback = nil
+		--Wherigo._MessageBoxResponse("Cancel")
+		end
 	if callback then
-		table.insert(Wherigo._MBCallbacks, callback)
+		Wherigo._MBCallback = callback
 		callback = "1"
 	else
 		callback = "0"
@@ -96,10 +100,12 @@ function Wherigo.MessageBox(t)
 -- 
 --   @param	action	Button1 or Button2 or nil depending on user choice
 function Wherigo._MessageBoxResponse(action)
-	if # Wherigo._MBCallbacks > 0 then
-		Wherigo.LogMessage("MessageBox Callback: [" .. action .. "]")
-		callback = table.remove(Wherigo._MBCallbacks)
-		callback(action)
+	if Wherigo._MBCallback ~= nil then
+		local call = Wherigo._MBCallback
+		Wherigo._MBCallback = nil
+		Wherigo.LogMessage("START MessageBox Callback: [" .. action .. "]")
+		call(action)
+		Wherigo.LogMessage("END__ MessageBox Callback: [" .. action .. "]")
 	else
 		error("Recieved MessageBox response to no request")
 		end
