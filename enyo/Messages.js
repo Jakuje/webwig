@@ -72,7 +72,7 @@ enyo.kind({
 	hidePopup: function(element, inSender, inEvent){
 		this.inherited(arguments);
 		
-		var name = (inSender ? inSender.getName() : "" );
+		var name = (inSender ? inSender.getName() : "Cancel" );
 		
 		if( typeof this.callback == "function" ){
 			// internal usage, JS function is callback
