@@ -1,6 +1,6 @@
 const DATA_DIR = "/media/internal/appdata/com.dta3team.app.wherigo/";
 const CONF_DIR = DATA_DIR;
-const DEBUG = true;
+const DEBUG = false;
 const PREFS_COOKIE = "appPrefs";
 
 const MAP_MAP_TOOL = 1;
@@ -251,15 +251,8 @@ enyo.kind({
 			if( ! force ){
 				this.$.gMain.goBack(inSender, inEvent);
 			} else {
+				this.$.gMain.$.exitPrompt.openAtCenter();
 				// @todo Prompt and in case OK => goBack directly
-				this.popupMessage( new WIGApp.MessageBox("Do you really want to exit game without saving?", "Prompt", "", "OK", "Cancel",
-					// if OK then close cartridge (cleanup and close game pane)
-					function( context, button ){
-						if( button == "Button1" ){
-							context.$.plugin.closeCartridge(0);
-							context.$.pane.back();
-						}
-						}) );
 			}
 			return false;
 		}
@@ -334,7 +327,7 @@ enyo.kind({
 		}
 	},
 	mapToolFallback: function(inSender, inResponse){
-		console.error("map failde, results=" + enyo.json.stringify(inResponse));
+		//console.error("map failed, results=" + enyo.json.stringify(inResponse));
 		this.$.mapTool.onFailure = this.mapFailed;
 		this.$.mapTool.call({
 			'id': 'de.metaviewsoft.maptool',
