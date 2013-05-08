@@ -55,6 +55,10 @@ enyo.kind({
 			{kind: "Button", caption: "Waypoint calculator", className: "enyo-button-affirmative", onclick: "showWaypoint"},
 			]
 		},
+		{kind: "RowGroup", caption: "Preferences", components: [
+			{kind: "Button", caption: "Preferences", onclick: "showPreferences"},
+			]
+		},
 		]
 	}],
 	create: function(){
@@ -91,4 +95,8 @@ enyo.kind({
 	showWaypoint: function(){
 		this.owner.showTools('tWaypoint');
 	},
+	showPreferences: function(){
+		this.owner.showPreferences();
+	},
+	
 });
