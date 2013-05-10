@@ -143,6 +143,7 @@ enyo.kind({
 	detail_item: 0,
 	detail_screen: "",
 	showScreenLua: function(screen, item){
+		this.owner.closePopup();
 		if( screen != this.DETAILSCREEN && screen != this.MAINSCREEN && item == null ){
 			// showing some list
 			if( /*this.detail_screen != this.DETAILSCREEN &&*/ this.detail_screen != this.MAINSCREEN
