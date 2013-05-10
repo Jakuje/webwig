@@ -331,6 +331,7 @@ function Wherigo.IsPointInZone(point, zone)
 --   @param		bearing		Bearing object or number to determine direction
 --   @return 	ZonePoint object with new location
 function Wherigo.TranslatePoint(point, distance, bearing)
+	--print(debug.traceback())
 	local d = math.rad (distance.GetValue ('nauticalmiles') / 60.)
 	local b
 	if type(bearing) == 'table' then
@@ -527,6 +528,7 @@ Wherigo._callback = function(event, id)
 		if t then
 			local command = tonumber(event) or event
 			local c = t.Commands[command]
+			if not c then return end
 			if not c.CmdWith then
 				if t["On" .. event] then
 					Wherigo.LogMessage(t._classname .. " <" .. t.Name .. "> ZCommand: On" .. event .. " START")
@@ -1397,7 +1399,7 @@ function Wherigo.Zone.new(cartridge)
 	self.Inside = self._inside
 	self.CurrentBearing = Wherigo.Bearing(0)
 	self.CurrentDistance = Wherigo.Distance(0)
-	self.Points = {}
+	self.Points = self.Points or {}
 	if self.Active == nil then
 		self._active = true
 		end -- default value only for Zone!
