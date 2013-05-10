@@ -29,16 +29,17 @@ enyo.kind({
 					onPlay: "gameStarted"},
 				{name: "gMain", className: "enyo-bg", kind: "WIGApp.GameMain"},
 				{name: "tWaypoint", className: "enyo-bg", kind: "WIGApp.Waypoint"},
-				{name: "Preferences", className: "enyo-bg", kind: "WIGApp.Preferences"}
+				{name: "Preferences", className: "enyo-bg", kind: "WIGApp.Preferences"},
+				{name: "Help", className: "enyo-bg", kind: "WIGApp.Help"}
 			]
 		},
 		{kind: "AppMenu", components: [ // In chromium: CTRL + `
 			{kind: "EditMenu"},
-			{caption: "Preferences", onclick: "showPreferences"},
 			{caption: "Refresh", name: "menuRefresh", onclick: "doRefresh"},
 			{caption: "Move to Zverokruh", onclick: "tempPostUpdateUI", showing: DEBUG},
-			{caption: "Save game", name: "menuSave", onclick: "doSave", showing: false}
-			/*{kind: "HelpMenu", target: "http://jakuje.dta3.com"}*/
+			{caption: "Save game", name: "menuSave", onclick: "doSave", showing: false},
+			{caption: "Preferences", onclick: "showPreferences"},
+			{caption: "Help", onclick: "showHelp"}
 		]},
 		{
 			name: "mapTool",
@@ -158,6 +159,9 @@ enyo.kind({
 		}
 	},
 	closePopup: function(inSender, inEvent) {
+		if( ! this.openMessage ){
+			return;
+		}
 		this.openMessage.hidePopup(this, inSender, inEvent);
 		
 		this.openMessage = null;
@@ -212,6 +216,10 @@ enyo.kind({
 		this.$.Preferences.setup();
 		this.$.pane.selectViewByName("Preferences");
 	},
+
+	showHelp: function(inSender){
+		this.$.pane.selectViewByName("Help");
+	},
 	
 	gameStarted: function(inSender, inMetadata){
 		//this.$.pane.selectViewByName("gMain");
@@ -230,6 +238,9 @@ enyo.kind({
 		if (this.$.pane.getViewName() == "gMain") {
 			this.$.menuRefresh.hide();
 			this.$.menuSave.show();
+		} else if( this.$.pane.getViewName() == "Main" ){
+			this.$.menuRefresh.hide();
+			this.$.menuSave.hide();
 		} else {
 			this.$.menuRefresh.show();
 			this.$.menuSave.hide();

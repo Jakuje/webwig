@@ -13,5 +13,6 @@ enyo.depends(
   "enyo/Preferences.js",
   "enyo/Main.js",
   "enyo/Utils.js",
-  "enyo/Waypoint.js"
+  "enyo/Waypoint.js",
+  "enyo/Help.js"
 );
