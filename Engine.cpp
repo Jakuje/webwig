@@ -447,8 +447,8 @@ PDL_bool setPositionJS(PDL_JSParameters *params){
 
 PDL_bool movePositionJS(PDL_JSParameters *params){
 	if (PDL_GetNumJSParams(params) != 2) {
-        syslog(LOG_INFO, "**** wrong number of parameters for setPosition");
-        PDL_JSException(params, "wrong number of parameters for setPosition");
+        syslog(LOG_INFO, "**** wrong number of parameters for movePosition");
+        PDL_JSException(params, "wrong number of parameters for movePosition");
         return PDL_FALSE;
     }
 
@@ -471,8 +471,8 @@ PDL_bool movePositionJS(PDL_JSParameters *params){
 
 PDL_bool switchGPSJS(PDL_JSParameters *params){
 	if (PDL_GetNumJSParams(params) != 1) {
-        syslog(LOG_INFO, "**** wrong number of parameters for setPosition");
-        PDL_JSException(params, "wrong number of parameters for setPosition");
+        syslog(LOG_INFO, "**** wrong number of parameters for switchGPS");
+        PDL_JSException(params, "wrong number of parameters for switchGPS");
         return PDL_FALSE;
     }
 
@@ -492,8 +492,8 @@ PDL_bool switchGPSJS(PDL_JSParameters *params){
 
 PDL_bool saveJS(PDL_JSParameters *params){
 	if (PDL_GetNumJSParams(params) != 0) {
-        syslog(LOG_INFO, "**** wrong number of parameters for setPosition");
-        PDL_JSException(params, "wrong number of parameters for setPosition");
+        syslog(LOG_INFO, "**** wrong number of parameters for save");
+        PDL_JSException(params, "wrong number of parameters for save");
         return PDL_FALSE;
     }
 
@@ -510,8 +510,8 @@ PDL_bool saveJS(PDL_JSParameters *params){
 
 PDL_bool showMapJS(PDL_JSParameters *params){
 	if (PDL_GetNumJSParams(params) != 1) {
-        syslog(LOG_INFO, "**** wrong number of parameters for setPosition");
-        PDL_JSException(params, "wrong number of parameters for setPosition");
+        syslog(LOG_INFO, "**** wrong number of parameters for showMap");
+        PDL_JSException(params, "wrong number of parameters for showMap");
         return PDL_FALSE;
     }
 	int *zone_id = new int;
