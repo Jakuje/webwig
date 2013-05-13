@@ -202,6 +202,7 @@ bool Wherigo::createFile(int i){
 		fd.seekg( offsets[i] );
 		if( fd.readByte() == 0 ){
 			return false;
+			//my_error("File with ZERO flag generated");
 		}
 		types[i] = fd.readLong(); // use to export to Javascript
 		string *path = getFilePath(i);
@@ -280,8 +281,10 @@ string *Wherigo::getFilePath(int i){
 			default:
 				// log missing file extension ... and learn it ...
 				stringstream message;
-				message << "Unknown file type ID: " << types[i];
+				message << "Unknown file type ID: " << types[i] << ", file ID: " << i;
 				my_error(message.str());
+				delete path;
+				return new string("");
 				break;
 		}
 		return path;
