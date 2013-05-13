@@ -791,15 +791,10 @@ bool openCartridgeToJS(char *filename, int* load_game){
 	stringstream *buffer = new stringstream(stringstream::in | stringstream::out);
 	int status = 0;
 	if( openCartridge(filename) ){
-		if( WherigoLib::OnStartEvent(load_game) ){
-			*buffer << "{\"type\": \"ok\", \"data\": {\n"
-				//<< "\"cartDir\": \"" << WherigoLib::WherigoOpen->cartDir << "\","
-				<< WherigoLib::getStaticData()
-				<< "}}";
-		} else {
-			*buffer << "{\"type\": \"error\", \"message\": \"Failed to restore game.\"}";
-			status = 1;
-		}
+		*buffer << "{\"type\": \"ok\", \"data\": {\n"
+			//<< "\"cartDir\": \"" << WherigoLib::WherigoOpen->cartDir << "\","
+			<< WherigoLib::getStaticData()
+			<< "}}";
 	} else {
 		*buffer << "{\"type\": \"error\", \"message\": \"Unable to load cartidge file\"}";
 		status = 1;
@@ -826,6 +821,13 @@ bool openCartridgeToJS(char *filename, int* load_game){
 
 	if( status == 1 ){
 		return false;
+	}
+
+
+	if( ! WherigoLib::OnStartEvent(load_game) ){
+		int i = 0;
+		Engine::closeCartridge(&i);
+		Engine::MessageBox("Failed to restore game.", "", "", "", "");
 	}
 	
     delete buffer;
