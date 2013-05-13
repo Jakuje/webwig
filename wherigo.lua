@@ -1,4 +1,4 @@
---- Wherigo Library, backward compatible with Wherigo Library by Groundspeak
+		--- Wherigo Library, backward compatible with Wherigo Library by Groundspeak
 --   @module Wherigo
 --   @author Jakub Jelen <a href="jakuje@gmail.com">jakuje@gmail.com</a>
 --   @copyright 2012 - 2013
@@ -667,7 +667,7 @@ Wherigo._getLocations = function()
 	local locations = "["
 	local first = true
 	for k,v in pairs(cartridge.AllZObjects) do
-		if v._classname == Wherigo.CLASS_ZONE and ((v.Active and v.Visible) or DEBUG) then
+		if v._classname == Wherigo.CLASS_ZONE and (v.Active and (v.Visible or DEBUG)) then
 			if not first then
 				locations = locations .. "," end
 			locations = locations .. "{\"name\": \"" .. Wherigo._toJSON(v.Name) .. "\""
