@@ -48,7 +48,7 @@ enyo.kind({
 		if( media ){
 			console.error("***** WIG Enyo: Media url: " + media);
 		}*/
-		this.owner.popupMessage( new WIGApp.MessageBox(message, "Message", this.cartDir + media, button1, button2, (callback == "1"))  );
+		this.owner.popupMessage( new WIGApp.MessageBox(message, "Message", (media != "" ? this.cartDir + media : null ), button1, button2, (callback == "1"))  );
 	},
 	dialog: function(message, media){
 		/*console.error("***** WIG Enyo: dialog:" + message);
