@@ -8,4 +8,5 @@ Todo
  * Disable turning off screen
  * Zone approach notification
  * Import functions from GWS (disabled for incompatibility)
-
+ * Disable screen timeout
+ * Show coordinates in GPS dashboard
