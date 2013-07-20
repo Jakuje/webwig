@@ -1,6 +1,6 @@
-		--- Wherigo Library, backward compatible with Wherigo Library by Groundspeak
+--- Wherigo Library, backward compatible with Wherigo Library by Groundspeak
 --   @module Wherigo
---   @author Jakub Jelen <a href="jakuje@gmail.com">jakuje@gmail.com</a>
+--   @author Jakub Jelen <a href="mailto:xjelen06@stud.fit.vutbr.cz">xjelen06@stud.fit.vutbr.cz</a>
 --   @copyright 2012 - 2013
 -- 
 
@@ -877,7 +877,7 @@ function Wherigo.Distance.new(value, units)
 	local self = { _classname = Wherigo.CLASS_DISTANCE}
 	if units == 'meters' or units == 'm' then
 		self.value = value
-	elseif units == 'kilometres' or units == 'km' then
+	elseif units == 'kilometers' or units == 'kilometres' or units == 'km' then
 		self.value = value * 1000
 	elseif units == 'feet' or units == 'ft' then
 		self.value = value * 1609.344 / 5280.0
