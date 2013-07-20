@@ -875,7 +875,7 @@ function Wherigo.Distance.new(value, units)
 	units = units or 'meters'
 	
 	local self = { _classname = Wherigo.CLASS_DISTANCE}
-	if units == 'meters' or units == 'm' then
+	if units == 'meters' or units == 'metres' or units == 'm' then
 		self.value = value
 	elseif units == 'kilometers' or units == 'kilometres' or units == 'km' then
 		self.value = value * 1000
