@@ -613,7 +613,7 @@ void UpdateGPS(PDL_Location *location){
 		//int old_class = acc_class;
 		bool update_all = false;
 		
-		if( location->latitude > -1 && location->longitude > -1 ){
+		if( location->latitude != -1 && location->longitude != -1 ){
 			update_all = WherigoLib::updateLocation(&location->latitude, &location->longitude,
 				&location->altitude, &location->horizontalAccuracy);
 			/*my_error("GPS updated successfully");

@@ -6,7 +6,7 @@
 	"splashicon": "logo_256.png",
 	"splashBackground": "images/splash.png",
 	"id": "com.dta3team.app.wherigo",
-	"version": "1.1.0",
+	"version": "1.1.2",
 	"vendor": "Jakuje",
 	"vendorurl": "http://jakuje.dta3.com/webwig.phtml",
 	"uiRevision": 2,

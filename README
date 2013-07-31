@@ -10,3 +10,5 @@ Todo
  * Import functions from GWS (disabled for incompatibility)
  * Disable screen timeout
  * Show coordinates in GPS dashboard
+ * Imperial units (ft) convert to miles for larger distances
+ * Accuracy to Imperial units
