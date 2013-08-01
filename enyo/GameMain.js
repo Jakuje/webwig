@@ -20,7 +20,7 @@ enyo.kind({
 		]},
 		{kind: "PageHeader", showing: false, name: "dashboard", components: [
 			{content: "Accuracy:&nbsp;"},
-			{name: "accuracy", content: "3 m"},
+			{name: "accuracy", content: "NA"},
 			{kind: "Spacer"},
 			{name: "GPSStatus", kind: "ToggleButton", onChange: "switchGPS"}
 		]},
@@ -137,7 +137,7 @@ enyo.kind({
 			acc_class = 4;
 		}
 		this.$.GPSAccuracy.setIcon("images/gps_"+acc_class+".png");
-		this.$.accuracy.setContent(acc + " m");
+		this.$.accuracy.setContent( this.owner.$.utils.FormatDistance(acc) );
 		this.$.GPSStatus.setState(data.gps.state);
 	},
 	detail_item: 0,
