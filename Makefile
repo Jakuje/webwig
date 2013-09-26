@@ -79,6 +79,7 @@ package: $(PLUGIN) appinfo.json logo.png
 	$(COPY) appinfo.json STAGING
 	$(COPY) framework_config.js STAGING
 	$(COPY) Wig.js STAGING
+	$(COPY) Wig.css STAGING
 	$(COPY) wherigo_plugin_appinfo.json STAGING
 	$(COPY) depends.js STAGING
 	$(COPY) index.html STAGING
@@ -95,8 +96,8 @@ package: $(PLUGIN) appinfo.json logo.png
 	palm-package STAGING
 
 install:
-	@echo "Installing version 1.1.2 !!!"
-	palm-install com.dta3team.app.wherigo_1.1.2_all.ipk
+	@echo "Installing version 1.1.3 !!!"
+	palm-install com.dta3team.app.wherigo_1.1.3_all.ipk
 
 run:
 	palm-run STAGING

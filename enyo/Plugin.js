@@ -205,6 +205,7 @@ enyo.kind({
 			{
 				"name": "Bod tady",
 				"description": "bla bla bla. ",
+				"media": "mess/screen/wherigo_2013-08-05_223822.png",
 				"distance": 0,
 				"bearing": 0,
 				"commands": [],

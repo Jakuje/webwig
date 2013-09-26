@@ -1,0 +1,9 @@
+#wIGApp_cList img.enyo-divider-icon,
+#wIGApp_cDetail img.enyo-divider-icon {
+	max-width: 32px;
+	max-height: 32px;
+}
+
+img {
+	 max-width: 100%;
+}

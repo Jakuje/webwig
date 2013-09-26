@@ -108,14 +108,14 @@ void CommandLineTests(int argc, char **argv){
 		lat = 48.491164;
 		lon = 9.208777;
 		Engine::setPosition(&lat, &lon);
-		/*
 		
-		int i = 56;
+		
+		int i = 13;
 		//CallbackFunction("OnClick", &i);
-		WherigoLib::CallbackFunction( "OnStartGame", &i );
-		WherigoLib::GetInputResponse( "Begin" );
+		WherigoLib::CallbackFunction( "StartGame", &i );
+		//WherigoLib::GetInputResponse( "Begin" );
 		
-		Engine::setPosition(&lat, &lon);*/
+		//Engine::setPosition(&lat, &lon);
 		
 		luaL_dostring(WherigoLib::L, "debug.debug()");
 		
